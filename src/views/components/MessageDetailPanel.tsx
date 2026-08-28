@@ -156,6 +156,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const hasRemoteImages = /<img\b[^>]*\ssrc\s*=\s*["'](https?:)?\/\//i.test(detail.body_html || "");
     // 신뢰 발신자(주소록)면 차단 안내 없이 바로 표시한다.
     const showRemoteImages = allowRemoteImages || trustedSender;
+    const hasAttachments = detail.attachments.length > 0;
 
     return (
         <Box
@@ -358,8 +359,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
 
             <Box ref={scrollRef} sx={embedded ? { minWidth: 0 } : { flex: 1, minHeight: 0, overflow: "auto" }}>
                 {/* 헤더 */}
-                {/* 외부 이미지 차단 박스가 보일 때는 하단 여백을 좌우 여백(16px)과 같게 */}
-                <Box sx={{ px: 2, pt: 1.5, pb: hasRemoteImages && !showRemoteImages ? 2 : 1 }}>
+                {/* 첨부 칩이나 외부 이미지 차단 박스가 보일 때는 하단 여백을 좌우 여백(16px)과 같게 */}
+                <Box sx={{ px: 2, pt: 1.5, pb: hasAttachments || (hasRemoteImages && !showRemoteImages) ? 2 : 1 }}>
                     {/* [별표][제목] — 중요 토글은 제목 왼쪽. 버튼 높이를 제목 첫 줄 높이(27px)와 같게 두고 그 안에서
                         아이콘을 가운데 놓아, 제목이 여러 줄이어도 첫 줄 세로 중앙에 정확히 맞는다(오프셋 계산 불필요). */}
                     <Stack direction="row" alignItems="flex-start" spacing={0.75}>
@@ -472,7 +473,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </Typography>
                     </Box>
                     {detail.attachments.length > 0 ? (
-                        <Stack direction="row" useFlexGap spacing={1} sx={{ mt: 1.5, flexWrap: "wrap" }}>
+                        <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1.5, flexWrap: "wrap" }}>
                             {detail.attachments.map((att) => (
                                 <AttachmentChip key={att.uuid} attachment={att} />
                             ))}
