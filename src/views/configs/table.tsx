@@ -3,16 +3,55 @@
  */
 
 import type { DataColumn } from "@ehfuse/mui-virtual-data-table";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import type { MailMessageListItem } from "../../models/types";
 import { formatCounterpart, formatMailListDate } from "../../utils/format";
 
+/** 복수 선택 상태(체크박스 컬럼) */
+export interface MailListSelection {
+    checked: Set<number>; // 선택된 seq
+    allChecked: boolean; // 현재 목록 전부 선택
+    someChecked: boolean; // 일부 선택
+    onToggle: (seq: number) => void; // 행 토글
+    onToggleAll: () => void; // 전체 토글
+}
+
 /** 목록 컬럼을 만든다. */
-export function getMailColumns(onToggleStar: (row: MailMessageListItem) => void): DataColumn<MailMessageListItem>[] {
+export function getMailColumns(
+    onToggleStar: (row: MailMessageListItem) => void,
+    selection: MailListSelection
+): DataColumn<MailMessageListItem>[] {
     return [
+        {
+            id: "_check",
+            text: (
+                <Checkbox
+                    size="small"
+                    checked={selection.allChecked}
+                    indeterminate={!selection.allChecked && selection.someChecked}
+                    onChange={selection.onToggleAll}
+                    onClick={(event) => event.stopPropagation()}
+                    sx={{ p: 0.5 }}
+                    inputProps={{ "aria-label": "전체 선택" }}
+                />
+            ),
+            width: 40,
+            align: "center",
+            style: { textAlign: "center" },
+            render: (row) => (
+                <Checkbox
+                    size="small"
+                    checked={selection.checked.has(row.seq)}
+                    onChange={() => selection.onToggle(row.seq)}
+                    onClick={(event) => event.stopPropagation()}
+                    sx={{ p: 0.5 }}
+                    inputProps={{ "aria-label": "선택" }}
+                />
+            ),
+        },
         {
             id: "is_starred",
             text: "",

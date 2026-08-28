@@ -9,7 +9,7 @@
  * 안 읽은 메일은 왼쪽 파란 세로띠로 구분한다.
  */
 
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -24,10 +24,20 @@ interface MailMobileListProps {
     emptyMessage: string; // 비었을 때 문구(오류/계정 없음/메일 없음)
     onSelect: (row: MailMessageListItem) => void; // 카드 탭 — 상세 열기
     onToggleStar: (row: MailMessageListItem) => void; // 별 탭 — 중요 토글
+    checkedSeqs: Set<number>; // 복수 선택된 seq
+    onToggleCheck: (seq: number) => void; // 체크박스 토글
 }
 
 /** 메일 모바일 카드 목록을 렌더링한다. */
-export function MailMobileList({ rows, loading, emptyMessage, onSelect, onToggleStar }: MailMobileListProps) {
+export function MailMobileList({
+    rows,
+    loading,
+    emptyMessage,
+    onSelect,
+    onToggleStar,
+    checkedSeqs,
+    onToggleCheck,
+}: MailMobileListProps) {
     if (rows.length === 0) {
         return loading ? (
             <MobileListLoadingSpinner />
@@ -57,8 +67,16 @@ export function MailMobileList({ rows, loading, emptyMessage, onSelect, onToggle
                             borderLeft: unread ? "4px solid #3b82f6" : "4px solid transparent",
                         }}
                     >
-                        {/* 중요 토글 — 카드 클릭(상세 열기)과 분리한다. */}
-                        <Box sx={{ display: "flex", alignItems: "flex-start", pt: 1.25, pl: 0.75 }}>
+                        {/* 체크박스(복수 선택) · 중요 토글 — 카드 클릭(상세 열기)과 분리한다. */}
+                        <Box sx={{ display: "flex", alignItems: "flex-start", pt: 1.25, pl: 0.5 }}>
+                            <Checkbox
+                                size="medium"
+                                checked={checkedSeqs.has(row.seq)}
+                                onChange={() => onToggleCheck(row.seq)}
+                                onClick={(event) => event.stopPropagation()}
+                                sx={{ p: 0.75 }}
+                                inputProps={{ "aria-label": "선택" }}
+                            />
                             <IconButton
                                 size="small"
                                 aria-label={row.is_starred ? "중요 해제" : "중요 표시"}

@@ -43,6 +43,7 @@ interface MessageDetailPanelProps {
     onEditDraft: () => void; // 임시보관 이어쓰기
     onComposeTo: (address: string) => void; // 주소 클릭 → 그 주소로 새 메일 작성
     onAddContact?: (address: string, name: string) => void; // 보낸 사람을 주소록에 추가
+    trustedSender?: boolean; // 보낸 사람이 주소록에 있음 — 외부 이미지를 차단하지 않고 바로 보여준다
     onToggleStar: () => void; // 중요 토글
     onMarkUnread: () => void; // 읽지 않음으로
     onTrash: () => void; // 휴지통
@@ -93,6 +94,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         onEditDraft,
         onComposeTo,
         onAddContact,
+        trustedSender = false,
         onToggleStar,
         onMarkUnread,
         onTrash,
@@ -125,6 +127,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const isSpam = detail.folder === "spam";
     const isDraft = detail.folder === "draft";
     const hasRemoteImages = /<img\b[^>]*\ssrc\s*=\s*["'](https?:)?\/\//i.test(detail.body_html || "");
+    // 신뢰 발신자(주소록)면 차단 안내 없이 바로 표시한다.
+    const showRemoteImages = allowRemoteImages || trustedSender;
 
     return (
         <Box
@@ -293,7 +297,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
             <Box ref={scrollRef} sx={embedded ? { minWidth: 0 } : { flex: 1, minHeight: 0, overflow: "auto" }}>
                 {/* 헤더 */}
                 {/* 외부 이미지 차단 박스가 보일 때는 하단 여백을 좌우 여백(16px)과 같게 */}
-                <Box sx={{ px: 2, pt: 1.5, pb: hasRemoteImages && !allowRemoteImages ? 2 : 1 }}>
+                <Box sx={{ px: 2, pt: 1.5, pb: hasRemoteImages && !showRemoteImages ? 2 : 1 }}>
                     {/* [별표][제목] — 중요 토글은 제목 왼쪽. 버튼 높이를 제목 첫 줄 높이(27px)와 같게 두고 그 안에서
                         아이콘을 가운데 놓아, 제목이 여러 줄이어도 첫 줄 세로 중앙에 정확히 맞는다(오프셋 계산 불필요). */}
                     <Stack direction="row" alignItems="flex-start" spacing={0.75}>
@@ -393,7 +397,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             ))}
                         </Stack>
                     ) : null}
-                    {hasRemoteImages && !allowRemoteImages ? (
+                    {hasRemoteImages && !showRemoteImages ? (
                         <Box
                             sx={{
                                 mt: 1.5,
@@ -424,7 +428,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 </Box>
                 <Divider />
                 {/* 본문 */}
-                <MailBodyFrame html={detail.body_html} text={detail.body_text} allowRemoteImages={allowRemoteImages} />
+                <MailBodyFrame html={detail.body_html} text={detail.body_text} allowRemoteImages={showRemoteImages} />
             </Box>
         </Box>
     );

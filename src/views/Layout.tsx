@@ -11,6 +11,7 @@ import { Box, Button, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
 import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
+import type { BulkMessageAction } from "../apis/mailApi";
 import { useModal } from "@ehfuse/forma";
 import { useIsMobile } from "../internal/useIsMobile";
 import { mfs } from "../internal/mobileFontScale";
@@ -34,6 +35,7 @@ import type {
     MailMessageListItem,
 } from "../models/types";
 import { useHeaderConfig } from "./Header";
+import { MailBulkActionBar } from "./components/MailBulkActionBar";
 import { MailHeaderActions } from "./components/MailHeaderActions";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
@@ -240,6 +242,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [logined]);
     const detailFromAddress = String(detail?.from?.address ?? "").toLowerCase();
     const canAddContact = Boolean(detailFromAddress) && !contactEmails.has(detailFromAddress);
+    // 주소록에 있는 보낸 사람의 메일은 외부 이미지를 차단하지 않는다(신뢰 발신자).
+    const trustedSender = Boolean(detailFromAddress) && contactEmails.has(detailFromAddress);
 
     /** 상세의 보낸 사람 → 주소록 추가(같은 주소가 이미 있으면 안내만 하고 아이콘을 감춘다). */
     const handleAddContact = useCallback(async (address: string, name: string) => {
@@ -299,6 +303,65 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [state.actions]
     );
 
+    // 복수 선택(체크박스) — 폴더/검색이 바뀌면 비운다.
+    const [checkedSeqs, setCheckedSeqs] = useState<Set<number>>(() => new Set());
+    const toggleChecked = useCallback((seq: number) => {
+        setCheckedSeqs((prev) => {
+            const next = new Set(prev);
+            if (next.has(seq)) next.delete(seq);
+            else next.add(seq);
+            return next;
+        });
+    }, []);
+    const allChecked = messages.length > 0 && messages.every((row) => checkedSeqs.has(row.seq));
+    const someChecked = messages.some((row) => checkedSeqs.has(row.seq));
+    const toggleAllChecked = useCallback(() => {
+        setCheckedSeqs(allChecked ? new Set() : new Set(messages.map((row) => row.seq)));
+    }, [allChecked, messages]);
+    const clearChecked = useCallback(() => setCheckedSeqs(new Set()), []);
+    useEffect(() => {
+        setCheckedSeqs(new Set());
+    }, [filterKey]);
+    /** 선택 건 일괄 처리(영구 삭제는 확인). */
+    const runBulkAction = useCallback(
+        (action: BulkMessageAction) => {
+            const seqs = messages.filter((row) => checkedSeqs.has(row.seq)).map((row) => row.seq);
+            if (seqs.length === 0) return;
+            const run = () =>
+                void state.actions.applyMessageAction(seqs, action).then((ok: boolean) => {
+                    if (!ok) return;
+                    setCheckedSeqs(new Set());
+                    if (
+                        seqs.includes(state.getValue("selectedSeq") as number) &&
+                        action !== "read" &&
+                        action !== "unread"
+                    )
+                        state.actions.clearSelection();
+                    void state.actions.loadCounts();
+                });
+            if (action === "delete") {
+                ConfirmDialog({
+                    title: "영구 삭제",
+                    message: `선택한 ${seqs.length}건을 영구 삭제합니다. 되돌릴 수 없습니다.`,
+                    onConfirm: run,
+                });
+                return;
+            }
+            run();
+        },
+        [messages, checkedSeqs, state]
+    );
+    const bulkBar =
+        checkedSeqs.size > 0 ? (
+            <MailBulkActionBar
+                count={messages.filter((row) => checkedSeqs.has(row.seq)).length}
+                folder={filters.folder}
+                compact={isMobile}
+                onAction={runBulkAction}
+                onClear={clearChecked}
+            />
+        ) : null;
+
     const headerActions = (
         <MailHeaderActions
             accounts={accounts}
@@ -323,12 +386,23 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 >
                     새 메일
                 </Button>
+                {bulkBar}
             </Stack>
         ),
         right: isMobile ? undefined : headerActions,
     });
 
-    const columns = useMemo(() => getMailColumns(handleToggleStar), [handleToggleStar]);
+    const columns = useMemo(
+        () =>
+            getMailColumns(handleToggleStar, {
+                checked: checkedSeqs,
+                allChecked,
+                someChecked,
+                onToggle: toggleChecked,
+                onToggleAll: toggleAllChecked,
+            }),
+        [handleToggleStar, checkedSeqs, allChecked, someChecked, toggleChecked, toggleAllChecked]
+    );
     const hasMore = messages.length < total;
 
     // 무한 스크롤 — 데스크탑은 vdt onLoadMore, 모바일은 하단 sentinel. 진행 중 중복 호출을 막는다.
@@ -367,6 +441,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             onReply={(mode) => detail && compose.form.actions.openFromMessage(detail, mode, detailAccount)}
             onEditDraft={() => detail && compose.form.actions.openDraft(detail)}
             onComposeTo={handleComposeTo}
+            trustedSender={trustedSender}
             onAddContact={canAddContact ? (address, name) => void handleAddContact(address, name) : undefined}
             onToggleStar={() =>
                 detail && void state.actions.applyMessageAction([detail.seq], detail.is_starred ? "unstar" : "star")
@@ -433,14 +508,26 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, minWidth: 0 }}>
                         {/* 툴바 — 현재 계정 범위(+받은편지함 미읽음) · 동기화 · 계정 관리 */}
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 0.5, minWidth: 0 }}>
-                            <Typography
-                                noWrap
-                                sx={{ flex: 1, minWidth: 0, fontSize: mfs(15), color: "#475569", fontWeight: 600 }}
-                            >
-                                {scopeLabel}
-                                {unreadLabel}
-                            </Typography>
-                            {headerActions}
+                            {bulkBar ? (
+                                <Box sx={{ flex: 1, minWidth: 0 }}>{bulkBar}</Box>
+                            ) : (
+                                <>
+                                    <Typography
+                                        noWrap
+                                        sx={{
+                                            flex: 1,
+                                            minWidth: 0,
+                                            fontSize: mfs(15),
+                                            color: "#475569",
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {scopeLabel}
+                                        {unreadLabel}
+                                    </Typography>
+                                    {headerActions}
+                                </>
+                            )}
                         </Box>
                         <MailMobileList
                             rows={messages}
@@ -448,6 +535,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             emptyMessage={emptyMessage}
                             onSelect={(row) => void state.actions.selectMessage(row.seq)}
                             onToggleStar={handleToggleStar}
+                            checkedSeqs={checkedSeqs}
+                            onToggleCheck={toggleChecked}
                         />
                         {/* 무한 스크롤 sentinel — 뷰포트(또는 다이얼로그 스크롤러)에 들어오면 다음 페이지 */}
                         {loadingMore ? <MobileListLoadingMoreSpinner /> : null}
