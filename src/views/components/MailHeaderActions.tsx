@@ -34,6 +34,18 @@ export function MailHeaderActions({
     const hasError = accounts.some((a) => a.last_error);
     return (
         <Stack direction="row" spacing={0.5} alignItems="center">
+            <Tooltip title="새로고침 (새 메일 받기)">
+                <span>
+                    <IconButton
+                        size="small"
+                        onClick={onSync}
+                        disabled={syncing || accounts.length === 0}
+                        aria-label="새로고침"
+                    >
+                        {syncing ? <CircularProgress size={18} /> : <SyncIcon />}
+                    </IconButton>
+                </span>
+            </Tooltip>
             {viewMode && onViewModeChange ? (
                 <ToggleButtonGroup
                     size="small"
@@ -41,7 +53,7 @@ export function MailHeaderActions({
                     value={viewMode}
                     onChange={(_, next: MailViewMode | null) => next && onViewModeChange(next)}
                     aria-label="보기 타입"
-                    sx={{ mr: 0.5, "& .MuiToggleButton-root": { px: 1, py: 0.5, border: "1px solid #cbd5e1" } }}
+                    sx={{ mx: 0.5, "& .MuiToggleButton-root": { px: 1, py: 0.5, border: "1px solid #cbd5e1" } }}
                 >
                     <ToggleButton value="list" aria-label="목록형">
                         <Tooltip title="목록형 (상세는 오른쪽 드로어)">
@@ -55,18 +67,6 @@ export function MailHeaderActions({
                     </ToggleButton>
                 </ToggleButtonGroup>
             ) : null}
-            <Tooltip title="새로고침 (새 메일 받기)">
-                <span>
-                    <IconButton
-                        size="small"
-                        onClick={onSync}
-                        disabled={syncing || accounts.length === 0}
-                        aria-label="새로고침"
-                    >
-                        {syncing ? <CircularProgress size={18} /> : <SyncIcon />}
-                    </IconButton>
-                </span>
-            </Tooltip>
             <Tooltip title={hasError ? "메일 계정 설정 (동기화 오류 있음)" : "메일 계정 설정"}>
                 <IconButton size="small" onClick={onOpenSettings} aria-label="계정 설정">
                     <Badge color="error" variant="dot" invisible={!hasError}>
