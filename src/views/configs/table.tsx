@@ -79,7 +79,7 @@ export function getMailColumns(
         {
             id: "from_name",
             text: "보낸 사람",
-            width: "22%",
+            width: 200,
             render: (row) => (
                 <Typography
                     noWrap
