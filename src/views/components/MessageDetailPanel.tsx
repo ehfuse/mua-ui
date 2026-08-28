@@ -398,12 +398,15 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             gridTemplateColumns: "72px 1fr",
                             rowGap: 0.4,
                             columnGap: 1,
-                            fontSize: "14.5px",
+                            fontSize: "15px",
+                            lineHeight: "26px",
                             color: "#111",
                         }}
                     >
-                        <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>보낸 사람</Typography>
-                        <Typography sx={{ fontSize: "14.5px", wordBreak: "break-all" }}>
+                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                            보낸 사람
+                        </Typography>
+                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
                             {detail.from ? (
                                 <>
                                     {detail.from.name ? `${detail.from.name} <` : ""}
@@ -417,7 +420,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                             underline="hover"
                                             onClick={() => onComposeTo(detail.from!.address)}
                                             sx={{
-                                                fontSize: "14.5px",
+                                                fontSize: "15px",
+                                                lineHeight: "26px",
                                                 verticalAlign: "baseline",
                                                 wordBreak: "break-all",
                                             }}
@@ -426,46 +430,46 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                         </Link>
                                     )}
                                     {detail.from.name ? ">" : ""}
-                                    {/* 주소록 추가 — 이미 있으면 자리만 남기고 숨겨(visibility) 줄 높이가 흔들리지 않게 한다 */}
-                                    <Tooltip title={onAddContact ? "주소록에 추가" : ""}>
-                                        <IconButton
-                                            size="small"
-                                            aria-label="주소록에 추가"
-                                            aria-hidden={!onAddContact}
-                                            tabIndex={onAddContact ? 0 : -1}
-                                            disabled={!onAddContact}
-                                            onClick={() =>
-                                                onAddContact?.(detail.from!.address, detail.from!.name ?? "")
-                                            }
-                                            sx={{
-                                                ml: 0.5,
-                                                p: 0.25,
-                                                verticalAlign: "middle",
-                                                visibility: onAddContact ? "visible" : "hidden",
-                                            }}
-                                        >
-                                            <PersonAddAlt1OutlinedIcon sx={{ fontSize: 18 }} />
-                                        </IconButton>
-                                    </Tooltip>
+                                    {/* 주소록 추가 — 버튼을 줄 높이(26px) 안에 맞춰 있고 없음이 줄 높이에 영향을 주지 않는다 */}
+                                    {onAddContact ? (
+                                        <Tooltip title="주소록에 추가">
+                                            <IconButton
+                                                size="small"
+                                                aria-label="주소록에 추가"
+                                                onClick={() =>
+                                                    onAddContact(detail.from!.address, detail.from!.name ?? "")
+                                                }
+                                                sx={{ ml: 0.5, p: 0, width: 26, height: 26, verticalAlign: "top" }}
+                                            >
+                                                <PersonAddAlt1OutlinedIcon sx={{ fontSize: 18 }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    ) : null}
                                 </>
                             ) : (
                                 "-"
                             )}
                         </Typography>
-                        <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>받는 사람</Typography>
-                        <Typography sx={{ fontSize: "14.5px", wordBreak: "break-all" }}>
+                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                            받는 사람
+                        </Typography>
+                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
                             {formatAddressList(detail.to) || "-"}
                         </Typography>
                         {detail.cc.length > 0 ? (
                             <>
-                                <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>참조</Typography>
-                                <Typography sx={{ fontSize: "14.5px", wordBreak: "break-all" }}>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                                    참조
+                                </Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
                                     {formatAddressList(detail.cc)}
                                 </Typography>
                             </>
                         ) : null}
-                        <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>일시</Typography>
-                        <Typography sx={{ fontSize: "14.5px" }}>{formatMailFullDate(detail.date_time)}</Typography>
+                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>일시</Typography>
+                        <Typography sx={{ fontSize: "15px", lineHeight: "26px" }}>
+                            {formatMailFullDate(detail.date_time)}
+                        </Typography>
                     </Box>
                     {detail.attachments.length > 0 ? (
                         <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}>
