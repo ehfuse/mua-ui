@@ -350,7 +350,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         },
         [messages, checkedSeqs, state]
     );
-    const checkedCount = messages.filter((row) => checkedSeqs.has(row.seq)).length;
+    const checkedRows = messages.filter((row) => checkedSeqs.has(row.seq));
+    const checkedCount = checkedRows.length;
     /** 답장/전달 대상 — 체크 1건이면 그 메일, 체크가 없으면 열려 있는 상세. */
     const replyTargetSeq =
         checkedCount === 1
@@ -384,6 +385,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 compact={isMobile}
                 onAction={runBulkAction}
                 replyEnabled={replyTargetSeq > 0 && filters.folder !== "draft"}
+                canMarkRead={checkedRows.some((row) => !row.is_read)}
+                canMarkUnread={checkedRows.some((row) => row.is_read)}
                 onReply={(mode) => void handleToolbarReply(mode)}
             />
         ) : null;

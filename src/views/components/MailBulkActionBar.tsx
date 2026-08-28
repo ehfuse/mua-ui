@@ -22,6 +22,8 @@ interface MailBulkActionBarProps {
     compact?: boolean; // 모바일(아이콘만)
     onAction: (action: BulkMessageAction) => void; // 액션 실행
     replyEnabled?: boolean; // 답장/전체 답장/전달 가능(대상 메일이 1건일 때)
+    canMarkRead?: boolean; // 선택 중 안 읽은 메일이 있음("읽음으로 표시" 활성 조건)
+    canMarkUnread?: boolean; // 선택 중 읽은 메일이 있음("읽지 않음으로 표시" 활성 조건)
     onReply?: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전체 답장/전달
 }
 
@@ -45,6 +47,8 @@ export function MailBulkActionBar({
     compact = false,
     onAction,
     replyEnabled = false,
+    canMarkRead = true,
+    canMarkUnread = true,
     onReply,
 }: MailBulkActionBarProps) {
     const isTrash = folder === "trash";
@@ -64,8 +68,8 @@ export function MailBulkActionBar({
                 {label}
             </Button>
         );
-    const button = (label: string, icon: ReactNode, action: BulkMessageAction) =>
-        item(action, label, icon, () => onAction(action), disabled);
+    const button = (label: string, icon: ReactNode, action: BulkMessageAction, enabled = true) =>
+        item(action, label, icon, () => onAction(action), disabled || !enabled);
     const replyButton = (label: string, icon: ReactNode, mode: "reply" | "replyAll" | "forward") =>
         item(mode, label, icon, () => onReply?.(mode), !replyEnabled || !onReply);
     const items: ReactNode[] = [];
@@ -84,13 +88,15 @@ export function MailBulkActionBar({
             items.push(replyButton("전체 답장", <ReplyAllOutlinedIcon fontSize="small" />, "replyAll"));
             items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
         }
-        items.push(button("읽음으로 표시", <MarkEmailReadOutlinedIcon fontSize="small" />, "read"));
-        items.push(button("읽지 않음으로 표시", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread"));
+        items.push(button("읽음으로 표시", <MarkEmailReadOutlinedIcon fontSize="small" />, "read", canMarkRead));
+        items.push(
+            button("읽지 않음으로 표시", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread)
+        );
     }
     return (
         <Stack
             direction="row"
-            spacing={compact ? 0.5 : 1}
+            spacing={compact ? 0.5 : 1.5}
             alignItems="center"
             sx={{ flexWrap: "wrap", rowGap: 0.5, minWidth: 0 }}
         >
