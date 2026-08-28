@@ -3,7 +3,7 @@
  */
 
 import { Badge, CircularProgress, IconButton, Stack, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import ViewListOutlinedIcon from "@mui/icons-material/ViewListOutlined";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import VerticalSplitOutlinedIcon from "@mui/icons-material/VerticalSplitOutlined";
 import { Tooltip } from "../../internal/Tooltip";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
@@ -45,7 +45,7 @@ export function MailHeaderActions({
                 >
                     <ToggleButton value="list" aria-label="목록형">
                         <Tooltip title="목록형 (상세는 오른쪽 드로어)">
-                            <ViewListOutlinedIcon fontSize="small" />
+                            <FormatListBulletedIcon fontSize="small" />
                         </Tooltip>
                     </ToggleButton>
                     <ToggleButton value="split" aria-label="분할화면">
