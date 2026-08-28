@@ -18,7 +18,13 @@ export function formatMailListDate(value: string | null | undefined): string {
     if (!date) return "";
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
-    if (date.toDateString() === now.toDateString()) return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    if (date.toDateString() === now.toDateString()) {
+        // 오늘은 "오후 6:31" 처럼 12시간제(0시 = 오전 12시).
+        const hours = date.getHours();
+        const meridiem = hours < 12 ? "오전" : "오후";
+        const hour12 = hours % 12 === 0 ? 12 : hours % 12;
+        return `${meridiem} ${hour12}:${pad(date.getMinutes())}`;
+    }
     if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}월 ${date.getDate()}일`;
     return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`;
 }
