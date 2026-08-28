@@ -662,7 +662,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     data: messages,
                     totalCount: total,
                     getRowId: (row: MailMessageListItem) => row.seq,
-                    rowHeight: 52,
+                    rowHeight: 44,
                     loading: loadingList,
                     selectedRowId: selectedSeq || null,
                     selectedRowSx: { backgroundColor: "#dbeafe", boxShadow: "inset 3px 0 0 #3b82f6" },
