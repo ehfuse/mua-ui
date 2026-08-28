@@ -398,12 +398,12 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             gridTemplateColumns: "72px 1fr",
                             rowGap: 0.4,
                             columnGap: 1,
-                            fontSize: "13.5px",
+                            fontSize: "14.5px",
                             color: "#111",
                         }}
                     >
-                        <Typography sx={{ fontSize: "13.5px", color: "#475569" }}>보낸 사람</Typography>
-                        <Typography sx={{ fontSize: "13.5px", wordBreak: "break-all" }}>
+                        <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>보낸 사람</Typography>
+                        <Typography sx={{ fontSize: "14.5px", wordBreak: "break-all" }}>
                             {detail.from ? (
                                 <>
                                     {detail.from.name ? `${detail.from.name} <` : ""}
@@ -417,7 +417,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                             underline="hover"
                                             onClick={() => onComposeTo(detail.from!.address)}
                                             sx={{
-                                                fontSize: "13.5px",
+                                                fontSize: "14.5px",
                                                 verticalAlign: "baseline",
                                                 wordBreak: "break-all",
                                             }}
@@ -445,20 +445,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 "-"
                             )}
                         </Typography>
-                        <Typography sx={{ fontSize: "13.5px", color: "#475569" }}>받는 사람</Typography>
-                        <Typography sx={{ fontSize: "13.5px", wordBreak: "break-all" }}>
+                        <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>받는 사람</Typography>
+                        <Typography sx={{ fontSize: "14.5px", wordBreak: "break-all" }}>
                             {formatAddressList(detail.to) || "-"}
                         </Typography>
                         {detail.cc.length > 0 ? (
                             <>
-                                <Typography sx={{ fontSize: "13.5px", color: "#475569" }}>참조</Typography>
-                                <Typography sx={{ fontSize: "13.5px", wordBreak: "break-all" }}>
+                                <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>참조</Typography>
+                                <Typography sx={{ fontSize: "14.5px", wordBreak: "break-all" }}>
                                     {formatAddressList(detail.cc)}
                                 </Typography>
                             </>
                         ) : null}
-                        <Typography sx={{ fontSize: "13.5px", color: "#475569" }}>일시</Typography>
-                        <Typography sx={{ fontSize: "13.5px" }}>{formatMailFullDate(detail.date_time)}</Typography>
+                        <Typography sx={{ fontSize: "14.5px", color: "#475569" }}>일시</Typography>
+                        <Typography sx={{ fontSize: "14.5px" }}>{formatMailFullDate(detail.date_time)}</Typography>
                     </Box>
                     {detail.attachments.length > 0 ? (
                         <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}>
