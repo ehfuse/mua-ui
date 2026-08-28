@@ -2,7 +2,7 @@
  * 메일 모듈 기본값.
  */
 
-import type { ComposeForm, MailAccountForm, MailFilters, MailFolderCounts, MailState } from "./types";
+import type { MailContactForm, ComposeForm, MailAccountForm, MailFilters, MailFolderCounts, MailState } from "./types";
 
 /** 폴더 건수 기본값 */
 export const defaultMailFolderCounts: MailFolderCounts = {
@@ -83,4 +83,15 @@ export const defaultComposeForm: ComposeForm = {
     in_reply_to: "",
     references: [],
     showCcBcc: false,
+};
+
+/** 연락처 폼 기본값 */
+export const defaultMailContactForm: MailContactForm = {
+    seq: 0,
+    name: "",
+    email: "",
+    organization: "",
+    phone: "",
+    memo: "",
+    is_favorite: false,
 };

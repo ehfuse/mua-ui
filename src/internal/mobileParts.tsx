@@ -55,7 +55,15 @@ export const MOBILE_LIST_CARD_GAP = { xs: 2, md: 3 };
 /** 모바일 초기/새로고침 로딩 — 뷰포트 고정 스피너(앱바 높이 절반만큼 내려 콘텐츠 영역 중앙). */
 export function MobileListLoadingSpinner() {
     return (
-        <Box sx={{ position: "fixed", top: "calc(50% + 30px)", left: "50%", transform: "translate(-50%, -50%)", zIndex: 1 }}>
+        <Box
+            sx={{
+                position: "fixed",
+                top: "calc(50% + 30px)",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 1,
+            }}
+        >
             <CircularProgress size={44} thickness={4} sx={{ color: "#94a3b8" }} />
         </Box>
     );

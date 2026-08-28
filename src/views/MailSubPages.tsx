@@ -7,6 +7,7 @@
 
 import { useMailSubPageAccountSeq } from "../models/subPage";
 import MailLayout from "./Layout";
+import ContactsPage from "./ContactsPage";
 
 /** 받은편지함(전체 또는 계정별 — 계정은 openMailSubPage 가 스토어에 적어 둔 값). */
 export function MailInboxSubPage() {
@@ -37,4 +38,9 @@ export function MailSpamSubPage() {
 /** 휴지통 */
 export function MailTrashSubPage() {
     return <MailLayout embedded={{ folder: "trash" }} />;
+}
+
+/** 주소록 */
+export function MailContactsSubPage() {
+    return <ContactsPage embedded />;
 }

@@ -10,7 +10,7 @@ import { useParams } from "react-router-dom";
 import { Box, Button, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
-import { ConfirmDialog } from "@ehfuse/alerts";
+import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { useModal } from "@ehfuse/forma";
 import { useIsMobile } from "../internal/useIsMobile";
 import { mfs } from "../internal/mobileFontScale";
@@ -19,6 +19,7 @@ import { getMuaSubPageBridge } from "../internal/subPageBridge";
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
+import { mailApi } from "../apis/mailApi";
 import { useMailRealtime, type MailChangedData } from "../apis/useMailRealtime";
 import { useComposeController } from "../controllers/composeController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
@@ -220,6 +221,20 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [detailAccount, compose.form.actions, accountForm.form.actions]
     );
 
+    /** 상세의 보낸 사람 → 주소록 추가(같은 주소가 이미 있으면 안내만). */
+    const handleAddContact = useCallback(async (address: string, name: string) => {
+        try {
+            const res = await mailApi.createContact({ email: address, name });
+            if (res && res.ok === false) {
+                WarningAlert({ message: res.error || "이미 주소록에 있는 메일 주소입니다." });
+                return;
+            }
+            SuccessAlert("주소록에 추가했습니다.");
+        } catch (error) {
+            ErrorAlert({ message: error instanceof Error ? error.message : "주소록에 추가하지 못했습니다." });
+        }
+    }, []);
+
     // ⚙ = 계정 관리 다이얼로그(목록에서 추가/수정/삭제/동기화). 등록·수정 창은 그 위에 겹쳐 연다.
     const manageModal = useModal({ modalId: "mail-accounts-manage-dialog" });
     const handleManageAccounts = useCallback(() => manageModal.open(), [manageModal]);
@@ -304,6 +319,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             onReply={(mode) => detail && compose.form.actions.openFromMessage(detail, mode, detailAccount)}
             onEditDraft={() => detail && compose.form.actions.openDraft(detail)}
             onComposeTo={handleComposeTo}
+            onAddContact={(address, name) => void handleAddContact(address, name)}
             onToggleStar={() =>
                 detail && void state.actions.applyMessageAction([detail.seq], detail.is_starred ? "unstar" : "star")
             }

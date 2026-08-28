@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import { StarRoundedIcon, TrashIcon } from "../../internal/icons";
@@ -41,6 +42,7 @@ interface MessageDetailPanelProps {
     onReply: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전달
     onEditDraft: () => void; // 임시보관 이어쓰기
     onComposeTo: (address: string) => void; // 주소 클릭 → 그 주소로 새 메일 작성
+    onAddContact?: (address: string, name: string) => void; // 보낸 사람을 주소록에 추가
     onToggleStar: () => void; // 중요 토글
     onMarkUnread: () => void; // 읽지 않음으로
     onTrash: () => void; // 휴지통
@@ -90,6 +92,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         onReply,
         onEditDraft,
         onComposeTo,
+        onAddContact,
         onToggleStar,
         onMarkUnread,
         onTrash,
@@ -349,6 +352,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                         {detail.from.address}
                                     </Link>
                                     {detail.from.name ? ">" : ""}
+                                    {onAddContact ? (
+                                        <Tooltip title="주소록에 추가">
+                                            <IconButton
+                                                size="small"
+                                                aria-label="주소록에 추가"
+                                                onClick={() =>
+                                                    onAddContact(detail.from!.address, detail.from!.name ?? "")
+                                                }
+                                                sx={{ ml: 0.5, p: 0.25, verticalAlign: "middle" }}
+                                            >
+                                                <PersonAddAlt1OutlinedIcon sx={{ fontSize: 18 }} />
+                                            </IconButton>
+                                        </Tooltip>
+                                    ) : null}
                                 </>
                             ) : (
                                 "-"

@@ -7,14 +7,16 @@ import type {
     ComposeRequest,
     MailAccount,
     MailAccountRequest,
+    MailAccountSecrets,
     MailConnectionTestResult,
+    MailContact,
+    MailContactRequest,
     MailFolder,
     MailFolderCounts,
     MailListFolder,
     MailMessageDetail,
     MailMessageListItem,
     MailSyncResult,
-    MailAccountSecrets,
 } from "../models/types";
 
 /** AS 표준 응답 */
@@ -105,6 +107,20 @@ export const mailApi = {
         entityAppServer.http.post<ApiOk<{ seq: number; message_id: string }>>("/v1/mua/send", body),
     /** 임시보관 저장 */
     saveDraft: (body: ComposeRequest) => entityAppServer.http.post<ApiOk<MailMessageDetail>>("/v1/mua/drafts", body),
+    /** 주소록 목록(이름/메일 검색) */
+    listContacts: (search = "") =>
+        entityAppServer.http.get<ApiOk<{ items: MailContact[]; total: number }>>(
+            `/v1/mua/contacts${toQuery({ search, limit: 500 })}`
+        ),
+    /** 연락처 등록(같은 주소가 있으면 ok:false + 409 문구, data = 기존 행) */
+    createContact: (body: MailContactRequest) =>
+        entityAppServer.http.post<ApiOk<MailContact>>("/v1/mua/contacts", body),
+    /** 연락처 수정 */
+    updateContact: (seq: number, body: MailContactRequest) =>
+        entityAppServer.http.patch<ApiOk<MailContact>>(`/v1/mua/contacts/${seq}`, body),
+    /** 연락처 삭제 */
+    deleteContact: (seq: number) =>
+        entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/contacts/${seq}`, {}),
     /** 첨부 다운로드(ES 파일 스토리지, 앵커 mail_message) */
     downloadAttachment: (uuid: string) => entityAppServer.fileDownload("mail_message", uuid),
 };

@@ -75,12 +75,11 @@ export function useMuaFileUploadBox(): ComponentType<MuaFileUploadBoxProps> {
 export function useMuaSaveBlob(): (blob: Blob, filename: string) => Promise<boolean> {
     const custom = useMuaConfig().saveBlob;
     return useMemo(
-        () =>
-            async (blob: Blob, filename: string) => {
-                if (!custom) return anchorSaveBlob(blob, filename);
-                const result = await custom(blob, filename);
-                return result !== false;
-            },
+        () => async (blob: Blob, filename: string) => {
+            if (!custom) return anchorSaveBlob(blob, filename);
+            const result = await custom(blob, filename);
+            return result !== false;
+        },
         [custom]
     );
 }

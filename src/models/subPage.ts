@@ -13,23 +13,28 @@ import type { MuaSubPageId as SubPageId } from "../types/config";
 import type { MailListFolder } from "./types";
 
 /** 폴더 → 서브페이지 id */
-export const MAIL_SUB_PAGE_ID_BY_FOLDER: Record<MailListFolder, SubPageId> = {
+/** 서브페이지로 열 수 있는 메일 화면 키(폴더 + 주소록) */
+export type MailSubPageKey = MailListFolder | "contacts";
+
+export const MAIL_SUB_PAGE_ID_BY_FOLDER: Record<MailSubPageKey, SubPageId> = {
     inbox: "mail-inbox",
     sent: "mail-sent",
     starred: "mail-starred",
     draft: "mail-draft",
     spam: "mail-spam",
     trash: "mail-trash",
+    contacts: "mail-contacts",
 };
 
 /** 폴더 표시명(제목바·상세 다이얼로그 제목) — 사이드바 메뉴 라벨과 동일. */
-export const MAIL_FOLDER_LABELS: Record<MailListFolder, string> = {
+export const MAIL_FOLDER_LABELS: Record<MailSubPageKey, string> = {
     inbox: "받은편지함",
     sent: "보낸편지함",
     starred: "중요편지함",
     draft: "임시보관함",
     spam: "스팸함",
     trash: "휴지통",
+    contacts: "주소록",
 };
 
 /** 서브페이지 id 가 메일 폴더 페이지인지 판정한다. */
@@ -56,7 +61,7 @@ export function useMailSubPageAccountSeq(): number {
  * @param folder 폴더
  * @param accountSeq 계정별 받은편지함이면 계정 seq(그 외 0 = 전체 계정)
  */
-export function openMailSubPage(folder: MailListFolder, accountSeq = 0): void {
+export function openMailSubPage(folder: MailSubPageKey, accountSeq = 0): void {
     const next = Number.isInteger(accountSeq) && accountSeq > 0 ? accountSeq : 0;
     if (targetAccountSeq !== next) {
         targetAccountSeq = next;

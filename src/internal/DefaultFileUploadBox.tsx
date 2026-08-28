@@ -19,7 +19,10 @@ export function DefaultFileUploadBox({
     const [files, setFiles] = useState<File[]>([]);
     const [dragging, setDragging] = useState(false);
 
-    const accept = acceptedFileTypes.length > 0 ? acceptedFileTypes.map((ext) => `.${ext.replace(/^\./, "")}`).join(",") : undefined;
+    const accept =
+        acceptedFileTypes.length > 0
+            ? acceptedFileTypes.map((ext) => `.${ext.replace(/^\./, "")}`).join(",")
+            : undefined;
 
     const addFiles = useCallback(
         (incoming: File[]) => {

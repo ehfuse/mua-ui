@@ -11,13 +11,26 @@ import type { MuaMobileCardListLayoutProps, MuaMobileDetailDialogProps } from ".
 export function DefaultMobileCardListLayout({ header, storageKey, children }: MuaMobileCardListLayoutProps) {
     return (
         <Box sx={{ minWidth: 0, "& .list-layout": { height: "auto", minWidth: 0 } }}>
-            <ListLayout header={header} leftPaper={false} leftScroll={false} storageKey={storageKey} leftPanel={children} />
+            <ListLayout
+                header={header}
+                leftPaper={false}
+                leftScroll={false}
+                storageKey={storageKey}
+                leftPanel={children}
+            />
         </Box>
     );
 }
 
 /** 기본 상세 다이얼로그 — mfd 풀스크린 슬라이드(useModal 로 history 1개). */
-export function DefaultMobileDetailDialog({ modalId, open, title, onClose, children, actions }: MuaMobileDetailDialogProps) {
+export function DefaultMobileDetailDialog({
+    modalId,
+    open,
+    title,
+    onClose,
+    children,
+    actions,
+}: MuaMobileDetailDialogProps) {
     const FormDialog = useMuaFormDialog();
     const handleClosed = useCallback(() => onClose(), [onClose]);
     const modal = useModal({ modalId, onClose: handleClosed });

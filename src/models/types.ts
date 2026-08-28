@@ -232,3 +232,33 @@ export type MailAccountRequest = Omit<
     incoming_port?: number; // 포트(빈값이면 서버 기본)
     smtp_port?: number; // 포트
 };
+
+/** 주소록 연락처 */
+export interface MailContact {
+    seq: number; // seq
+    account_seq: number; // 소유자
+    name: string; // 이름
+    email: string; // 메일 주소
+    organization: string; // 소속
+    phone: string; // 전화번호
+    memo: string; // 메모
+    is_favorite: boolean; // 즐겨찾기
+    created_time?: string; // 등록 일시
+    updated_time?: string; // 수정 일시
+}
+
+/** 연락처 등록/수정 요청 */
+export type MailContactRequest = Partial<
+    Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite">
+>;
+
+/** 연락처 폼 */
+export interface MailContactForm {
+    seq: number; // 0 = 신규
+    name: string; // 이름
+    email: string; // 메일 주소
+    organization: string; // 소속
+    phone: string; // 전화번호
+    memo: string; // 메모
+    is_favorite: boolean; // 즐겨찾기
+}

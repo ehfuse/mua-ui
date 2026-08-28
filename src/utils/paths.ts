@@ -16,3 +16,8 @@ export function mailInboxPath(): string {
 export function mailAccountInboxPath(accountSeq: number, basePath = getMailInboxPath()): string {
     return `${basePath}/account/${accountSeq}`;
 }
+
+/** 주소록 경로(라우트 `mail/contacts`). */
+export function mailContactsPath(basePath = getMailInboxPath()): string {
+    return `${basePath}/contacts`;
+}

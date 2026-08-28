@@ -1,6 +1,6 @@
 {
     "name": "@ehfuse/mua-ui",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "description": "A React/MUI mail user agent UI — external IMAP/POP3/SMTP accounts, inbox/folders, compose, mobile sub-pages (pairs with the codeshop AS mua plugin)",
     "type": "module",
     "main": "dist/index.js",
