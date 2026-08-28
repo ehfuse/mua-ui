@@ -8,7 +8,14 @@ import { ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../apis/mailApi";
 import type { MuaModalControl } from "../types/modal";
 import { defaultComposeForm } from "../models/defaults";
-import type { ComposeForm, ComposeMode, ComposeRequest, MailAccount, MailMessageDetail } from "../models/types";
+import type {
+    ComposeForm,
+    ComposeMode,
+    ComposeRequest,
+    MailAccount,
+    MailMessageDetail,
+    ComposeAttachment,
+} from "../models/types";
 import { formatAddressLabel, splitAddressInput } from "../utils/format";
 import { buildQuotedBody, prefixSubject } from "../utils/html";
 
@@ -38,6 +45,8 @@ export function toComposeRequest(values: ComposeForm): ComposeRequest {
             name: a.name,
             mime: a.mime,
             content_base64: a.content_base64,
+            ...(a.source_message_seq ? { source_message_seq: a.source_message_seq } : {}),
+            ...(a.eml_message_seq ? { eml_message_seq: a.eml_message_seq } : {}),
         })),
         in_reply_to: values.in_reply_to || null,
         references: values.references,
@@ -87,7 +96,13 @@ const openFromMessage =
             // 전달은 원문 첨부를 그대로 싣는다(uuid 참조 — 서버가 ES 에서 내려받아 첨부한다).
             attachments:
                 mode === "forward"
-                    ? detail.attachments.map((a) => ({ uuid: a.uuid, name: a.name, mime: a.mime, size: a.size }))
+                    ? detail.attachments.map((a) => ({
+                          uuid: a.uuid,
+                          name: a.name,
+                          mime: a.mime,
+                          size: a.size,
+                          source_message_seq: detail.seq,
+                      }))
                     : [],
             in_reply_to: mode === "forward" ? "" : (detail.message_id ?? ""),
             references: mode === "forward" ? [] : references,
@@ -95,17 +110,23 @@ const openFromMessage =
         modal.open();
     };
 
-/** 여러 통 전달 열기 — 원문들을 순서대로 이어 붙이고 첨부는 전부 합친다(uuid 중복 제거). */
+/** 여러 통 전달 열기 — 원문 각각을 .eml 첨부로 싣는다(본문은 서명만). 서버가 eml_message_seq 로 원문을 조립한다. */
 const openForwardMany =
     (modal: ReturnType<typeof useModal>) =>
     (context: ActionContext<ComposeForm>, details: MailMessageDetail[], account: MailAccount | undefined): void => {
         if (details.length === 0) return;
         const first = details[0];
-        const seen = new Set<string>();
-        const attachments = details
-            .flatMap((d) => d.attachments)
-            .filter((a) => (seen.has(a.uuid) ? false : (seen.add(a.uuid), true)))
-            .map((a) => ({ uuid: a.uuid, name: a.name, mime: a.mime, size: a.size }));
+        const attachments: ComposeAttachment[] = details.map((d) => ({
+            eml_message_seq: d.seq,
+            name: `${
+                String(d.subject ?? "")
+                    .replace(/[\\/:*?"<>|\r\n]/g, "_")
+                    .trim() || `mail-${d.seq}`
+            }.eml`,
+            mime: "message/rfc822",
+            // 크기는 본문 길이 + 첨부 합계로 어림한다(서버가 조립하기 전엔 정확히 알 수 없다).
+            size: (d.body_html?.length ?? 0) + d.attachments.reduce((sum, a) => sum + (a.size || 0), 0),
+        }));
         const subject = prefixSubject(first.subject, "Fwd") + (details.length > 1 ? ` 외 ${details.length - 1}건` : "");
         context.reset();
         context.setValues({
@@ -116,7 +137,7 @@ const openForwardMany =
             cc: "",
             showCcBcc: false,
             subject,
-            body_html: `${signatureBlock(account)}${details.map((d) => buildQuotedBody(d, "forward")).join("<hr>")}`,
+            body_html: `<p><br></p>${signatureBlock(account)}`,
             attachments,
             in_reply_to: "",
             references: [],

@@ -187,6 +187,8 @@ export interface ComposeAttachment {
     mime: string; // MIME
     size: number; // 크기
     content_base64?: string; // 새 파일 내용
+    source_message_seq?: number; // uuid 가 가리키는 원문 메시지(전달 — 서버가 그 첨부를 복사한다)
+    eml_message_seq?: number; // 이 메시지를 .eml 로 만들어 첨부(복수 전달)
 }
 
 /** 작성 모드 */
@@ -217,7 +219,14 @@ export interface ComposeRequest {
     bcc: string[]; // 숨은참조
     subject: string; // 제목
     body_html: string; // 본문
-    attachments: { uuid?: string; name: string; mime: string; content_base64?: string }[]; // 첨부
+    attachments: {
+        uuid?: string;
+        name: string;
+        mime: string;
+        content_base64?: string;
+        source_message_seq?: number;
+        eml_message_seq?: number;
+    }[]; // 첨부
     in_reply_to?: string | null; // In-Reply-To
     references?: string[]; // References
 }

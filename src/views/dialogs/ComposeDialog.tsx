@@ -101,19 +101,22 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         [form]
     );
 
-    /** 기존(서버) 첨부를 뺀다. */
+    /** 참조 첨부(서버 파일 uuid 또는 eml 원문)의 식별키 */
+    const refKey = (a: ComposeAttachment) =>
+        a.eml_message_seq ? `eml:${a.eml_message_seq}` : a.uuid ? `uuid:${a.uuid}` : "";
+    /** 기존(서버) 첨부·eml 원문 첨부를 뺀다. */
     const handleRemoveExisting = useCallback(
-        (uuid: string) => {
+        (key: string) => {
             const current = (form.getFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
             form.setFormValue(
                 "attachments",
-                current.filter((a) => a.uuid !== uuid)
+                current.filter((a) => refKey(a) !== key)
             );
         },
         [form]
     );
 
-    const existingAttachments = attachments.filter((a) => a.uuid);
+    const existingAttachments = attachments.filter((a) => refKey(a));
     const titleText =
         mode === "reply" || mode === "replyAll"
             ? "답장"
@@ -205,12 +208,12 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
                                         {existingAttachments.map((item) => (
                                             <Chip
-                                                key={item.uuid}
+                                                key={refKey(item)}
                                                 icon={<AttachFileIcon />}
                                                 label={`${item.name} (${formatBytes(item.size)})`}
                                                 variant="outlined"
                                                 sx={{ fontSize: "13.5px", color: "#111" }}
-                                                onDelete={() => handleRemoveExisting(String(item.uuid))}
+                                                onDelete={() => handleRemoveExisting(refKey(item))}
                                             />
                                         ))}
                                     </Stack>
