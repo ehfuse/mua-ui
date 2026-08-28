@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Box, Button, Fab, Stack, Typography } from "@mui/material";
+import { Box, Button, Drawer, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
 import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
@@ -21,7 +21,7 @@ import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../inter
 import { MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
-import { mailApi } from "../apis/mailApi";
+import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime, type MailChangedData } from "../apis/useMailRealtime";
 import { useComposeController } from "../controllers/composeController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
@@ -350,13 +350,41 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         },
         [messages, checkedSeqs, state]
     );
+    const checkedCount = messages.filter((row) => checkedSeqs.has(row.seq)).length;
+    /** 답장/전달 대상 — 체크 1건이면 그 메일, 체크가 없으면 열려 있는 상세. */
+    const replyTargetSeq =
+        checkedCount === 1
+            ? (messages.find((row) => checkedSeqs.has(row.seq))?.seq ?? 0)
+            : checkedCount === 0
+              ? (detail?.seq ?? 0)
+              : 0;
+    const handleToolbarReply = useCallback(
+        async (mode: "reply" | "replyAll" | "forward") => {
+            const seq = replyTargetSeq;
+            if (!(seq > 0)) return;
+            try {
+                const message =
+                    detail && detail.seq === seq
+                        ? detail
+                        : unwrap(await mailApi.getMessage(seq, false), "메일을 불러오지 못했습니다.");
+                const account = accounts.find((a) => a.seq === message.mail_account_seq) ?? defaultAccount;
+                compose.form.actions.openFromMessage(message, mode, account);
+            } catch (error) {
+                ErrorAlert({ message: error instanceof Error ? error.message : "메일을 불러오지 못했습니다." });
+            }
+        },
+        [replyTargetSeq, detail, accounts, defaultAccount, compose.form.actions]
+    );
+    // 데스크탑: 항상 보이는 툴바(선택 없으면 비활성) — 헤더 필터 영역. 모바일: 선택 중일 때만 아이콘 바.
     const bulkBar =
-        checkedSeqs.size > 0 ? (
+        !isMobile || checkedSeqs.size > 0 ? (
             <MailBulkActionBar
-                count={messages.filter((row) => checkedSeqs.has(row.seq)).length}
+                count={checkedCount}
                 folder={filters.folder}
                 compact={isMobile}
                 onAction={runBulkAction}
+                replyEnabled={replyTargetSeq > 0 && filters.folder !== "draft"}
+                onReply={(mode) => void handleToolbarReply(mode)}
             />
         ) : null;
 
@@ -384,9 +412,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 >
                     새 메일
                 </Button>
-                {bulkBar}
             </Stack>
         ),
+        toolbar: isMobile ? undefined : bulkBar,
         right: isMobile ? undefined : headerActions,
     });
 
@@ -599,9 +627,20 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     onLoadMore: hasMore ? handleLoadMore : undefined,
                 }}
                 onEscape={() => state.actions.clearSelection()}
-                rightConfig={{ visible: Boolean(detail) || loadingDetail, ratio: 0.5, minWidth: 420 }}
-                rightPanel={detailPanel}
             />
+            {/* 상세 — 오른쪽 드로어(목록을 분할하지 않는다). 닫기 = X · Esc · 바깥 클릭. */}
+            <Drawer
+                anchor="right"
+                open={Boolean(detail) || loadingDetail}
+                onClose={() => state.actions.clearSelection()}
+                slotProps={{
+                    paper: {
+                        sx: { width: "min(760px, 92vw)", maxWidth: "100vw", display: "flex", flexDirection: "column" },
+                    },
+                }}
+            >
+                {detailPanel}
+            </Drawer>
             {dialogs}
         </Box>
     );

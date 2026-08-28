@@ -10,7 +10,9 @@ import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
+import ReplyAllOutlinedIcon from "@mui/icons-material/ReplyAllOutlined";
 import type { BulkMessageAction } from "../../apis/mailApi";
+import { ForwardArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { TrashIcon } from "../../internal/icons";
 import type { MailListFolder } from "../../models/types";
 
@@ -19,6 +21,8 @@ interface MailBulkActionBarProps {
     folder: MailListFolder; // 현재 폴더(휴지통/스팸함이면 액션이 달라진다)
     compact?: boolean; // 모바일(아이콘만)
     onAction: (action: BulkMessageAction) => void; // 액션 실행
+    replyEnabled?: boolean; // 답장/전체 답장/전달 가능(대상 메일이 1건일 때)
+    onReply?: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전체 답장/전달
 }
 
 /** 데스크탑 버튼 — 텍스트만, 넉넉한 좌우 여백(메일 서비스 툴바 규격). */
@@ -35,24 +39,35 @@ const BUTTON_SX = {
 } as const;
 
 /** 복수 선택 액션 바 */
-export function MailBulkActionBar({ count, folder, compact = false, onAction }: MailBulkActionBarProps) {
+export function MailBulkActionBar({
+    count,
+    folder,
+    compact = false,
+    onAction,
+    replyEnabled = false,
+    onReply,
+}: MailBulkActionBarProps) {
     const isTrash = folder === "trash";
     const isSpam = folder === "spam";
     const disabled = count === 0;
-    const button = (label: string, icon: ReactNode, action: BulkMessageAction) =>
+    const item = (key: string, label: string, icon: ReactNode, onClick: () => void, isDisabled: boolean) =>
         compact ? (
-            <Tooltip title={label} key={action}>
+            <Tooltip title={label} key={key}>
                 <span>
-                    <IconButton size="small" onClick={() => onAction(action)} aria-label={label} disabled={disabled}>
+                    <IconButton size="small" onClick={onClick} aria-label={label} disabled={isDisabled}>
                         {icon}
                     </IconButton>
                 </span>
             </Tooltip>
         ) : (
-            <Button key={action} variant="outlined" onClick={() => onAction(action)} disabled={disabled} sx={BUTTON_SX}>
+            <Button key={key} variant="outlined" onClick={onClick} disabled={isDisabled} sx={BUTTON_SX}>
                 {label}
             </Button>
         );
+    const button = (label: string, icon: ReactNode, action: BulkMessageAction) =>
+        item(action, label, icon, () => onAction(action), disabled);
+    const replyButton = (label: string, icon: ReactNode, mode: "reply" | "replyAll" | "forward") =>
+        item(mode, label, icon, () => onReply?.(mode), !replyEnabled || !onReply);
     const items: ReactNode[] = [];
     if (isTrash) {
         items.push(button("복원", <RestoreFromTrashOutlinedIcon fontSize="small" />, "restore"));
@@ -64,8 +79,13 @@ export function MailBulkActionBar({ count, folder, compact = false, onAction }: 
         items.push(button("삭제", <TrashIcon fontSize="small" />, "trash"));
         if (folder === "inbox")
             items.push(button("스팸 등록", <ReportGmailerrorredOutlinedIcon fontSize="small" />, "spam"));
-        items.push(button("읽음", <MarkEmailReadOutlinedIcon fontSize="small" />, "read"));
-        items.push(button("읽지 않음", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread"));
+        if (folder !== "draft") {
+            items.push(replyButton("답장", <ReplyArrowIcon fontSize="small" />, "reply"));
+            items.push(replyButton("전체 답장", <ReplyAllOutlinedIcon fontSize="small" />, "replyAll"));
+            items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
+        }
+        items.push(button("읽음으로 표시", <MarkEmailReadOutlinedIcon fontSize="small" />, "read"));
+        items.push(button("읽지 않음으로 표시", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread"));
     }
     return (
         <Stack
