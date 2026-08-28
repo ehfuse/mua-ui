@@ -4,7 +4,7 @@
  * 데스크탑은 헤더 왼쪽(새 메일 버튼 옆), 모바일은 목록 위 툴바에 아이콘 버튼으로 그려진다.
  */
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button, IconButton, Stack } from "@mui/material";
 import { Tooltip } from "../../internal/Tooltip";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
@@ -14,6 +14,7 @@ import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOu
 import type { BulkMessageAction } from "../../apis/mailApi";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { TrashIcon } from "../../internal/icons";
+import { ConfirmActionPopper } from "../../internal/ConfirmActionPopper";
 import type { MailListFolder } from "../../models/types";
 
 interface MailBulkActionBarProps {
@@ -58,22 +59,55 @@ export function MailBulkActionBar({
     const isTrash = folder === "trash";
     const isSpam = folder === "spam";
     const disabled = count === 0;
-    const item = (key: string, label: string, icon: ReactNode, onClick: () => void, isDisabled: boolean) =>
+    // 스팸 등록/삭제/영구 삭제는 확인 팝퍼를 거친다(앵커 = 누른 버튼).
+    const [confirm, setConfirm] = useState<{ anchorEl: HTMLElement | null; action: BulkMessageAction } | null>(null);
+    const needsConfirm = (action: BulkMessageAction) => action === "spam" || action === "trash" || action === "delete";
+    const confirmTitle =
+        confirm?.action === "spam"
+            ? `선택한 ${count}건을 스팸으로 신고할까요?`
+            : confirm?.action === "delete"
+              ? `선택한 ${count}건을 영구 삭제할까요? 되돌릴 수 없습니다.`
+              : `선택한 ${count}건을 삭제할까요?`;
+    const confirmLabel = confirm?.action === "spam" ? "스팸 신고" : confirm?.action === "delete" ? "영구 삭제" : "삭제";
+    const item = (
+        key: string,
+        label: string,
+        icon: ReactNode,
+        onClick: (anchorEl: HTMLElement) => void,
+        isDisabled: boolean
+    ) =>
         compact ? (
             <Tooltip title={label} key={key}>
                 <span>
-                    <IconButton size="small" onClick={onClick} aria-label={label} disabled={isDisabled}>
+                    <IconButton
+                        size="small"
+                        onClick={(e) => onClick(e.currentTarget)}
+                        aria-label={label}
+                        disabled={isDisabled}
+                    >
                         {icon}
                     </IconButton>
                 </span>
             </Tooltip>
         ) : (
-            <Button key={key} variant="outlined" onClick={onClick} disabled={isDisabled} sx={BUTTON_SX}>
+            <Button
+                key={key}
+                variant="outlined"
+                onClick={(e) => onClick(e.currentTarget)}
+                disabled={isDisabled}
+                sx={BUTTON_SX}
+            >
                 {label}
             </Button>
         );
     const button = (label: string, icon: ReactNode, action: BulkMessageAction, enabled = true) =>
-        item(action, label, icon, () => onAction(action), disabled || !enabled);
+        item(
+            action,
+            label,
+            icon,
+            (anchorEl) => (needsConfirm(action) ? setConfirm({ anchorEl, action }) : onAction(action)),
+            disabled || !enabled
+        );
     const replyButton = (label: string, icon: ReactNode, mode: "reply" | "replyAll" | "forward") =>
         item(
             mode,
@@ -102,13 +136,30 @@ export function MailBulkActionBar({
         items.push(button("읽지 않음", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread));
     }
     return (
-        <Stack
-            direction="row"
-            spacing={compact ? 0.5 : 1.5}
-            alignItems="center"
-            sx={{ flexWrap: "wrap", rowGap: 0.5, minWidth: 0 }}
-        >
-            {items}
-        </Stack>
+        <>
+            <Stack
+                direction="row"
+                spacing={compact ? 0.5 : 1.5}
+                alignItems="center"
+                sx={{ flexWrap: "wrap", rowGap: 0.5, minWidth: 0 }}
+            >
+                {items}
+            </Stack>
+            <ConfirmActionPopper
+                open={Boolean(confirm)}
+                anchorEl={confirm?.anchorEl ?? null}
+                placement="bottom"
+                zIndex={1400}
+                title={confirmTitle}
+                confirmText={confirmLabel}
+                cancelText="취소"
+                onCancel={() => setConfirm(null)}
+                onConfirm={() => {
+                    const action = confirm?.action;
+                    setConfirm(null);
+                    if (action) onAction(action);
+                }}
+            />
+        </>
     );
 }

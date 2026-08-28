@@ -326,14 +326,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         state.actions.clearSelection();
                     void state.actions.loadCounts();
                 });
-            if (action === "delete") {
-                ConfirmDialog({
-                    title: "영구 삭제",
-                    message: `선택한 ${seqs.length}건을 영구 삭제합니다. 되돌릴 수 없습니다.`,
-                    onConfirm: run,
-                });
-                return;
-            }
+            // 확인은 액션 바의 팝퍼가 맡는다.
             run();
         },
         [messages, checkedSeqs, state]
