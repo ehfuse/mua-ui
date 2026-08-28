@@ -5,7 +5,7 @@
  * 목록 재조회는 필터(계정/폴더/검색/미읽음/중요) 변화를 effect 가 보고 호출하고, realtime(mua.mail.changed)은 조용히 갱신한다.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useParams } from "react-router-dom";
 import { Box, Button, Drawer, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -36,6 +36,14 @@ import type {
 } from "../models/types";
 import { useHeaderConfig } from "./Header";
 import { MailBulkActionBar } from "./components/MailBulkActionBar";
+import { ContextMenu, useContextMenu, type ContextMenuItem } from "../internal/ContextMenu";
+import { StarRoundedIcon, TrashIcon } from "../internal/icons";
+import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./components/MailActionIcons";
+import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
+import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
+import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
+import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { MailHeaderActions } from "./components/MailHeaderActions";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
@@ -342,9 +350,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
               : 0;
     /** 전달 대상 — 체크된 메일 전부(없으면 열려 있는 상세). */
     const forwardTargetSeqs = checkedCount > 0 ? checkedRows.map((row) => row.seq) : detail ? [detail.seq] : [];
-    const handleToolbarReply = useCallback(
-        async (mode: "reply" | "replyAll" | "forward") => {
-            const seqs = mode === "forward" ? forwardTargetSeqs : replyTargetSeq > 0 ? [replyTargetSeq] : [];
+    /** seq 목록으로 답장/전체 답장/전달 작성 창을 연다(상세가 없으면 받아 온다). */
+    const composeFromSeqs = useCallback(
+        async (seqs: number[], mode: "reply" | "replyAll" | "forward") => {
             if (seqs.length === 0) return;
             if (seqs.length > 20) {
                 WarningAlert({ message: "한 번에 전달할 수 있는 메일은 20통까지입니다." });
@@ -369,7 +377,128 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 ErrorAlert({ message: error instanceof Error ? error.message : "메일을 불러오지 못했습니다." });
             }
         },
-        [forwardTargetSeqs, replyTargetSeq, detail, accounts, defaultAccount, compose.form.actions]
+        [detail, accounts, defaultAccount, compose.form.actions]
+    );
+    const handleToolbarReply = useCallback(
+        (mode: "reply" | "replyAll" | "forward") =>
+            composeFromSeqs(mode === "forward" ? forwardTargetSeqs : replyTargetSeq > 0 ? [replyTargetSeq] : [], mode),
+        [composeFromSeqs, forwardTargetSeqs, replyTargetSeq]
+    );
+
+    // 우클릭 메뉴(데스크탑 표) — 코드샵 지난행사 목록과 같은 Portal 메뉴. 행은 vdt(TableVirtuoso) 의 tr[data-index] 로 찾는다.
+    const rowContextMenu = useContextMenu<MailMessageListItem>();
+    const handleTableContextMenu = useCallback(
+        (event: ReactMouseEvent<HTMLDivElement>) => {
+            event.preventDefault();
+            const rowEl = (event.target as HTMLElement).closest("tr[data-index]");
+            const dataIndex = rowEl?.getAttribute("data-index");
+            const row = dataIndex === null || dataIndex === undefined ? undefined : messages[Number(dataIndex)];
+            if (!row) {
+                rowContextMenu.close();
+                return;
+            }
+            rowContextMenu.openHandler(row)(event);
+        },
+        [messages, rowContextMenu]
+    );
+    const rowAction = useCallback(
+        (row: MailMessageListItem, action: BulkMessageAction) =>
+            void state.actions.applyMessageAction([row.seq], action).then((ok: boolean) => {
+                if (!ok) return;
+                if (
+                    action !== "read" &&
+                    action !== "unread" &&
+                    action !== "star" &&
+                    action !== "unstar" &&
+                    detail?.seq === row.seq
+                )
+                    state.actions.clearSelection();
+                void state.actions.loadCounts();
+            }),
+        [state, detail]
+    );
+    const isTrashFolder = filters.folder === "trash";
+    const isSpamFolder = filters.folder === "spam";
+    const isDraftFolder = filters.folder === "draft";
+    const contextMenuItems = useMemo<ContextMenuItem<MailMessageListItem>[]>(
+        () => [
+            {
+                label: "열기",
+                icon: <OpenInNewOutlinedIcon fontSize="small" />,
+                onClick: (row) => void state.actions.selectMessage(row.seq),
+            },
+            {
+                label: "답장",
+                icon: <ReplyArrowIcon fontSize="small" />,
+                hidden: isDraftFolder,
+                onClick: (row) => void composeFromSeqs([row.seq], "reply"),
+            },
+            {
+                label: "전체 답장",
+                icon: <ReplyAllArrowIcon fontSize="small" />,
+                hidden: isDraftFolder,
+                onClick: (row) => void composeFromSeqs([row.seq], "replyAll"),
+            },
+            {
+                label: "전달",
+                icon: <ForwardArrowIcon fontSize="small" />,
+                hidden: isDraftFolder,
+                onClick: (row) => void composeFromSeqs([row.seq], "forward"),
+            },
+            {
+                label: (row) => (row.is_read ? "읽지 않음으로 표시" : "읽음으로 표시"),
+                icon: <MarkEmailUnreadOutlinedIcon fontSize="small" />,
+                dividerBefore: true,
+                hidden: isTrashFolder || isSpamFolder,
+                onClick: (row) => rowAction(row, row.is_read ? "unread" : "read"),
+            },
+            {
+                label: (row) => (row.is_starred ? "중요 해제" : "중요 표시"),
+                icon: <StarRoundedIcon fontSize="small" />,
+                hidden: isTrashFolder || isSpamFolder,
+                onClick: (row) => rowAction(row, row.is_starred ? "unstar" : "star"),
+            },
+            {
+                label: "스팸 신고",
+                icon: <ReportGmailerrorredOutlinedIcon fontSize="small" />,
+                dividerBefore: true,
+                hidden: filters.folder !== "inbox",
+                onClick: (row) => rowAction(row, "spam"),
+            },
+            {
+                label: "스팸 아님",
+                icon: <RestoreFromTrashOutlinedIcon fontSize="small" />,
+                dividerBefore: true,
+                hidden: !isSpamFolder,
+                onClick: (row) => rowAction(row, "restore"),
+            },
+            {
+                label: "복원",
+                icon: <RestoreFromTrashOutlinedIcon fontSize="small" />,
+                dividerBefore: true,
+                hidden: !isTrashFolder,
+                onClick: (row) => rowAction(row, "restore"),
+            },
+            {
+                label: "삭제",
+                icon: <TrashIcon fontSize="small" />,
+                dividerBefore: filters.folder !== "inbox" && !isSpamFolder,
+                hidden: isTrashFolder,
+                onClick: (row) => rowAction(row, "trash"),
+            },
+            {
+                label: "영구 삭제",
+                icon: <TrashIcon fontSize="small" />,
+                hidden: !isTrashFolder,
+                onClick: (row) =>
+                    ConfirmDialog({
+                        title: "영구 삭제",
+                        message: "이 메일을 영구 삭제합니다. 되돌릴 수 없습니다.",
+                        onConfirm: () => rowAction(row, "delete"),
+                    }),
+            },
+        ],
+        [state.actions, composeFromSeqs, rowAction, isDraftFolder, isTrashFolder, isSpamFolder, filters.folder]
     );
     // 데스크탑: 항상 보이는 툴바(선택 없으면 비활성) — 헤더 필터 영역. 모바일: 선택 중일 때만 아이콘 바.
     const bulkBar =
@@ -648,7 +777,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }
 
     return (
-        <Box ref={tableWrapRef} sx={{ userSelect: "none", height: "100%", minHeight: 0 }}>
+        <Box
+            ref={tableWrapRef}
+            onContextMenu={handleTableContextMenu}
+            sx={{ userSelect: "none", height: "100%", minHeight: 0 }}
+        >
+            <ContextMenu state={rowContextMenu} items={contextMenuItems} />
             <ListLayout
                 storageKey="mail-list-layout"
                 header={headerConfig}
