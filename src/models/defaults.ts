@@ -94,4 +94,6 @@ export const defaultMailContactForm: MailContactForm = {
     phone: "",
     memo: "",
     is_favorite: false,
+    is_shared: false,
+    can_manage: true,
 };

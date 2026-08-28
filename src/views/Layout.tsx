@@ -254,20 +254,25 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const trustedSender = Boolean(detailFromAddress) && contactEmails.has(detailFromAddress);
 
     /** 상세의 보낸 사람 → 주소록 추가(같은 주소가 이미 있으면 안내만 하고 아이콘을 감춘다). */
-    const handleAddContact = useCallback(async (address: string, name: string) => {
-        const key = address.toLowerCase();
-        try {
-            const res = await mailApi.createContact({ email: address, name });
-            if (res && res.ok === false) {
-                WarningAlert({ message: res.error || "이미 주소록에 있는 메일 주소입니다." });
-            } else {
-                SuccessAlert("주소록에 추가했습니다.");
+    const handleAddContact = useCallback(
+        async (address: string, name: string) => {
+            const key = address.toLowerCase();
+            try {
+                // 공용 메일 계정으로 받은 메일에서 추가하면 공용 주소록으로.
+                const scope = detailAccount?.scope === "shared" ? "shared" : "personal";
+                const res = await mailApi.createContact({ email: address, name, scope });
+                if (res && res.ok === false) {
+                    WarningAlert({ message: res.error || "이미 주소록에 있는 메일 주소입니다." });
+                } else {
+                    SuccessAlert("주소록에 추가했습니다.");
+                }
+                setContactEmails((prev) => new Set(prev).add(key));
+            } catch (error) {
+                ErrorAlert({ message: error instanceof Error ? error.message : "주소록에 추가하지 못했습니다." });
             }
-            setContactEmails((prev) => new Set(prev).add(key));
-        } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "주소록에 추가하지 못했습니다." });
-        }
-    }, []);
+        },
+        [detailAccount]
+    );
 
     // ⚙ = 계정 관리 다이얼로그(목록에서 추가/수정/삭제/동기화). 등록·수정 창은 그 위에 겹쳐 연다.
     const manageModal = useModal({ modalId: "mail-accounts-manage-dialog" });

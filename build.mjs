@@ -28,6 +28,8 @@ const baseConfig = {
         "@ehfuse/mui-form-dialog",
         "@ehfuse/mui-dashboard-layout",
         "@ehfuse/mui-virtual-data-table",
+        "@ehfuse/file-viewer",
+        "@ehfuse/file-viewer/*",
     ],
     plugins: [dtsPlugin()],
 };

@@ -39,6 +39,29 @@ function FavoriteStar({ on, size = 20 }: { on: boolean; size?: number }) {
     );
 }
 
+/** 개인/공용 사각 칩 */
+function ScopeChip({ shared }: { shared: boolean }) {
+    return (
+        <Box
+            component="span"
+            sx={{
+                display: "inline-block",
+                px: 1,
+                py: 0.3,
+                borderRadius: "4px",
+                fontSize: "13px",
+                fontWeight: 600,
+                lineHeight: 1.4,
+                whiteSpace: "nowrap",
+                color: shared ? "#1d4ed8" : "#334155",
+                bgcolor: shared ? "#eff6ff" : "#f1f5f9",
+            }}
+        >
+            {shared ? "공용" : "개인"}
+        </Box>
+    );
+}
+
 /** 주소록 페이지 컴포넌트 */
 export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const isMobile = useIsMobile();
@@ -190,6 +213,14 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                 ),
             },
             {
+                id: "scope",
+                text: "구분",
+                width: 72,
+                align: "center",
+                style: { textAlign: "center" },
+                render: (row) => <ScopeChip shared={row.scope === "shared"} />,
+            },
+            {
                 id: "email",
                 text: "메일 주소",
                 width: "28%",
@@ -296,6 +327,9 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                             >
                                                 {contact.name || contact.email}
                                             </Typography>
+                                            {contact.scope === "shared" ? (
+                                                <MobileChip tone="blue">공용</MobileChip>
+                                            ) : null}
                                             {contact.organization ? (
                                                 <MobileChip>{contact.organization}</MobileChip>
                                             ) : null}

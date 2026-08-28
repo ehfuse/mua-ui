@@ -245,7 +245,8 @@ export type MailAccountRequest = Omit<
 /** 주소록 연락처 */
 export interface MailContact {
     seq: number; // seq
-    account_seq: number; // 소유자
+    account_seq: number; // 소유자(개인) / 등록자(공용)
+    scope: "personal" | "shared"; // 개인/공용
     name: string; // 이름
     email: string; // 메일 주소
     organization: string; // 소속
@@ -254,11 +255,12 @@ export interface MailContact {
     is_favorite: boolean; // 즐겨찾기
     created_time?: string; // 등록 일시
     updated_time?: string; // 수정 일시
+    can_manage?: boolean; // 수정/삭제 가능(개인=소유자, 공용=관리자·등록자)
 }
 
 /** 연락처 등록/수정 요청 */
 export type MailContactRequest = Partial<
-    Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite">
+    Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope">
 >;
 
 /** 연락처 폼 */
@@ -270,4 +272,6 @@ export interface MailContactForm {
     phone: string; // 전화번호
     memo: string; // 메모
     is_favorite: boolean; // 즐겨찾기
+    is_shared: boolean; // 공용 주소록
+    can_manage: boolean; // 수정/삭제 가능(수정 모드 안내용)
 }

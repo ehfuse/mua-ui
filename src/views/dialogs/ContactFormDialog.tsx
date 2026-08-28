@@ -3,7 +3,7 @@
  */
 
 import { useCallback } from "react";
-import { Box, Button } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { ConfirmDialog } from "@ehfuse/alerts";
 import { ClearTextField, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
@@ -21,6 +21,7 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
     const seq = Number(form.useFormValue("seq") ?? 0);
+    const canManage = form.useFormValue("can_manage") !== false;
     const isSubmitting = Boolean(form.isSubmitting);
 
     const handleDelete = useCallback(() => {
@@ -45,8 +46,8 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
             open={modal.isOpen}
             onClose={modal.close}
             title={{ text: seq > 0 ? "연락처 수정" : "연락처 추가" }}
-            titleIcons={{ delete: { visible: seq > 0 } }}
-            onDelete={seq > 0 ? handleDelete : undefined}
+            titleIcons={{ delete: { visible: seq > 0 && canManage } }}
+            onDelete={seq > 0 && canManage ? handleDelete : undefined}
             tabs={{ visible: false }}
             locale="ko"
             maxWidth="xs"
@@ -63,7 +64,15 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
                             <ClearTextField name="organization" label="소속" form={form} fullWidth />
                             <ClearTextField name="phone" label="전화번호" form={form} fullWidth />
                             <ClearTextField name="memo" label="메모" form={form} fullWidth multiline minRows={2} />
-                            <Switch form={form} name="is_favorite" label="즐겨찾기" />
+                            <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                                <Switch form={form} name="is_favorite" label="즐겨찾기" />
+                                <Switch form={form} name="is_shared" label="공용 주소록" disabled={!canManage} />
+                            </Box>
+                            {!canManage ? (
+                                <Typography sx={{ fontSize: "14px", color: "#b45309" }}>
+                                    공용 연락처는 관리자 또는 등록자만 수정·삭제할 수 있습니다.
+                                </Typography>
+                            ) : null}
                         </Box>
                     ),
                 },
@@ -78,7 +87,11 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
                         </Button>
                     ) : undefined,
                 right: (
-                    <Button variant="contained" onClick={() => void form.submit()} disabled={isSubmitting}>
+                    <Button
+                        variant="contained"
+                        onClick={() => void form.submit()}
+                        disabled={isSubmitting || !canManage}
+                    >
                         저장
                     </Button>
                 ),

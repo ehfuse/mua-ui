@@ -25,6 +25,8 @@ function toForm(contact: MailContact): MailContactForm {
         phone: contact.phone ?? "",
         memo: contact.memo ?? "",
         is_favorite: Boolean(contact.is_favorite),
+        is_shared: contact.scope === "shared",
+        can_manage: contact.can_manage !== false,
     };
 }
 
@@ -37,6 +39,7 @@ function toRequest(values: MailContactForm): MailContactRequest {
         phone: values.phone.trim(),
         memo: values.memo,
         is_favorite: Boolean(values.is_favorite),
+        scope: values.is_shared ? "shared" : "personal",
     };
 }
 
