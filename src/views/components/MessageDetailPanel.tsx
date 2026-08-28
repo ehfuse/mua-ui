@@ -252,7 +252,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     anchorEl={menuAnchor}
                     open={Boolean(menuAnchor)}
                     onClose={closeMenu}
-                    slotProps={{ paper: { sx: { minWidth: 220 } } }}
+                    slotProps={{ paper: { sx: { minWidth: 220 } }, transition: { timeout: 0 } }}
                 >
                     {!isDraft
                         ? [
