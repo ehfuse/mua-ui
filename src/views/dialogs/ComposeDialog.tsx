@@ -205,7 +205,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             </Box>
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                                 {existingAttachments.length > 0 ? (
-                                    <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+                                    <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
                                         {existingAttachments.map((item) => (
                                             <Chip
                                                 key={refKey(item)}

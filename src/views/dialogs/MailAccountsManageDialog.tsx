@@ -70,13 +70,6 @@ function AccountRow({
                     {account.is_default ? (
                         <Chip size="small" label="기본 발신" color="primary" sx={{ fontSize: "13px" }} />
                     ) : null}
-                    {account.unread_count ? (
-                        <Chip
-                            size="small"
-                            label={`안 읽음 ${account.unread_count}`}
-                            sx={{ fontSize: "13px", color: "#111" }}
-                        />
-                    ) : null}
                 </Stack>
                 <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569", mt: 0.5 }}>
                     {account.incoming_protocol.toUpperCase()} · {account.incoming_host}

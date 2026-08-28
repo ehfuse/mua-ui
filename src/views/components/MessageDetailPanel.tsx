@@ -472,7 +472,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </Typography>
                     </Box>
                     {detail.attachments.length > 0 ? (
-                        <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", rowGap: 1 }}>
+                        <Stack direction="row" useFlexGap spacing={1} sx={{ mt: 1.5, flexWrap: "wrap" }}>
                             {detail.attachments.map((att) => (
                                 <AttachmentChip key={att.uuid} attachment={att} />
                             ))}
