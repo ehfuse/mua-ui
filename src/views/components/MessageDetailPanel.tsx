@@ -170,14 +170,14 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 <ReplyArrowIcon />
                             </IconButton>
                         </Tooltip>
-                        {/* 전체 답장 — 참조가 없으면 답장과 같으므로 비활성 */}
-                        <Tooltip title={canReplyAll ? "전체 답장" : "전체 답장 (참조 없음)"}>
-                            <span>
-                                <IconButton size="small" onClick={() => onReply("replyAll")} disabled={!canReplyAll}>
+                        {/* 전체 답장 — 참조가 있을 때만 보인다(없으면 답장과 같다) */}
+                        {canReplyAll ? (
+                            <Tooltip title="전체 답장">
+                                <IconButton size="small" onClick={() => onReply("replyAll")}>
                                     <ReplyAllArrowIcon />
                                 </IconButton>
-                            </span>
-                        </Tooltip>
+                            </Tooltip>
+                        ) : null}
                         <Tooltip title="전달">
                             <IconButton size="small" onClick={() => onReply("forward")}>
                                 <ForwardArrowIcon />
@@ -247,16 +247,16 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                   </ListItemIcon>
                                   <ListItemText primary="답장" />
                               </MenuItem>,
-                              <MenuItem
-                                  key="replyAll"
-                                  disabled={!canReplyAll}
-                                  onClick={() => (closeMenu(), onReply("replyAll"))}
-                              >
-                                  <ListItemIcon>
-                                      <ReplyAllArrowIcon fontSize="small" />
-                                  </ListItemIcon>
-                                  <ListItemText primary="전체 답장" />
-                              </MenuItem>,
+                              ...(canReplyAll
+                                  ? [
+                                        <MenuItem key="replyAll" onClick={() => (closeMenu(), onReply("replyAll"))}>
+                                            <ListItemIcon>
+                                                <ReplyAllArrowIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText primary="전체 답장" />
+                                        </MenuItem>,
+                                    ]
+                                  : []),
                               <MenuItem key="forward" onClick={() => (closeMenu(), onReply("forward"))}>
                                   <ListItemIcon>
                                       <ForwardArrowIcon fontSize="small" />
