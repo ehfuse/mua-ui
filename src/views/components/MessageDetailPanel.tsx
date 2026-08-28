@@ -24,6 +24,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
+import { ConfirmActionPopper } from "../../internal/ConfirmActionPopper";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import { StarRoundedIcon, TrashIcon } from "../../internal/icons";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
@@ -115,6 +116,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         embedded = false,
     } = props;
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
+    // 스팸 신고/삭제/영구 삭제 확인 팝퍼(앵커 = 누른 아이콘 버튼)
+    const [confirm, setConfirm] = useState<{
+        anchorEl: HTMLElement | null;
+        kind: "spam" | "trash" | "delete";
+    } | null>(null);
+    const askConfirm = (kind: "spam" | "trash" | "delete", anchorEl: HTMLElement | null) =>
+        setConfirm({ anchorEl, kind });
+    const runConfirmed = () => {
+        const kind = confirm?.kind;
+        setConfirm(null);
+        if (kind === "spam") onSpam();
+        else if (kind === "trash") onTrash();
+        else if (kind === "delete") onDeleteForever();
+    };
     // ⋮ 더보기 메뉴
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
     const closeMenu = useCallback(() => setMenuAnchor(null), []);
@@ -201,7 +216,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     </Tooltip>
                 ) : detail.folder === "inbox" ? (
                     <Tooltip title="스팸 신고">
-                        <IconButton size="small" onClick={onSpam}>
+                        <IconButton size="small" onClick={(e) => askConfirm("spam", e.currentTarget)}>
                             <ReportGmailerrorredOutlinedIcon />
                         </IconButton>
                     </Tooltip>
@@ -215,14 +230,14 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="영구 삭제">
-                            <IconButton size="small" onClick={onDeleteForever}>
+                            <IconButton size="small" onClick={(e) => askConfirm("delete", e.currentTarget)}>
                                 <TrashIcon />
                             </IconButton>
                         </Tooltip>
                     </>
                 ) : (
                     <Tooltip title="삭제">
-                        <IconButton size="small" onClick={onTrash}>
+                        <IconButton size="small" onClick={(e) => askConfirm("trash", e.currentTarget)}>
                             <TrashIcon />
                         </IconButton>
                     </Tooltip>
@@ -274,7 +289,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                   </ListItemIcon>
                                   <ListItemText primary="복원" />
                               </MenuItem>,
-                              <MenuItem key="forever" onClick={() => (closeMenu(), onDeleteForever())}>
+                              <MenuItem key="forever" onClick={() => (closeMenu(), askConfirm("delete", menuAnchor))}>
                                   <ListItemIcon>
                                       <TrashIcon fontSize="small" />
                                   </ListItemIcon>
@@ -282,7 +297,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                               </MenuItem>,
                           ]
                         : [
-                              <MenuItem key="trash" onClick={() => (closeMenu(), onTrash())}>
+                              <MenuItem key="trash" onClick={() => (closeMenu(), askConfirm("trash", menuAnchor))}>
                                   <ListItemIcon>
                                       <TrashIcon fontSize="small" />
                                   </ListItemIcon>
@@ -306,7 +321,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             <ListItemText primary="스팸 아님 (받은편지함으로)" />
                         </MenuItem>
                     ) : detail.folder === "inbox" ? (
-                        <MenuItem onClick={() => (closeMenu(), onSpam())}>
+                        <MenuItem onClick={() => (closeMenu(), askConfirm("spam", menuAnchor))}>
                             <ListItemIcon>
                                 <ReportGmailerrorredOutlinedIcon fontSize="small" />
                             </ListItemIcon>
@@ -323,6 +338,23 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     </Tooltip>
                 )}
             </Stack>
+            <ConfirmActionPopper
+                open={Boolean(confirm)}
+                anchorEl={confirm?.anchorEl ?? null}
+                placement="bottom"
+                zIndex={1400}
+                title={
+                    confirm?.kind === "spam"
+                        ? "이 메일을 스팸으로 신고할까요?"
+                        : confirm?.kind === "delete"
+                          ? "이 메일을 영구 삭제할까요? 되돌릴 수 없습니다."
+                          : "이 메일을 삭제할까요?"
+                }
+                confirmText={confirm?.kind === "spam" ? "스팸 신고" : confirm?.kind === "delete" ? "영구 삭제" : "삭제"}
+                cancelText="취소"
+                onCancel={() => setConfirm(null)}
+                onConfirm={runConfirmed}
+            />
 
             <Box ref={scrollRef} sx={embedded ? { minWidth: 0 } : { flex: 1, minHeight: 0, overflow: "auto" }}>
                 {/* 헤더 */}

@@ -284,18 +284,6 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [state.actions]
     );
 
-    const handleDeleteForever = useCallback(
-        (seq: number) => {
-            ConfirmDialog({
-                title: "영구 삭제",
-                message: "이 메일을 영구 삭제합니다. 되돌릴 수 없습니다.",
-                onConfirm: () =>
-                    void state.actions.applyMessageAction([seq], "delete").then(() => state.actions.loadCounts()),
-            });
-        },
-        [state.actions]
-    );
-
     const handleTrash = useCallback(
         (seq: number) => {
             void state.actions.applyMessageAction([seq], "trash").then(() => state.actions.loadCounts());
@@ -543,7 +531,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 detail &&
                 void state.actions.applyMessageAction([detail.seq], "restore").then(() => state.actions.loadCounts())
             }
-            onDeleteForever={() => detail && handleDeleteForever(detail.seq)}
+            // 확인은 상세 패널의 팝퍼가 맡는다(여기서 ConfirmDialog 를 또 띄우지 않는다).
+            onDeleteForever={() =>
+                detail &&
+                void state.actions.applyMessageAction([detail.seq], "delete").then(() => state.actions.loadCounts())
+            }
         />
     );
 
