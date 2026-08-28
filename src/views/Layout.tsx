@@ -33,6 +33,10 @@ import type {
     MailListFolder,
     MailMessageDetail,
     MailMessageListItem,
+    MailMoveTarget,
+    MailRule,
+    MailRuleForm,
+    MailUserFolder,
 } from "../models/types";
 import { useHeaderConfig } from "./Header";
 import { MailBulkActionBar } from "./components/MailBulkActionBar";
@@ -44,6 +48,15 @@ import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutl
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
+import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
+import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
+import { ConfirmActionPopper } from "../internal/ConfirmActionPopper";
+import { consumeMailFoldersManageRequest, subscribeMailFoldersManage } from "../internal/foldersManageRequest";
+import { MailFoldersManageDialog } from "./dialogs/MailFoldersManageDialog";
+import { MailRuleFormDialog } from "./dialogs/MailRuleFormDialog";
+import { MailRulesDialog } from "./dialogs/MailRulesDialog";
 import { MailHeaderActions, type MailViewMode } from "./components/MailHeaderActions";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
@@ -65,6 +78,7 @@ interface MailLayoutProps {
     embedded?: {
         folder: MailListFolder; // 고정 폴더
         accountSeq?: number; // 받은편지함일 때 계정별(0/생략 = 전체 계정)
+        folderSeq?: number; // 사용자 메일함(folder=custom)일 때 메일함 seq
     };
 }
 
@@ -75,13 +89,22 @@ interface MailLayoutProps {
  */
 export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const controller = useMailController();
-    const params = useParams<{ folder?: string; accountSeq?: string }>();
+    const params = useParams<{ folder?: string; accountSeq?: string; folderSeq?: string }>();
     // ⚠️ 아래 effect 의존성은 embedded 객체가 아니라 원시값으로 둔다 — 호출부(MailSubPages)가 렌더마다 새 객체를
     //    만들고, 서브페이지 제목/건수 스토어 갱신이 호스트를 다시 그리므로 객체 의존성이면 무한 갱신 루프가 된다.
     const isEmbedded = Boolean(embedded);
     const embeddedFolder = embedded?.folder;
     const embeddedAccountSeq = embedded?.accountSeq ?? 0;
-    const routeFolder = embeddedFolder ?? toRouteFolder(params.folder);
+    // 사용자 메일함(`mail/folder/:folderSeq` 또는 embedded custom)
+    const routeUserFolderSeq = isEmbedded
+        ? embeddedFolder === "custom"
+            ? (embedded?.folderSeq ?? 0)
+            : 0
+        : params.folderSeq !== undefined
+          ? Number(params.folderSeq) || 0
+          : 0;
+    const routeFolder: MailListFolder =
+        routeUserFolderSeq > 0 ? "custom" : (embeddedFolder ?? toRouteFolder(params.folder));
     // 계정별 받은편지함의 계정 seq(-1 = 계정을 지정하지 않음 → 현재 선택 유지).
     //  - embedded 받은편지함: 지정 계정(0 = 전체) · embedded 다른 폴더: 유지 · 라우트: `mail/account/:accountSeq` 만 지정
     const routeAccountSeq = isEmbedded
@@ -91,7 +114,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         : params.accountSeq !== undefined
           ? Number(params.accountSeq) || 0
           : -1;
-    const isInboxRoute = isEmbedded ? embeddedFolder === "inbox" : params.folder === undefined;
+    const isInboxRoute = isEmbedded
+        ? embeddedFolder === "inbox"
+        : params.folder === undefined && routeUserFolderSeq === 0;
     const { state } = controller;
     const isMobile = useIsMobile();
     // 모바일: 서브페이지 제목바 돋보기 ↔ 검색/필터 오버레이(코드샵 목록 화면과 동일).
@@ -132,11 +157,19 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         getMuaSubPageBridge()?.setCount?.(total);
         return () => getMuaSubPageBridge()?.setCount?.(null);
     }, [isEmbedded, total]);
+    const folders = state.useValue("folders") as MailUserFolder[];
+    const rules = state.useValue("rules") as MailRule[];
+    const currentUserFolder = useMemo(
+        () => (filters.folder === "custom" ? folders.find((f) => f.seq === filters.mailFolderSeq) : undefined),
+        [filters.folder, filters.mailFolderSeq, folders]
+    );
     const embeddedAccountLabel = useMemo(() => {
-        if (!isEmbedded || routeAccountSeq <= 0) return null;
+        if (!isEmbedded) return null;
+        if (routeUserFolderSeq > 0) return currentUserFolder?.name ?? "메일함";
+        if (routeAccountSeq <= 0) return null;
         const account = accounts.find((a) => a.seq === routeAccountSeq);
         return account ? account.name || account.email : null;
-    }, [isEmbedded, routeAccountSeq, accounts]);
+    }, [isEmbedded, routeAccountSeq, routeUserFolderSeq, currentUserFolder, accounts]);
     useEffect(() => {
         if (!isEmbedded) return;
         getMuaSubPageBridge()?.setTitle?.(embeddedAccountLabel);
@@ -163,7 +196,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         if (initialLoadRef.current) return;
         initialLoadRef.current = true;
         refreshAccounts();
-    }, [refreshAccounts]);
+        void state.actions.loadFolders();
+        void state.actions.loadRules();
+    }, [refreshAccounts, state.actions]);
 
     // 라우트 → 필터(사이드바 메뉴 클릭/직접 진입). 필터 변화가 아래 effect 로 목록을 다시 읽는다.
     //  - 계정별 받은편지함: 폴더=받은편지함 + 그 계정
@@ -174,10 +209,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             state.actions.setFilters({ folder: "inbox", mailAccountSeq: routeAccountSeq });
         } else if (isInboxRoute) {
             state.actions.setFilters({ folder: "inbox", mailAccountSeq: 0 });
+        } else if (routeUserFolderSeq > 0) {
+            state.actions.setFilters({ folder: "custom", mailFolderSeq: routeUserFolderSeq });
         } else {
-            state.actions.setFilters({ folder: routeFolder });
+            state.actions.setFilters({ folder: routeFolder, mailFolderSeq: 0 });
         }
-    }, [routeFolder, routeAccountSeq, isInboxRoute, state.actions]);
+    }, [routeFolder, routeAccountSeq, routeUserFolderSeq, isInboxRoute, state.actions]);
 
     // 필터가 바뀌면 목록·건수 재조회
     const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}`;
@@ -410,8 +447,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [messages, rowContextMenu]
     );
     const rowAction = useCallback(
-        (row: MailMessageListItem, action: BulkMessageAction) =>
-            void state.actions.applyMessageAction([row.seq], action).then((ok: boolean) => {
+        (row: MailMessageListItem, action: BulkMessageAction, move?: MailMoveTarget) =>
+            void state.actions.applyMessageAction([row.seq], action, move).then((ok: boolean) => {
                 if (!ok) return;
                 if (
                     action !== "read" &&
@@ -428,6 +465,65 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const isTrashFolder = filters.folder === "trash";
     const isSpamFolder = filters.folder === "spam";
     const isDraftFolder = filters.folder === "draft";
+    // 우클릭 메뉴의 스팸 신고/삭제 확인 팝퍼 — 우클릭한 지점을 가상 앵커로 쓴다.
+    const [rowConfirm, setRowConfirm] = useState<{
+        row: MailMessageListItem;
+        kind: "spam" | "trash";
+        anchor: { top: number; left: number };
+    } | null>(null);
+    const rowConfirmAnchor = useMemo(
+        () =>
+            rowConfirm
+                ? {
+                      getBoundingClientRect: () =>
+                          ({
+                              top: rowConfirm.anchor.top,
+                              left: rowConfirm.anchor.left,
+                              right: rowConfirm.anchor.left,
+                              bottom: rowConfirm.anchor.top,
+                              width: 0,
+                              height: 0,
+                              x: rowConfirm.anchor.left,
+                              y: rowConfirm.anchor.top,
+                              toJSON: () => ({}),
+                          }) as DOMRect,
+                  }
+                : null,
+        [rowConfirm]
+    );
+    // 규칙/메일함 관리 다이얼로그
+    const rulesModal = useModal({ modalId: "mail-rules-dialog" });
+    const foldersModal = useModal({ modalId: "mail-folders-dialog" });
+    const [ruleEditing, setRuleEditing] = useState<{
+        rule: MailRule | null;
+        prefill: Partial<MailRuleForm> | null;
+    } | null>(null);
+    const refreshRulesAndList = useCallback(() => {
+        void state.actions.loadRules();
+        refreshList();
+    }, [state.actions, refreshList]);
+    const refreshFolders = useCallback(() => {
+        void state.actions.loadFolders().then(() => state.actions.loadCounts());
+        refreshList();
+    }, [state.actions, refreshList]);
+    // 사이드바의 + 로 요청된 "메일함 관리" 열기
+    useEffect(() => {
+        const check = () => {
+            if (consumeMailFoldersManageRequest()) foldersModal.open();
+        };
+        check();
+        return subscribeMailFoldersManage(check);
+    }, [foldersModal]);
+    /** 이동 대상 목록(우클릭 "이동 ▸" / 툴바 이동) — 사용자 메일함 + 받은편지함/스팸함/휴지통(현재 폴더 제외) */
+    const moveTargets = useMemo<{ key: string; label: string; target: MailMoveTarget }[]>(() => {
+        const items: { key: string; label: string; target: MailMoveTarget }[] = folders
+            .filter((f) => !(filters.folder === "custom" && f.seq === filters.mailFolderSeq))
+            .map((f) => ({ key: `f${f.seq}`, label: f.name, target: { folder: "custom", mail_folder_seq: f.seq } }));
+        if (filters.folder !== "inbox") items.push({ key: "inbox", label: "받은편지함", target: { folder: "inbox" } });
+        if (filters.folder !== "spam") items.push({ key: "spam", label: "스팸함", target: { folder: "spam" } });
+        if (filters.folder !== "trash") items.push({ key: "trash", label: "휴지통", target: { folder: "trash" } });
+        return items;
+    }, [folders, filters.folder, filters.mailFolderSeq]);
     const contextMenuItems = useMemo<ContextMenuItem<MailMessageListItem>[]>(
         () => [
             {
@@ -444,7 +540,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             {
                 label: "전체 답장",
                 icon: <ReplyAllArrowIcon fontSize="small" />,
-                hidden: isDraftFolder,
+                // 참조가 없는 메일은 답장과 같으므로 숨긴다
+                hidden: (row) => isDraftFolder || !row.has_cc,
                 onClick: (row) => void composeFromSeqs([row.seq], "replyAll"),
             },
             {
@@ -467,11 +564,55 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 onClick: (row) => rowAction(row, row.is_starred ? "unstar" : "star"),
             },
             {
+                label: "이동",
+                icon: <DriveFileMoveOutlinedIcon fontSize="small" />,
+                dividerBefore: true,
+                hidden: isDraftFolder,
+                onClick: () => undefined,
+                children: moveTargets.map((t) => ({
+                    label: t.label,
+                    icon:
+                        t.target.folder === "custom" ? (
+                            <FolderOutlinedIcon fontSize="small" />
+                        ) : t.target.folder === "spam" ? (
+                            <ReportGmailerrorredOutlinedIcon fontSize="small" />
+                        ) : t.target.folder === "trash" ? (
+                            <TrashIcon fontSize="small" />
+                        ) : (
+                            <InboxOutlinedIcon fontSize="small" />
+                        ),
+                    // "이동"으로 스팸함/휴지통에 넣을 땐 확인하지 않는다
+                    onClick: (row) => rowAction(row, "move", t.target),
+                })),
+            },
+            {
+                label: "규칙 만들기",
+                icon: <RuleOutlinedIcon fontSize="small" />,
+                hidden: isDraftFolder,
+                onClick: (row) => {
+                    setRuleEditing({
+                        rule: null,
+                        prefill: {
+                            name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
+                            conditions: [
+                                ...(row.from_address
+                                    ? [{ field: "from" as const, op: "contains" as const, value: row.from_address }]
+                                    : []),
+                                ...(row.subject
+                                    ? [{ field: "subject" as const, op: "contains" as const, value: row.subject }]
+                                    : []),
+                            ],
+                        },
+                    });
+                },
+            },
+            {
                 label: "스팸 신고",
                 icon: <ReportGmailerrorredOutlinedIcon fontSize="small" />,
                 dividerBefore: true,
                 hidden: filters.folder !== "inbox",
-                onClick: (row) => rowAction(row, "spam"),
+                onClick: (row) =>
+                    setRowConfirm({ row, kind: "spam", anchor: rowContextMenu.anchor ?? { top: 0, left: 0 } }),
             },
             {
                 label: "스팸 아님",
@@ -492,7 +633,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 icon: <TrashIcon fontSize="small" />,
                 dividerBefore: filters.folder !== "inbox" && !isSpamFolder,
                 hidden: isTrashFolder,
-                onClick: (row) => rowAction(row, "trash"),
+                onClick: (row) =>
+                    setRowConfirm({ row, kind: "trash", anchor: rowContextMenu.anchor ?? { top: 0, left: 0 } }),
             },
             {
                 label: "영구 삭제",
@@ -506,7 +648,17 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     }),
             },
         ],
-        [state.actions, composeFromSeqs, rowAction, isDraftFolder, isTrashFolder, isSpamFolder, filters.folder]
+        [
+            state.actions,
+            composeFromSeqs,
+            rowAction,
+            isDraftFolder,
+            isTrashFolder,
+            isSpamFolder,
+            filters.folder,
+            moveTargets,
+            rowContextMenu.anchor,
+        ]
     );
     // 데스크탑: 항상 보이는 툴바(선택 없으면 비활성) — 헤더 필터 영역. 모바일: 선택 중일 때만 아이콘 바.
     const bulkBar =
@@ -538,6 +690,27 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             return "list";
         }
     });
+    // 계정에 저장된 보기 타입을 받아 적용한다(로컬 값은 첫 그림용).
+    useEffect(() => {
+        if (!logined || isMobile) return;
+        let cancelled = false;
+        void mailApi
+            .getPreferences()
+            .then((res) => {
+                if (cancelled || !res || res.ok === false) return;
+                const mode = res.data?.view_mode === "split" ? "split" : "list";
+                setViewMode(mode);
+                try {
+                    window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+                } catch {
+                    // 무시
+                }
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, [logined, isMobile]);
     const handleViewModeChange = useCallback((mode: MailViewMode) => {
         setViewMode(mode);
         try {
@@ -545,6 +718,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         } catch {
             // 저장 실패는 무시(세션 동안만 유지)
         }
+        // 계정에도 저장(다른 브라우저에서도 같은 보기 타입)
+        void mailApi.updatePreferences({ view_mode: mode }).catch(() => undefined);
     }, []);
     const isSplit = !isMobile && viewMode === "split";
 
@@ -574,6 +749,14 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 >
                     새 메일
                 </Button>
+                <Button
+                    variant="outlined"
+                    startIcon={<RuleOutlinedIcon />}
+                    onClick={rulesModal.open}
+                    sx={{ color: "#111", borderColor: "#cbd5e1" }}
+                >
+                    규칙
+                </Button>
             </Stack>
         ),
         toolbar: isMobile ? undefined : bulkBar,
@@ -582,14 +765,18 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
 
     const columns = useMemo(
         () =>
-            getMailColumns(handleToggleStar, {
-                checked: checkedSeqs,
-                allChecked,
-                someChecked,
-                onToggle: toggleChecked,
-                onToggleAll: toggleAllChecked,
-            }),
-        [handleToggleStar, checkedSeqs, allChecked, someChecked, toggleChecked, toggleAllChecked]
+            getMailColumns(
+                handleToggleStar,
+                {
+                    checked: checkedSeqs,
+                    allChecked,
+                    someChecked,
+                    onToggle: toggleChecked,
+                    onToggleAll: toggleAllChecked,
+                },
+                filters.search
+            ),
+        [handleToggleStar, checkedSeqs, allChecked, someChecked, toggleChecked, toggleAllChecked, filters.search]
     );
     const hasMore = messages.length < total;
 
@@ -710,6 +897,44 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             />
             <MailAccountFormDialog controller={accountForm} />
             <ComposeDialog controller={compose} accounts={accounts} />
+            <MailRulesDialog
+                open={rulesModal.isOpen}
+                rules={rules}
+                folders={folders}
+                onClose={rulesModal.close}
+                onAdd={() => setRuleEditing({ rule: null, prefill: null })}
+                onEdit={(rule) => setRuleEditing({ rule, prefill: null })}
+                onChanged={refreshRulesAndList}
+            />
+            <MailRuleFormDialog
+                open={Boolean(ruleEditing)}
+                rule={ruleEditing?.rule ?? null}
+                prefill={ruleEditing?.prefill ?? null}
+                folders={folders}
+                onClose={() => setRuleEditing(null)}
+                onSaved={refreshRulesAndList}
+            />
+            <MailFoldersManageDialog
+                open={foldersModal.isOpen}
+                folders={folders}
+                onClose={foldersModal.close}
+                onChanged={refreshFolders}
+            />
+            <ConfirmActionPopper
+                open={Boolean(rowConfirm)}
+                anchorEl={rowConfirmAnchor}
+                placement="bottom-start"
+                zIndex={1400}
+                title={rowConfirm?.kind === "spam" ? "이 메일을 스팸으로 신고할까요?" : "이 메일을 삭제할까요?"}
+                confirmText={rowConfirm?.kind === "spam" ? "스팸 신고" : "삭제"}
+                cancelText="취소"
+                onCancel={() => setRowConfirm(null)}
+                onConfirm={() => {
+                    const target = rowConfirm;
+                    setRowConfirm(null);
+                    if (target) rowAction(target.row, target.kind);
+                }}
+            />
         </>
     );
 
@@ -785,7 +1010,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 <MobileDetailDialog
                     modalId="mail-message-detail"
                     open={Boolean(detail) || loadingDetail}
-                    title={MAIL_FOLDER_LABELS[(detail?.folder as MailListFolder | undefined) ?? filters.folder]}
+                    title={
+                        (detail?.folder ?? filters.folder) === "custom"
+                            ? (currentUserFolder?.name ?? "메일함")
+                            : MAIL_FOLDER_LABELS[(detail?.folder as MailListFolder | undefined) ?? filters.folder]
+                    }
                     onClose={() => state.actions.clearSelection()}
                 >
                     <Box

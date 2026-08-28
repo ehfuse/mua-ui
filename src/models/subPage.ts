@@ -24,6 +24,7 @@ export const MAIL_SUB_PAGE_ID_BY_FOLDER: Record<MailSubPageKey, SubPageId> = {
     spam: "mail-spam",
     trash: "mail-trash",
     contacts: "mail-contacts",
+    custom: "mail-folder",
 };
 
 /** 폴더 표시명(제목바·상세 다이얼로그 제목) — 사이드바 메뉴 라벨과 동일. */
@@ -35,6 +36,7 @@ export const MAIL_FOLDER_LABELS: Record<MailSubPageKey, string> = {
     spam: "스팸함",
     trash: "휴지통",
     contacts: "주소록",
+    custom: "메일함",
 };
 
 /** 서브페이지 id 가 메일 폴더 페이지인지 판정한다. */
@@ -44,6 +46,26 @@ export function isMailSubPageId(id: SubPageId): boolean {
 
 /** 다음에 열 받은편지함 서브페이지의 계정 seq(0 = 전체 계정). */
 let targetAccountSeq = 0;
+/** 다음에 열 사용자 메일함 서브페이지의 메일함 seq. */
+let targetFolderSeq = 0;
+const folderListeners = new Set<() => void>();
+function subscribeFolder(listener: () => void): () => void {
+    folderListeners.add(listener);
+    return () => folderListeners.delete(listener);
+}
+/** 현재 메일함 타깃을 구독한다(사용자 메일함 서브페이지 본문 전용). */
+export function useMailSubPageFolderSeq(): number {
+    return useSyncExternalStore(subscribeFolder, () => targetFolderSeq);
+}
+/** 사용자 메일함 서브페이지를 연다. */
+export function openMailFolderSubPage(folderSeq: number): void {
+    const next = Number.isInteger(folderSeq) && folderSeq > 0 ? folderSeq : 0;
+    if (targetFolderSeq !== next) {
+        targetFolderSeq = next;
+        folderListeners.forEach((listener) => listener());
+    }
+    getMuaSubPageBridge()?.open?.("mail-folder");
+}
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void): () => void {

@@ -41,12 +41,13 @@ function AccountRow({
     onSync: () => void;
 }) {
     const isShared = account.scope === "shared";
+    const isMobile = useIsMobile();
     return (
         <Box
             sx={{
-                // [아이콘][이름·주소·칩 / 서버 / 마지막 동기화][개인·공용 칩 컬럼][액션]
+                // [아이콘][이름·주소·칩 / 서버 / 마지막 동기화][개인·공용 칩 컬럼][액션] — 모바일은 액션을 아래 행에
                 display: "grid",
-                gridTemplateColumns: "28px minmax(0, 1fr) auto auto",
+                gridTemplateColumns: isMobile ? "28px minmax(0, 1fr) auto" : "28px minmax(0, 1fr) auto auto",
                 alignItems: "center",
                 gap: 2,
                 px: 2.25,
@@ -103,7 +104,13 @@ function AccountRow({
             >
                 {isShared ? "공용" : "개인"}
             </Box>
-            <Stack direction="row" spacing={0.25} alignItems="center">
+            <Stack
+                direction="row"
+                spacing={isMobile ? 1 : 0.25}
+                alignItems="center"
+                justifyContent={isMobile ? "flex-end" : "flex-start"}
+                sx={isMobile ? { gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", pt: 1, mt: 0.5 } : undefined}
+            >
                 <Tooltip title="지금 동기화">
                     <span>
                         <IconButton size="small" onClick={onSync} disabled={syncing} aria-label="지금 동기화">
@@ -187,16 +194,39 @@ export function MailAccountsManageDialog({
             actions={{
                 visible: true,
                 showCancelButton: false,
-                left: (
-                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={onAdd}>
-                        계정 추가
-                    </Button>
-                ),
-                right: (
-                    <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
-                        닫기
-                    </Button>
-                ),
+                // 모바일은 [계정 추가][닫기] 50/50 균등 배치
+                ...(isMobile
+                    ? {
+                          left: (
+                              <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                                  <Button
+                                      variant="contained"
+                                      color="primary"
+                                      startIcon={<AddIcon />}
+                                      onClick={onAdd}
+                                      fullWidth
+                                      sx={{ minHeight: 48 }}
+                                  >
+                                      계정 추가
+                                  </Button>
+                                  <Button variant="outlined" onClick={onClose} fullWidth sx={{ minHeight: 48 }}>
+                                      닫기
+                                  </Button>
+                              </Stack>
+                          ),
+                      }
+                    : {
+                          left: (
+                              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={onAdd}>
+                                  계정 추가
+                              </Button>
+                          ),
+                          right: (
+                              <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
+                                  닫기
+                              </Button>
+                          ),
+                      }),
             }}
         />
     );

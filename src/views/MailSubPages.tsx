@@ -5,7 +5,7 @@
  * 폴더는 props 로, 계정별 받은편지함의 계정은 모듈 스토어(useMailSubPageAccountSeq)로 받는다.
  */
 
-import { useMailSubPageAccountSeq } from "../models/subPage";
+import { useMailSubPageAccountSeq, useMailSubPageFolderSeq } from "../models/subPage";
 import MailLayout from "./Layout";
 import ContactsPage from "./ContactsPage";
 
@@ -43,4 +43,10 @@ export function MailTrashSubPage() {
 /** 주소록 */
 export function MailContactsSubPage() {
     return <ContactsPage embedded />;
+}
+
+/** 사용자 메일함(openMailFolderSubPage 가 스토어에 적어 둔 메일함) */
+export function MailFolderSubPage() {
+    const folderSeq = useMailSubPageFolderSeq();
+    return <MailLayout embedded={{ folder: "custom", folderSeq }} />;
 }

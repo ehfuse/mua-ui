@@ -3,7 +3,7 @@
  */
 
 /** 폴더 */
-export type MailFolder = "inbox" | "sent" | "draft" | "trash" | "spam";
+export type MailFolder = "inbox" | "sent" | "draft" | "trash" | "spam" | "custom";
 /** 목록 폴더 — starred 는 중요 표시 가상 폴더(휴지통 제외) */
 export type MailListFolder = MailFolder | "starred";
 /** 수신 프로토콜 */
@@ -81,6 +81,8 @@ export interface MailMessageListItem {
     is_read: boolean; // 읽음
     is_starred: boolean; // 중요
     has_attachment: boolean; // 첨부
+    has_cc: boolean; // 참조 있음(목록에서 전체 답장 노출 판단)
+    mail_folder_seq: number; // 사용자 메일함(folder=custom)
     size: number; // 크기
 }
 
@@ -107,6 +109,7 @@ export interface MailFolderCounts {
     trash: number; // 휴지통
     spam: number; // 스팸함
     starred: number; // 중요(휴지통 제외)
+    custom: Record<string, number>; // 사용자 메일함별 건수(mail_folder_seq → 건수)
 }
 
 /** 접속 테스트 결과 */
@@ -127,6 +130,7 @@ export interface MailSyncResult {
 export interface MailFilters {
     mailAccountSeq: number; // 0 = 전체 계정
     folder: MailListFolder; // 폴더(가상 폴더 포함)
+    mailFolderSeq: number; // 사용자 메일함 seq(folder=custom 일 때)
     search: string; // 검색어
     unreadOnly: boolean; // 미읽음만
     starredOnly: boolean; // 중요만
@@ -139,6 +143,8 @@ export const MAIL_PAGE_SIZE = 50;
 export interface MailState {
     accounts: MailAccount[]; // 내 계정 목록
     loadingAccounts: boolean; // 계정 로딩
+    folders: MailUserFolder[]; // 사용자 메일함 목록
+    rules: MailRule[]; // 규칙 목록
     messages: MailMessageListItem[]; // 목록(누적 페이지)
     total: number; // 서버 총 건수
     page: number; // 마지막으로 받은 페이지
@@ -275,3 +281,61 @@ export interface MailContactForm {
     is_shared: boolean; // 공용 주소록
     can_manage: boolean; // 수정/삭제 가능(수정 모드 안내용)
 }
+
+/** 사용자 메일함 */
+export interface MailUserFolder {
+    seq: number; // seq
+    account_seq: number; // 소유자
+    name: string; // 이름
+    sort_order: number; // 정렬
+}
+
+/** 규칙 조건 */
+export interface MailRuleCondition {
+    field: "from" | "to" | "subject" | "body"; // 대상
+    op: "contains" | "not_contains" | "equals" | "starts" | "ends"; // 비교
+    value: string; // 값
+}
+
+/** 규칙 동작 */
+export interface MailRuleActions {
+    move_to?: "inbox" | "spam" | "trash" | "custom"; // 이동
+    mail_folder_seq?: number; // 이동할 메일함
+    mark_read?: boolean; // 읽음으로 표시
+    star?: boolean; // 중요 표시
+}
+
+/** 규칙 */
+export interface MailRule {
+    seq: number; // seq
+    account_seq: number; // 소유자
+    name: string; // 이름
+    enabled: boolean; // 사용
+    sort_order: number; // 순서
+    match: "all" | "any"; // 조건 결합
+    stop_processing: boolean; // 맞으면 뒤 규칙 중단
+    conditions: MailRuleCondition[]; // 조건
+    actions: MailRuleActions; // 동작
+}
+
+/** 규칙 요청 */
+export type MailRuleRequest = Partial<
+    Pick<MailRule, "name" | "enabled" | "sort_order" | "match" | "stop_processing" | "conditions" | "actions">
+>;
+
+/** 규칙 폼 */
+export interface MailRuleForm {
+    seq: number; // 0 = 신규
+    name: string; // 이름
+    enabled: boolean; // 사용
+    match: "all" | "any"; // 조건 결합
+    stop_processing: boolean; // 맞으면 뒤 규칙 중단
+    conditions: MailRuleCondition[]; // 조건
+    move_to: "" | "inbox" | "spam" | "trash" | "custom"; // 이동("" = 이동 안 함)
+    mail_folder_seq: number; // 이동할 메일함
+    mark_read: boolean; // 읽음으로 표시
+    star: boolean; // 중요 표시
+}
+
+/** 이동 대상 */
+export type MailMoveTarget = { folder: "inbox" | "spam" | "trash" } | { folder: "custom"; mail_folder_seq: number };

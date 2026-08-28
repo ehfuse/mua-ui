@@ -27,7 +27,7 @@ function swallowGhostClick(): void {
 
 interface ConfirmActionPopperProps {
     open: boolean;
-    anchorEl: HTMLElement | null;
+    anchorEl: PopperProps["anchorEl"] | null; // 요소 또는 가상 앵커({ getBoundingClientRect })
     title?: ReactNode;
     content?: ReactNode; // 제목과 버튼 사이에 렌더할 추가 콘텐츠(입력칸 등)
     confirmText?: string;

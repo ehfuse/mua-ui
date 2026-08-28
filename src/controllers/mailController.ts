@@ -25,6 +25,8 @@ export function useMailController() {
             clearSelection: Actions.clearSelection(),
             applyMessageAction: Actions.applyMessageAction(),
             syncNow: Actions.syncNow(),
+            loadFolders: Actions.loadFolders(),
+            loadRules: Actions.loadRules(),
         },
     });
     return { state };

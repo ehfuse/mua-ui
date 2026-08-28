@@ -11,7 +11,7 @@ import { useEffect } from "react";
 import { Navigate, useLocation, useParams } from "react-router-dom";
 import { useIsMobile } from "../internal/useIsMobile";
 import { getMailHomePath } from "../internal/pathsRegistry";
-import { openMailSubPage } from "../models/subPage";
+import { openMailFolderSubPage, openMailSubPage } from "../models/subPage";
 import { toRouteFolder } from "../utils/routeFolder";
 import MailLayout from "./Layout";
 import ContactsPage from "./ContactsPage";
@@ -20,18 +20,20 @@ import ContactsPage from "./ContactsPage";
 export default function MailRouteEntry() {
     const isMobile = useIsMobile();
     const location = useLocation();
-    const params = useParams<{ folder?: string; accountSeq?: string }>();
+    const params = useParams<{ folder?: string; accountSeq?: string; folderSeq?: string }>();
     // `mail/contacts` 는 폴더가 아니라 주소록 페이지다.
     const isContacts = params.folder === "contacts";
     const folder = toRouteFolder(params.folder);
     const accountSeq = params.accountSeq !== undefined ? Number(params.accountSeq) || 0 : 0;
+    const userFolderSeq = params.folderSeq !== undefined ? Number(params.folderSeq) || 0 : 0;
 
     // 모바일 진입 시 전역 서브페이지를 연다(아래 Navigate 로 라우트는 메인으로 교체된다).
     useEffect(() => {
         if (isMobile) {
-            openMailSubPage(isContacts ? "contacts" : folder, accountSeq);
+            if (userFolderSeq > 0) openMailFolderSubPage(userFolderSeq);
+            else openMailSubPage(isContacts ? "contacts" : folder, accountSeq);
         }
-    }, [isMobile, isContacts, folder, accountSeq]);
+    }, [isMobile, isContacts, folder, accountSeq, userFolderSeq]);
 
     if (isMobile) {
         // replace 로 교체해 history 에 메일 라우트 항목을 남기지 않는다(뒤로가기 = 다이얼로그 닫기 한 번).

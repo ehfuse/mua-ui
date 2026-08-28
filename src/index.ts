@@ -26,6 +26,7 @@ export { default as ContactsPage } from "./views/ContactsPage";
 export {
     MailDraftSubPage,
     MailContactsSubPage,
+    MailFolderSubPage,
     MailInboxSubPage,
     MailSentSubPage,
     MailSpamSubPage,
@@ -35,15 +36,25 @@ export {
 
 // 셸(사이드바) 연동 — 계정 목록/배지, 서비스 아이콘, 경로, 서브페이지 열기
 export { useMailSidebarAccounts } from "./hooks/useMailSidebarAccounts";
+export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
+export { requestMailFoldersManage } from "./internal/foldersManageRequest";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";
 export { findMailProvider, type MailProviderInfo, type MailProviderKey } from "./utils/providers";
-export { CODEMARKET_MAIL_INBOX_PATH, mailAccountInboxPath, mailContactsPath, mailInboxPath } from "./utils/paths";
+export {
+    CODEMARKET_MAIL_INBOX_PATH,
+    mailAccountInboxPath,
+    mailContactsPath,
+    mailFolderPath,
+    mailInboxPath,
+} from "./utils/paths";
 export {
     MAIL_FOLDER_LABELS,
     MAIL_SUB_PAGE_ID_BY_FOLDER,
     isMailSubPageId,
+    openMailFolderSubPage,
     openMailSubPage,
     useMailSubPageAccountSeq,
+    useMailSubPageFolderSeq,
     type MailSubPageKey,
 } from "./models/subPage";
 export { toRouteFolder } from "./utils/routeFolder";

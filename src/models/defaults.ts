@@ -2,7 +2,15 @@
  * 메일 모듈 기본값.
  */
 
-import type { MailContactForm, ComposeForm, MailAccountForm, MailFilters, MailFolderCounts, MailState } from "./types";
+import type {
+    MailContactForm,
+    ComposeForm,
+    MailAccountForm,
+    MailFilters,
+    MailFolderCounts,
+    MailRuleForm,
+    MailState,
+} from "./types";
 
 /** 폴더 건수 기본값 */
 export const defaultMailFolderCounts: MailFolderCounts = {
@@ -13,12 +21,14 @@ export const defaultMailFolderCounts: MailFolderCounts = {
     trash: 0,
     spam: 0,
     starred: 0,
+    custom: {},
 };
 
 /** 필터 기본값 */
 export const defaultMailFilters: MailFilters = {
     mailAccountSeq: 0,
     folder: "inbox",
+    mailFolderSeq: 0,
     search: "",
     unreadOnly: false,
     starredOnly: false,
@@ -28,6 +38,8 @@ export const defaultMailFilters: MailFilters = {
 export const defaultMailState: MailState = {
     accounts: [],
     loadingAccounts: false,
+    folders: [],
+    rules: [],
     messages: [],
     total: 0,
     page: 0,
@@ -96,4 +108,18 @@ export const defaultMailContactForm: MailContactForm = {
     is_favorite: false,
     is_shared: false,
     can_manage: true,
+};
+
+/** 규칙 폼 기본값 */
+export const defaultMailRuleForm: MailRuleForm = {
+    seq: 0,
+    name: "",
+    enabled: true,
+    match: "all",
+    stop_processing: false,
+    conditions: [{ field: "from", op: "contains", value: "" }],
+    move_to: "",
+    mail_folder_seq: 0,
+    mark_read: false,
+    star: false,
 };

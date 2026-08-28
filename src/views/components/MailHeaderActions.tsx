@@ -2,7 +2,8 @@
  * 메일 헤더 오른쪽 액션 — 새로고침(동기화) · 계정 설정(톱니). (계정 선택 버튼은 검색칸 옆 필터 그룹에 있다)
  */
 
-import { Badge, CircularProgress, IconButton, Stack, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Badge, CircularProgress, IconButton, Stack } from "@mui/material";
+import { OptionToggleGroup } from "../../internal/OptionToggleGroup";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import VerticalSplitOutlinedIcon from "@mui/icons-material/VerticalSplitOutlined";
 import { Tooltip } from "../../internal/Tooltip";
@@ -33,7 +34,7 @@ export function MailHeaderActions({
 }: MailHeaderActionsProps) {
     const hasError = accounts.some((a) => a.last_error);
     return (
-        <Stack direction="row" spacing={0.5} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center">
             <Tooltip title="새로고침 (새 메일 받기)">
                 <span>
                     <IconButton
@@ -47,25 +48,29 @@ export function MailHeaderActions({
                 </span>
             </Tooltip>
             {viewMode && onViewModeChange ? (
-                <ToggleButtonGroup
-                    size="small"
-                    exclusive
+                <OptionToggleGroup<MailViewMode>
                     value={viewMode}
-                    onChange={(_, next: MailViewMode | null) => next && onViewModeChange(next)}
-                    aria-label="보기 타입"
-                    sx={{ mx: 0.5, "& .MuiToggleButton-root": { px: 1, py: 0.5, border: "1px solid #cbd5e1" } }}
-                >
-                    <ToggleButton value="list" aria-label="목록형">
-                        <Tooltip title="목록형">
-                            <FormatListBulletedIcon fontSize="small" />
-                        </Tooltip>
-                    </ToggleButton>
-                    <ToggleButton value="split" aria-label="분할형">
-                        <Tooltip title="분할형">
-                            <VerticalSplitOutlinedIcon fontSize="small" />
-                        </Tooltip>
-                    </ToggleButton>
-                </ToggleButtonGroup>
+                    onChange={(next) => next && onViewModeChange(next)}
+                    options={[
+                        {
+                            value: "list",
+                            label: (
+                                <Tooltip title="목록형">
+                                    <FormatListBulletedIcon fontSize="small" />
+                                </Tooltip>
+                            ),
+                        },
+                        {
+                            value: "split",
+                            label: (
+                                <Tooltip title="분할형">
+                                    <VerticalSplitOutlinedIcon fontSize="small" />
+                                </Tooltip>
+                            ),
+                        },
+                    ]}
+                    sx={{ mx: 1, "& .MuiToggleButtonGroup-grouped": { px: 1.25, py: 0.5 } }}
+                />
             ) : null}
             <Tooltip title={hasError ? "메일 계정 설정 (동기화 오류 있음)" : "메일 계정 설정"}>
                 <IconButton size="small" onClick={onOpenSettings} aria-label="계정 설정">

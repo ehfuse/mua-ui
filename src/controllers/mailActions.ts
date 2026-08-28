@@ -13,7 +13,10 @@ import {
     type MailFolderCounts,
     type MailMessageDetail,
     type MailMessageListItem,
+    type MailMoveTarget,
+    type MailRule,
     type MailState,
+    type MailUserFolder,
 } from "../models/types";
 
 /** 목록 요청 시퀀스(오래된 응답 폐기용) */
@@ -53,13 +56,18 @@ export const setFilters =
         const same =
             current.mailAccountSeq === next.mailAccountSeq &&
             current.folder === next.folder &&
+            current.mailFolderSeq === next.mailFolderSeq &&
             current.search === next.search &&
             current.unreadOnly === next.unreadOnly &&
             current.starredOnly === next.starredOnly;
         if (same) return;
         context.setValue("filters", next);
         // 폴더/계정이 바뀌면 선택 상세는 의미가 없어진다.
-        if (current.folder !== next.folder || current.mailAccountSeq !== next.mailAccountSeq) {
+        if (
+            current.folder !== next.folder ||
+            current.mailAccountSeq !== next.mailAccountSeq ||
+            current.mailFolderSeq !== next.mailFolderSeq
+        ) {
             context.setValue("selectedSeq", 0);
             context.setValue("detail", null);
             // 다른 폴더/계정의 목록이 새 목록이 오기 전까지 남아 보이지 않게 즉시 비운다
@@ -86,6 +94,7 @@ export const loadMessages =
                 await mailApi.listMessages({
                     mail_account_seq: filters.mailAccountSeq,
                     folder: filters.folder,
+                    mail_folder_seq: filters.folder === "custom" ? filters.mailFolderSeq : undefined,
                     page,
                     limit: MAIL_PAGE_SIZE,
                     search: filters.search,
@@ -211,11 +220,16 @@ export const clearSelection =
 /** 메시지 일괄/단건 액션(읽음·중요·휴지통·복원·영구삭제)을 적용하고 목록을 낙관 갱신한다. */
 export const applyMessageAction =
     () =>
-    async (context: ActionContext<MailState>, seqs: number[], action: BulkMessageAction): Promise<boolean> => {
+    async (
+        context: ActionContext<MailState>,
+        seqs: number[],
+        action: BulkMessageAction,
+        move?: MailMoveTarget
+    ): Promise<boolean> => {
         const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
         if (targets.length === 0) return false;
         try {
-            unwrap(await mailApi.bulkMessages(targets, action), "처리하지 못했습니다.");
+            unwrap(await mailApi.bulkMessages(targets, action, move), "처리하지 못했습니다.");
         } catch (error) {
             ErrorAlert({ message: messageOf(error, "처리하지 못했습니다.") });
             return false;
@@ -226,14 +240,25 @@ export const applyMessageAction =
             for (const seq of targets) patchLocalMessage(context, seq, { is_starred: action === "star" });
         } else {
             removeLocalMessages(context, targets);
-            const label =
-                action === "trash"
-                    ? "휴지통으로 이동했습니다."
-                    : action === "spam"
+            const folders = context.getValue("folders") as MailUserFolder[];
+            const moveLabel =
+                move?.folder === "custom"
+                    ? `"${folders.find((f) => f.seq === move.mail_folder_seq)?.name ?? "메일함"}"(으)로 이동했습니다.`
+                    : move?.folder === "spam"
                       ? "스팸함으로 이동했습니다."
-                      : action === "restore"
-                        ? "복원했습니다."
-                        : "영구 삭제했습니다.";
+                      : move?.folder === "trash"
+                        ? "휴지통으로 이동했습니다."
+                        : "받은편지함으로 이동했습니다.";
+            const label =
+                action === "move"
+                    ? moveLabel
+                    : action === "trash"
+                      ? "휴지통으로 이동했습니다."
+                      : action === "spam"
+                        ? "스팸함으로 이동했습니다."
+                        : action === "restore"
+                          ? "복원했습니다."
+                          : "영구 삭제했습니다.";
             SuccessAlert(`${targets.length}건을 ${label}`);
         }
         return true;
@@ -288,4 +313,33 @@ export const syncNow =
         }
         if (errors.length > 0) ErrorAlert({ message: errors.join("\n") });
         else SuccessAlert(added > 0 ? `새 메일 ${added}건을 받았습니다.` : "새 메일이 없습니다.");
+    };
+
+/** 사용자 메일함 목록을 읽는다. */
+export const loadFolders =
+    () =>
+    async (context: ActionContext<MailState>): Promise<MailUserFolder[]> => {
+        try {
+            const data = unwrap(await mailApi.listFolders(), "메일함을 불러오지 못했습니다.");
+            const items = Array.isArray(data.items) ? data.items : [];
+            context.setValue("folders", items);
+            return items;
+        } catch {
+            return context.getValue("folders") as MailUserFolder[];
+        }
+    };
+
+/** 규칙 목록을 읽는다. */
+export const loadRules =
+    () =>
+    async (context: ActionContext<MailState>): Promise<MailRule[]> => {
+        try {
+            const data = unwrap(await mailApi.listRules(), "규칙을 불러오지 못했습니다.");
+            const items = Array.isArray(data.items) ? data.items : [];
+            context.setValue("rules", items);
+            return items;
+        } catch (error) {
+            ErrorAlert({ message: messageOf(error, "규칙을 불러오지 못했습니다.") });
+            return [];
+        }
     };

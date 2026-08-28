@@ -21,3 +21,8 @@ export function mailAccountInboxPath(accountSeq: number, basePath = getMailInbox
 export function mailContactsPath(basePath = getMailInboxPath()): string {
     return `${basePath}/contacts`;
 }
+
+/** 사용자 메일함 경로(라우트 `mail/folder/:folderSeq`). */
+export function mailFolderPath(folderSeq: number, basePath = getMailInboxPath()): string {
+    return `${basePath}/folder/${folderSeq}`;
+}

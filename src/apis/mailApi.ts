@@ -16,7 +16,11 @@ import type {
     MailListFolder,
     MailMessageDetail,
     MailMessageListItem,
+    MailMoveTarget,
+    MailRule,
+    MailRuleRequest,
     MailSyncResult,
+    MailUserFolder,
 } from "../models/types";
 
 /** AS 표준 응답 */
@@ -28,6 +32,7 @@ interface ApiOk<T> {
 
 /** 목록 조회 파라미터 */
 export interface ListMessagesParams {
+    mail_folder_seq?: number; // 사용자 메일함(folder=custom)
     mail_account_seq: number; // 0=전체
     folder: MailListFolder; // 폴더(가상 폴더 starred 포함)
     page: number; // 페이지
@@ -46,7 +51,8 @@ export interface ListMessagesResponse {
 }
 
 /** 일괄 처리 액션 */
-export type BulkMessageAction = "read" | "unread" | "star" | "unstar" | "trash" | "spam" | "restore" | "delete";
+export type BulkMessageAction =
+    "read" | "unread" | "star" | "unstar" | "trash" | "spam" | "restore" | "delete" | "move";
 
 /** 쿼리스트링을 만든다(빈 값 제외). */
 function toQuery(params: object): string {
@@ -97,8 +103,41 @@ export const mailApi = {
     patchMessage: (seq: number, body: { is_read?: boolean; is_starred?: boolean; folder?: MailFolder | "restore" }) =>
         entityAppServer.http.patch<ApiOk<MailMessageDetail>>(`/v1/mua/messages/${seq}`, body),
     /** 일괄 처리 */
-    bulkMessages: (seqs: number[], action: BulkMessageAction) =>
-        entityAppServer.http.post<ApiOk<{ affected: number }>>("/v1/mua/messages/bulk", { seqs, action }),
+    bulkMessages: (seqs: number[], action: BulkMessageAction, move?: MailMoveTarget) =>
+        entityAppServer.http.post<ApiOk<{ affected: number }>>("/v1/mua/messages/bulk", {
+            seqs,
+            action,
+            ...(move
+                ? { folder: move.folder, mail_folder_seq: move.folder === "custom" ? move.mail_folder_seq : 0 }
+                : {}),
+        }),
+    /** 사용자 화면 설정(보기 타입) */
+    getPreferences: () => entityAppServer.http.get<ApiOk<{ view_mode: "list" | "split" }>>("/v1/mua/preferences"),
+    /** 사용자 화면 설정 저장 */
+    updatePreferences: (body: { view_mode?: "list" | "split" }) =>
+        entityAppServer.http.patch<ApiOk<{ view_mode: "list" | "split" }>>("/v1/mua/preferences", body),
+    /** 사용자 메일함 목록 */
+    listFolders: () => entityAppServer.http.get<ApiOk<{ items: MailUserFolder[] }>>("/v1/mua/folders"),
+    /** 메일함 추가 */
+    createFolder: (body: { name: string }) => entityAppServer.http.post<ApiOk<MailUserFolder>>("/v1/mua/folders", body),
+    /** 메일함 수정 */
+    updateFolder: (seq: number, body: { name?: string; sort_order?: number }) =>
+        entityAppServer.http.patch<ApiOk<MailUserFolder>>(`/v1/mua/folders/${seq}`, body),
+    /** 메일함 삭제(메일은 받은편지함으로) */
+    deleteFolder: (seq: number) =>
+        entityAppServer.http.delete<ApiOk<{ deleted: boolean; moved: number }>>(`/v1/mua/folders/${seq}`, {}),
+    /** 규칙 목록 */
+    listRules: () => entityAppServer.http.get<ApiOk<{ items: MailRule[] }>>("/v1/mua/rules"),
+    /** 규칙 추가 */
+    createRule: (body: MailRuleRequest) => entityAppServer.http.post<ApiOk<MailRule>>("/v1/mua/rules", body),
+    /** 규칙 수정 */
+    updateRule: (seq: number, body: MailRuleRequest) =>
+        entityAppServer.http.patch<ApiOk<MailRule>>(`/v1/mua/rules/${seq}`, body),
+    /** 규칙 삭제 */
+    deleteRule: (seq: number) => entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/rules/${seq}`, {}),
+    /** 규칙 지금 적용(seq=0 이면 전체) — 내가 소유한 계정의 받은편지함 최근 1000건 */
+    applyRules: (seq: number) =>
+        entityAppServer.http.post<ApiOk<{ scanned: number; affected: number }>>(`/v1/mua/rules/${seq}/apply`, {}),
     /** 영구 삭제 */
     deleteMessage: (seq: number) =>
         entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/messages/${seq}`, {}),

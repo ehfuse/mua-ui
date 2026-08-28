@@ -5,6 +5,7 @@
 import type { DataColumn } from "@ehfuse/mui-virtual-data-table";
 import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import { StarRoundedIcon } from "../../internal/icons";
+import { HighlightText } from "../../internal/HighlightText";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import type { MailMessageListItem } from "../../models/types";
 import { formatCounterpart, formatMailListDate } from "../../utils/format";
@@ -21,7 +22,8 @@ export interface MailListSelection {
 /** 목록 컬럼을 만든다. */
 export function getMailColumns(
     onToggleStar: (row: MailMessageListItem) => void,
-    selection: MailListSelection
+    selection: MailListSelection,
+    search = ""
 ): DataColumn<MailMessageListItem>[] {
     return [
         {
@@ -86,7 +88,7 @@ export function getMailColumns(
                     sx={{ fontWeight: row.is_read ? 400 : 700, fontSize: "14px" }}
                     title={row.from_address ?? undefined}
                 >
-                    {formatCounterpart(row)}
+                    <HighlightText text={formatCounterpart(row)} query={search} />
                 </Typography>
             ),
         },
@@ -99,7 +101,7 @@ export function getMailColumns(
                         noWrap
                         sx={{ fontWeight: row.is_read ? 400 : 700, fontSize: "14px", flexShrink: 0, maxWidth: "60%" }}
                     >
-                        {row.subject || "(제목 없음)"}
+                        <HighlightText text={row.subject || "(제목 없음)"} query={search} />
                     </Typography>
                     <Typography noWrap sx={{ color: "#64748b", fontSize: "13.5px", minWidth: 0 }}>
                         {row.snippet ? `— ${row.snippet}` : ""}

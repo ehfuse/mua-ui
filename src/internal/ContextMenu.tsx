@@ -61,6 +61,8 @@ export interface ContextMenuItem<T> {
     hidden?: boolean | ((target: T) => boolean);
     /** 항목 위에 구분선을 둔다. */
     dividerBefore?: boolean;
+    /** 하위 메뉴(호버/클릭 시 오른쪽으로 펼침). 있으면 onClick 은 쓰지 않는다. */
+    children?: ContextMenuItem<T>[] | ((target: T) => ContextMenuItem<T>[]);
 }
 
 interface ContextMenuProps<T> {
@@ -105,7 +107,7 @@ export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
 
     // 메뉴 예상 높이(항목 + 구분선 + 여백)를 가늠해, 클릭 지점이 화면 아래쪽이면 위로 펼친다.
     const dividerCount = visibleItems.filter((item, index) => item.dividerBefore && index > 0).length;
-    const estimatedHeight = visibleItems.length * 44 + dividerCount * 9 + 8;
+    const estimatedHeight = visibleItems.length * 42 + dividerCount * 9 + 8;
     const estimatedWidth = 200;
     const viewportHeight = typeof window !== "undefined" ? window.innerHeight : Number.POSITIVE_INFINITY;
     const viewportWidth = typeof window !== "undefined" ? window.innerWidth : Number.POSITIVE_INFINITY;
@@ -134,41 +136,140 @@ export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
                 userSelect: "none",
             }}
         >
-            {visibleItems.map((item, index) => {
-                const disabled =
-                    typeof item.disabled === "function"
-                        ? target !== null && item.disabled(target)
-                        : Boolean(item.disabled);
-                const label =
-                    typeof item.label === "function" ? (target !== null ? item.label(target) : "") : item.label;
-                return (
-                    <Box key={index}>
-                        {item.dividerBefore && index > 0 ? <Divider sx={{ my: 0.5 }} /> : null}
-                        <Box
-                            onClick={() => {
-                                if (disabled) return;
-                                if (target !== null) item.onClick(target);
-                                close();
-                            }}
-                            sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                                px: 2,
-                                py: 1,
-                                fontSize: 16,
-                                color: disabled ? "text.disabled" : "#0f172a",
-                                cursor: disabled ? "default" : "pointer",
-                                "&:hover": disabled ? undefined : { bgcolor: "#f1f5f9" },
-                            }}
-                        >
-                            {item.icon}
-                            {label}
-                        </Box>
-                    </Box>
-                );
-            })}
+            {visibleItems.map((item, index) => (
+                <ContextMenuRow key={index} item={item} index={index} target={target} close={close} />
+            ))}
         </Box>,
         document.body
+    );
+}
+
+/** 메뉴 한 줄(하위 메뉴가 있으면 호버 시 오른쪽에 펼친다). */
+function ContextMenuRow<T>({
+    item,
+    index,
+    target,
+    close,
+}: {
+    item: ContextMenuItem<T>;
+    index: number;
+    target: T | null;
+    close: () => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const disabled =
+        typeof item.disabled === "function" ? target !== null && item.disabled(target) : Boolean(item.disabled);
+    const label = typeof item.label === "function" ? (target !== null ? item.label(target) : "") : item.label;
+    const children =
+        typeof item.children === "function" ? (target !== null ? item.children(target) : []) : (item.children ?? null);
+    const hasChildren = Array.isArray(children) && children.length > 0;
+    const visibleChildren = hasChildren
+        ? children.filter((c) => (typeof c.hidden === "function" ? !(target !== null && c.hidden(target)) : !c.hidden))
+        : [];
+    return (
+        <Box
+            onMouseEnter={() => hasChildren && setOpen(true)}
+            onMouseLeave={() => hasChildren && setOpen(false)}
+            sx={{ position: "relative" }}
+        >
+            {item.dividerBefore && index > 0 ? <Divider sx={{ my: 0.5 }} /> : null}
+            <Box
+                onClick={() => {
+                    if (disabled) return;
+                    if (hasChildren) {
+                        setOpen((v) => !v);
+                        return;
+                    }
+                    if (target !== null) item.onClick(target);
+                    close();
+                }}
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    px: 2,
+                    py: 1,
+                    fontSize: 15,
+                    color: disabled ? "text.disabled" : "#0f172a",
+                    cursor: disabled ? "default" : "pointer",
+                    "&:hover": disabled ? undefined : { bgcolor: "#f1f5f9" },
+                    "& .MuiSvgIcon-root": { fontSize: 20 },
+                }}
+            >
+                {item.icon}
+                <Box component="span" sx={{ flex: 1, whiteSpace: "nowrap" }}>
+                    {label}
+                </Box>
+                {hasChildren ? (
+                    <Box component="span" sx={{ ml: 2, color: "#64748b", fontSize: 13 }}>
+                        ▶
+                    </Box>
+                ) : null}
+            </Box>
+            {hasChildren && open ? (
+                <Box
+                    data-context-menu
+                    sx={{
+                        position: "absolute",
+                        top: -4,
+                        left: "100%",
+                        minWidth: 180,
+                        maxHeight: 320,
+                        overflowY: "auto",
+                        py: 0.5,
+                        bgcolor: "#ffffff",
+                        borderRadius: 1,
+                        border: "1px solid #e5e7eb",
+                        boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
+                        zIndex: 1401,
+                    }}
+                >
+                    {visibleChildren.length === 0 ? (
+                        <Box sx={{ px: 2, py: 1, fontSize: 15, color: "text.disabled" }}>없음</Box>
+                    ) : (
+                        visibleChildren.map((child, childIndex) => {
+                            const childDisabled =
+                                typeof child.disabled === "function"
+                                    ? target !== null && child.disabled(target)
+                                    : Boolean(child.disabled);
+                            const childLabel =
+                                typeof child.label === "function"
+                                    ? target !== null
+                                        ? child.label(target)
+                                        : ""
+                                    : child.label;
+                            return (
+                                <Box key={childIndex}>
+                                    {child.dividerBefore && childIndex > 0 ? <Divider sx={{ my: 0.5 }} /> : null}
+                                    <Box
+                                        onClick={() => {
+                                            if (childDisabled) return;
+                                            if (target !== null) child.onClick(target);
+                                            close();
+                                        }}
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 1,
+                                            px: 2,
+                                            py: 1,
+                                            fontSize: 15,
+                                            whiteSpace: "nowrap",
+                                            color: childDisabled ? "text.disabled" : "#0f172a",
+                                            cursor: childDisabled ? "default" : "pointer",
+                                            "&:hover": childDisabled ? undefined : { bgcolor: "#f1f5f9" },
+                                            "& .MuiSvgIcon-root": { fontSize: 20 },
+                                        }}
+                                    >
+                                        {child.icon}
+                                        {childLabel}
+                                    </Box>
+                                </Box>
+                            );
+                        })
+                    )}
+                </Box>
+            ) : null}
+        </Box>
     );
 }
