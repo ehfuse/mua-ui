@@ -4,8 +4,7 @@
 
 import type { DataColumn } from "@ehfuse/mui-virtual-data-table";
 import { Box, Checkbox, IconButton, Typography } from "@mui/material";
-import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
+import { StarRoundedIcon } from "../../internal/icons";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import type { MailMessageListItem } from "../../models/types";
 import { formatCounterpart, formatMailListDate } from "../../utils/format";
@@ -68,11 +67,12 @@ export function getMailColumns(
                     }}
                     sx={{ p: 0.5 }}
                 >
-                    {row.is_starred ? (
-                        <StarIcon sx={{ color: "#f59e0b" }} fontSize="small" />
-                    ) : (
-                        <StarBorderIcon fontSize="small" sx={{ color: "#94a3b8" }} />
-                    )}
+                    <StarRoundedIcon
+                        sx={{
+                            fontSize: 20,
+                            ...(row.is_starred ? { color: "#f59e0b", fill: "currentColor" } : { color: "#94a3b8" }),
+                        }}
+                    />
                 </IconButton>
             ),
         },

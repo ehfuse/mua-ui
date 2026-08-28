@@ -11,8 +11,7 @@
 
 import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import StarIcon from "@mui/icons-material/Star";
-import StarBorderIcon from "@mui/icons-material/StarBorder";
+import { StarRoundedIcon } from "../../internal/icons";
 import { mfs } from "../../internal/mobileFontScale";
 import { MobileCardStack, MobileChip, MobileListLoadingSpinner } from "../../internal/mobileParts";
 import type { MailMessageListItem } from "../../models/types";
@@ -86,11 +85,14 @@ export function MailMobileList({
                                 }}
                                 sx={{ p: 0.75 }}
                             >
-                                {row.is_starred ? (
-                                    <StarIcon sx={{ color: "#f59e0b", fontSize: 24 }} />
-                                ) : (
-                                    <StarBorderIcon sx={{ color: "#94a3b8", fontSize: 24 }} />
-                                )}
+                                <StarRoundedIcon
+                                    sx={{
+                                        fontSize: 24,
+                                        ...(row.is_starred
+                                            ? { color: "#f59e0b", fill: "currentColor" }
+                                            : { color: "#94a3b8" }),
+                                    }}
+                                />
                             </IconButton>
                         </Box>
                         <Box
