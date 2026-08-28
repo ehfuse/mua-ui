@@ -318,7 +318,6 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const toggleAllChecked = useCallback(() => {
         setCheckedSeqs(allChecked ? new Set() : new Set(messages.map((row) => row.seq)));
     }, [allChecked, messages]);
-    const clearChecked = useCallback(() => setCheckedSeqs(new Set()), []);
     useEffect(() => {
         setCheckedSeqs(new Set());
     }, [filterKey]);
@@ -358,7 +357,6 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 folder={filters.folder}
                 compact={isMobile}
                 onAction={runBulkAction}
-                onClear={clearChecked}
             />
         ) : null;
 
