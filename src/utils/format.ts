@@ -8,7 +8,11 @@ import type { MailAddress, MailMessageListItem } from "../models/types";
 export function parseMailDate(value: string | null | undefined): Date | null {
     if (!value) return null;
     const text = String(value).trim();
-    const date = new Date(text.includes("T") || text.endsWith("Z") ? text : text.replace(" ", "T"));
+    // AS 가 저장하는 date_time("YYYY-MM-DD HH:mm:ss", formatSqlDateTime)은 UTC 다 — 시간대 표기가 없는 값은 UTC 로 읽어
+    // 브라우저 로컬(KST)로 표시한다. 시간대가 붙은 ISO 문자열은 그대로 파싱한다.
+    const hasZone = /(Z|[+-]\d{2}:?\d{2})$/i.test(text);
+    const iso = text.includes("T") ? text : text.replace(" ", "T");
+    const date = new Date(hasZone ? iso : `${iso}Z`);
     return Number.isNaN(date.getTime()) ? null : date;
 }
 

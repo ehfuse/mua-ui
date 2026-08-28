@@ -57,6 +57,11 @@ interface MessageDetailPanelProps {
     embedded?: boolean;
 }
 
+/** 답장을 받지 않는 발신 전용 주소인지(noreply / no-reply / do-not-reply / donotreply). */
+function isNoReplyAddress(address: string): boolean {
+    return /no[-_.]?reply|do[-_.]?not[-_.]?reply/i.test(address);
+}
+
 /** 첨부 칩 — 클릭 시 다운로드 */
 function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
     const [downloading, setDownloading] = useState(false);
@@ -345,16 +350,24 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             {detail.from ? (
                                 <>
                                     {detail.from.name ? `${detail.from.name} <` : ""}
-                                    {/* 주소 클릭 → 이 주소로 새 메일 작성 */}
-                                    <Link
-                                        component="button"
-                                        type="button"
-                                        underline="hover"
-                                        onClick={() => onComposeTo(detail.from!.address)}
-                                        sx={{ fontSize: "13.5px", verticalAlign: "baseline", wordBreak: "break-all" }}
-                                    >
-                                        {detail.from.address}
-                                    </Link>
+                                    {/* 주소 클릭 → 이 주소로 새 메일 작성 (noreply 류 발신 전용 주소는 링크 없이 표시) */}
+                                    {isNoReplyAddress(detail.from.address) ? (
+                                        <span style={{ wordBreak: "break-all" }}>{detail.from.address}</span>
+                                    ) : (
+                                        <Link
+                                            component="button"
+                                            type="button"
+                                            underline="hover"
+                                            onClick={() => onComposeTo(detail.from!.address)}
+                                            sx={{
+                                                fontSize: "13.5px",
+                                                verticalAlign: "baseline",
+                                                wordBreak: "break-all",
+                                            }}
+                                        >
+                                            {detail.from.address}
+                                        </Link>
+                                    )}
                                     {detail.from.name ? ">" : ""}
                                     {onAddContact ? (
                                         <Tooltip title="주소록에 추가">
