@@ -44,12 +44,13 @@ function AccountRow({
     return (
         <Box
             sx={{
+                // [아이콘][이름·주소·칩 / 서버 / 마지막 동기화][개인·공용 칩 컬럼][액션]
                 display: "grid",
-                gridTemplateColumns: "28px minmax(0, 1fr) auto",
+                gridTemplateColumns: "28px minmax(0, 1fr) auto auto",
                 alignItems: "center",
-                gap: 1.5,
-                px: 1.5,
-                py: 1.25,
+                gap: 2,
+                px: 2.25,
+                py: 1.75,
                 border: "1px solid #e2e8f0",
                 borderRadius: 1.5,
                 bgcolor: "#fff",
@@ -66,12 +67,6 @@ function AccountRow({
                             {account.email}
                         </Typography>
                     ) : null}
-                    <Chip
-                        size="small"
-                        label={isShared ? "공용" : "개인"}
-                        variant="outlined"
-                        sx={{ fontSize: "13px", color: "#111" }}
-                    />
                     {account.is_default ? (
                         <Chip size="small" label="기본 발신" color="primary" sx={{ fontSize: "13px" }} />
                     ) : null}
@@ -83,17 +78,37 @@ function AccountRow({
                         />
                     ) : null}
                 </Stack>
+                <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569", mt: 0.5 }}>
+                    {account.incoming_protocol.toUpperCase()} · {account.incoming_host}
+                </Typography>
+                {/* 마지막 동기화(또는 오류)는 아래 줄에 따로 */}
                 <Typography
                     noWrap
                     sx={{ fontSize: "13.5px", color: account.last_error ? "#b91c1c" : "#475569", mt: 0.25 }}
                 >
-                    {account.incoming_protocol.toUpperCase()} · {account.incoming_host} ·{" "}
                     {account.last_error
                         ? `오류: ${account.last_error}`
                         : account.last_sync_time
                           ? `마지막 동기화 ${formatMailFullDate(account.last_sync_time)}`
                           : "아직 동기화 전"}
                 </Typography>
+            </Box>
+            {/* 개인/공용 — 사각 칩, 별도 컬럼 */}
+            <Box
+                component="span"
+                sx={{
+                    px: 1,
+                    py: 0.4,
+                    borderRadius: "4px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    lineHeight: 1.4,
+                    whiteSpace: "nowrap",
+                    color: isShared ? "#1d4ed8" : "#334155",
+                    bgcolor: isShared ? "#eff6ff" : "#f1f5f9",
+                }}
+            >
+                {isShared ? "공용" : "개인"}
             </Box>
             <Stack direction="row" spacing={0.25} alignItems="center">
                 <Tooltip title="지금 동기화">
