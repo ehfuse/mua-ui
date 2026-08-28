@@ -62,6 +62,12 @@ export const setFilters =
         if (current.folder !== next.folder || current.mailAccountSeq !== next.mailAccountSeq) {
             context.setValue("selectedSeq", 0);
             context.setValue("detail", null);
+            // 다른 폴더/계정의 목록이 새 목록이 오기 전까지 남아 보이지 않게 즉시 비운다
+            // (모바일 서브페이지는 같은 전역 mail-state 를 쓰므로 이전 폴더 행이 그대로 보였다).
+            context.setValue("messages", []);
+            context.setValue("total", 0);
+            context.setValue("page", 0);
+            context.setValue("loadingList", true);
         }
     };
 
