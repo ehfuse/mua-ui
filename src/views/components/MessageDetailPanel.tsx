@@ -16,9 +16,9 @@ import {
     Menu,
     MenuItem,
     Stack,
-    Tooltip,
     Typography,
 } from "@mui/material";
+import { Tooltip } from "../../internal/Tooltip";
 import CloseIcon from "@mui/icons-material/Close";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";

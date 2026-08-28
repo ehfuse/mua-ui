@@ -2,7 +2,8 @@
  * 메일 헤더 오른쪽 액션 — 새로고침(동기화) · 계정 설정(톱니). (계정 선택 버튼은 검색칸 옆 필터 그룹에 있다)
  */
 
-import { Badge, CircularProgress, IconButton, Stack, Tooltip } from "@mui/material";
+import { Badge, CircularProgress, IconButton, Stack } from "@mui/material";
+import { Tooltip } from "../../internal/Tooltip";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import SyncIcon from "@mui/icons-material/Sync";
 import type { MailAccount } from "../../models/types";

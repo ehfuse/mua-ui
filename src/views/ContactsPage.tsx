@@ -152,6 +152,9 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
         onSearch: handleSearch,
         searchMinLength: 1,
         searchLoading: loading,
+        // 필터가 없으므로 펼치기/접기(v) 아이콘을 두지 않는다.
+        showCollapseButton: false,
+        defaultCollapsed: true,
     };
 
     const columns = useMemo<DataColumn<MailContact>[]>(

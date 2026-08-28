@@ -5,7 +5,8 @@
  */
 
 import type { ReactNode } from "react";
-import { Button, IconButton, Stack, Tooltip } from "@mui/material";
+import { Button, IconButton, Stack } from "@mui/material";
+import { Tooltip } from "../../internal/Tooltip";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";

@@ -3,7 +3,8 @@
  * 수정·삭제는 can_manage(개인=소유자, 공용=관리자·등록자)인 계정만 가능하다.
  */
 
-import { Box, Button, Chip, CircularProgress, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Chip, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
+import { Tooltip } from "../../internal/Tooltip";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SyncIcon from "@mui/icons-material/Sync";
