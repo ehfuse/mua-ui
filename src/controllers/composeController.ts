@@ -95,6 +95,35 @@ const openFromMessage =
         modal.open();
     };
 
+/** 여러 통 전달 열기 — 원문들을 순서대로 이어 붙이고 첨부는 전부 합친다(uuid 중복 제거). */
+const openForwardMany =
+    (modal: ReturnType<typeof useModal>) =>
+    (context: ActionContext<ComposeForm>, details: MailMessageDetail[], account: MailAccount | undefined): void => {
+        if (details.length === 0) return;
+        const first = details[0];
+        const seen = new Set<string>();
+        const attachments = details
+            .flatMap((d) => d.attachments)
+            .filter((a) => (seen.has(a.uuid) ? false : (seen.add(a.uuid), true)))
+            .map((a) => ({ uuid: a.uuid, name: a.name, mime: a.mime, size: a.size }));
+        const subject = prefixSubject(first.subject, "Fwd") + (details.length > 1 ? ` 외 ${details.length - 1}건` : "");
+        context.reset();
+        context.setValues({
+            ...defaultComposeForm,
+            mode: "forward",
+            mail_account_seq: account?.seq ?? first.mail_account_seq,
+            to: "",
+            cc: "",
+            showCcBcc: false,
+            subject,
+            body_html: `${signatureBlock(account)}${details.map((d) => buildQuotedBody(d, "forward")).join("<hr>")}`,
+            attachments,
+            in_reply_to: "",
+            references: [],
+        });
+        modal.open();
+    };
+
 /** 임시보관 메일 이어쓰기 열기 */
 const openDraft =
     (modal: ReturnType<typeof useModal>) =>
@@ -151,7 +180,12 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                 setSending(false);
             }
         },
-        actions: { openNew: openNew(modal), openFromMessage: openFromMessage(modal), openDraft: openDraft(modal) },
+        actions: {
+            openNew: openNew(modal),
+            openFromMessage: openFromMessage(modal),
+            openForwardMany: openForwardMany(modal),
+            openDraft: openDraft(modal),
+        },
     });
 
     /** 임시보관함에 저장한다(성공 시 seq 를 폼에 반영해 이후 저장은 갱신이 된다). */

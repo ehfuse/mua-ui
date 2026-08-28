@@ -21,7 +21,8 @@ interface MailBulkActionBarProps {
     folder: MailListFolder; // 현재 폴더(휴지통/스팸함이면 액션이 달라진다)
     compact?: boolean; // 모바일(아이콘만)
     onAction: (action: BulkMessageAction) => void; // 액션 실행
-    replyEnabled?: boolean; // 답장/전체 답장/전달 가능(대상 메일이 1건일 때)
+    replyEnabled?: boolean; // 답장/전체 답장 가능(대상 메일이 1건일 때)
+    forwardEnabled?: boolean; // 전달 가능(선택 1건 이상 — 여러 통은 한 메일에 이어 붙여 전달)
     canMarkRead?: boolean; // 선택 중 안 읽은 메일이 있음("읽음으로 표시" 활성 조건)
     canMarkUnread?: boolean; // 선택 중 읽은 메일이 있음("읽지 않음으로 표시" 활성 조건)
     onReply?: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전체 답장/전달
@@ -47,6 +48,7 @@ export function MailBulkActionBar({
     compact = false,
     onAction,
     replyEnabled = false,
+    forwardEnabled = false,
     canMarkRead = true,
     canMarkUnread = true,
     onReply,
@@ -71,7 +73,13 @@ export function MailBulkActionBar({
     const button = (label: string, icon: ReactNode, action: BulkMessageAction, enabled = true) =>
         item(action, label, icon, () => onAction(action), disabled || !enabled);
     const replyButton = (label: string, icon: ReactNode, mode: "reply" | "replyAll" | "forward") =>
-        item(mode, label, icon, () => onReply?.(mode), !replyEnabled || !onReply);
+        item(
+            mode,
+            label,
+            icon,
+            () => onReply?.(mode),
+            !(mode === "forward" ? forwardEnabled : replyEnabled) || !onReply
+        );
     const items: ReactNode[] = [];
     if (isTrash) {
         items.push(button("복원", <RestoreFromTrashOutlinedIcon fontSize="small" />, "restore"));
@@ -89,9 +97,7 @@ export function MailBulkActionBar({
             items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
         }
         items.push(button("읽음", <MarkEmailReadOutlinedIcon fontSize="small" />, "read", canMarkRead));
-        items.push(
-            button("읽지 않음", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread)
-        );
+        items.push(button("읽지 않음", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread));
     }
     return (
         <Stack

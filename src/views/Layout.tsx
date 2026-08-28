@@ -359,22 +359,32 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             : checkedCount === 0
               ? (detail?.seq ?? 0)
               : 0;
+    /** 전달 대상 — 체크된 메일 전부(없으면 열려 있는 상세). */
+    const forwardTargetSeqs = checkedCount > 0 ? checkedRows.map((row) => row.seq) : detail ? [detail.seq] : [];
     const handleToolbarReply = useCallback(
         async (mode: "reply" | "replyAll" | "forward") => {
-            const seq = replyTargetSeq;
-            if (!(seq > 0)) return;
+            const seqs = mode === "forward" ? forwardTargetSeqs : replyTargetSeq > 0 ? [replyTargetSeq] : [];
+            if (seqs.length === 0) return;
+            if (seqs.length > 20) {
+                WarningAlert({ message: "한 번에 전달할 수 있는 메일은 20통까지입니다." });
+                return;
+            }
             try {
-                const message =
-                    detail && detail.seq === seq
-                        ? detail
-                        : unwrap(await mailApi.getMessage(seq, false), "메일을 불러오지 못했습니다.");
-                const account = accounts.find((a) => a.seq === message.mail_account_seq) ?? defaultAccount;
-                compose.form.actions.openFromMessage(message, mode, account);
+                const details = await Promise.all(
+                    seqs.map(async (seq) =>
+                        detail && detail.seq === seq
+                            ? detail
+                            : unwrap(await mailApi.getMessage(seq, false), "메일을 불러오지 못했습니다.")
+                    )
+                );
+                const account = accounts.find((a) => a.seq === details[0].mail_account_seq) ?? defaultAccount;
+                if (mode === "forward") compose.form.actions.openForwardMany(details, account);
+                else compose.form.actions.openFromMessage(details[0], mode, account);
             } catch (error) {
                 ErrorAlert({ message: error instanceof Error ? error.message : "메일을 불러오지 못했습니다." });
             }
         },
-        [replyTargetSeq, detail, accounts, defaultAccount, compose.form.actions]
+        [forwardTargetSeqs, replyTargetSeq, detail, accounts, defaultAccount, compose.form.actions]
     );
     // 데스크탑: 항상 보이는 툴바(선택 없으면 비활성) — 헤더 필터 영역. 모바일: 선택 중일 때만 아이콘 바.
     const bulkBar =
@@ -385,6 +395,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 compact={isMobile}
                 onAction={runBulkAction}
                 replyEnabled={replyTargetSeq > 0 && filters.folder !== "draft"}
+                forwardEnabled={forwardTargetSeqs.length > 0 && filters.folder !== "draft"}
                 canMarkRead={checkedRows.some((row) => !row.is_read)}
                 canMarkUnread={checkedRows.some((row) => row.is_read)}
                 onReply={(mode) => void handleToolbarReply(mode)}
@@ -638,7 +649,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 onClose={() => state.actions.clearSelection()}
                 slotProps={{
                     paper: {
-                        sx: { width: "min(760px, 92vw)", maxWidth: "100vw", display: "flex", flexDirection: "column" },
+                        sx: { width: "min(850px, 50vw)", maxWidth: "50vw", display: "flex", flexDirection: "column" },
                     },
                 }}
             >
