@@ -27,9 +27,10 @@ export function MuaProvider({ config, children }: MuaProviderProps) {
     const value = useMemo(() => config ?? {}, [config]);
 
     // 컴포넌트 밖에서 불리는 것들(서브페이지 열기·경로 규칙)은 모듈 등록소로 넘긴다.
+    // ⚠️ 언마운트 때 지우지 않는다 — 사이드바(모바일 메뉴)는 메일 화면이 없을 때도 openMailSubPage 를 부른다.
+    //    (앱은 setMuaSubPageBridge 를 모듈 스코프에서 직접 등록해도 된다)
     useEffect(() => {
-        setMuaSubPageBridge(value.mobile?.subPage ?? null);
-        return () => setMuaSubPageBridge(null);
+        if (value.mobile?.subPage) setMuaSubPageBridge(value.mobile.subPage);
     }, [value.mobile?.subPage]);
     useEffect(() => {
         setMuaPaths({ inboxPath: value.inboxPath, homePath: value.homePath });
