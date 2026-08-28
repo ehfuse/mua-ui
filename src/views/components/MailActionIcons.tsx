@@ -33,3 +33,35 @@ export function ForwardArrowIcon({ sx, ...props }: SvgIconProps) {
         </SvgIcon>
     );
 }
+
+/** 전체 답장(왼쪽 이중 화살표) */
+export function ReplyAllArrowIcon({ sx, ...props }: SvgIconProps) {
+    return (
+        <SvgIcon viewBox="0 0 24 24" {...props} sx={{ fill: "none", ...sx }}>
+            <polyline
+                points="7 17 2 12 7 7"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+            />
+            <polyline
+                points="12 17 7 12 12 7"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+            />
+            <path
+                d="M22 18v-2a4 4 0 00-4-4H7"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+            />
+        </SvgIcon>
+    );
+}

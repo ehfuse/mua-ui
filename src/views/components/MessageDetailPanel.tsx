@@ -22,10 +22,10 @@ import { Tooltip } from "../../internal/Tooltip";
 import CloseIcon from "@mui/icons-material/Close";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
-import { ForwardArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
+import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
+import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import { StarRoundedIcon, TrashIcon } from "../../internal/icons";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import { ErrorAlert } from "@ehfuse/alerts";
@@ -79,7 +79,13 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
     }, [attachment, saveBlob]);
     return (
         <Chip
-            icon={downloading ? <CircularProgress size={14} /> : <AttachFileIcon />}
+            icon={
+                downloading ? (
+                    <CircularProgress size={14} />
+                ) : (
+                    <FileTypeIcon name={attachment.name} mime={attachment.mime} size={20} />
+                )
+            }
             label={`${attachment.name} (${formatBytes(attachment.size)})`}
             variant="outlined"
             onClick={() => void handleClick()}
@@ -131,6 +137,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const isTrash = detail.folder === "trash";
     const isSpam = detail.folder === "spam";
     const isDraft = detail.folder === "draft";
+    const canReplyAll = detail.cc.length > 0;
     const hasRemoteImages = /<img\b[^>]*\ssrc\s*=\s*["'](https?:)?\/\//i.test(detail.body_html || "");
     // 신뢰 발신자(주소록)면 차단 안내 없이 바로 표시한다.
     const showRemoteImages = allowRemoteImages || trustedSender;
@@ -162,6 +169,14 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             <IconButton size="small" onClick={() => onReply("reply")}>
                                 <ReplyArrowIcon />
                             </IconButton>
+                        </Tooltip>
+                        {/* 전체 답장 — 참조가 없으면 답장과 같으므로 비활성 */}
+                        <Tooltip title={canReplyAll ? "전체 답장" : "전체 답장 (참조 없음)"}>
+                            <span>
+                                <IconButton size="small" onClick={() => onReply("replyAll")} disabled={!canReplyAll}>
+                                    <ReplyAllArrowIcon />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                         <Tooltip title="전달">
                             <IconButton size="small" onClick={() => onReply("forward")}>
@@ -231,6 +246,16 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                       <ReplyArrowIcon fontSize="small" />
                                   </ListItemIcon>
                                   <ListItemText primary="답장" />
+                              </MenuItem>,
+                              <MenuItem
+                                  key="replyAll"
+                                  disabled={!canReplyAll}
+                                  onClick={() => (closeMenu(), onReply("replyAll"))}
+                              >
+                                  <ListItemIcon>
+                                      <ReplyAllArrowIcon fontSize="small" />
+                                  </ListItemIcon>
+                                  <ListItemText primary="전체 답장" />
                               </MenuItem>,
                               <MenuItem key="forward" onClick={() => (closeMenu(), onReply("forward"))}>
                                   <ListItemIcon>

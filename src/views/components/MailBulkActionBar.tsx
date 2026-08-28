@@ -11,9 +11,8 @@ import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
-import ReplyAllOutlinedIcon from "@mui/icons-material/ReplyAllOutlined";
 import type { BulkMessageAction } from "../../apis/mailApi";
-import { ForwardArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
+import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { TrashIcon } from "../../internal/icons";
 import type { MailListFolder } from "../../models/types";
 
@@ -24,6 +23,7 @@ interface MailBulkActionBarProps {
     onAction: (action: BulkMessageAction) => void; // 액션 실행
     replyEnabled?: boolean; // 답장/전체 답장 가능(대상 메일이 1건일 때)
     forwardEnabled?: boolean; // 전달 가능(선택 1건 이상 — 여러 통은 한 메일에 이어 붙여 전달)
+    replyAllEnabled?: boolean; // 전체 답장 가능(대상 1건 + 참조 있음)
     canMarkRead?: boolean; // 선택 중 안 읽은 메일이 있음("읽음으로 표시" 활성 조건)
     canMarkUnread?: boolean; // 선택 중 읽은 메일이 있음("읽지 않음으로 표시" 활성 조건)
     onReply?: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전체 답장/전달
@@ -50,6 +50,7 @@ export function MailBulkActionBar({
     onAction,
     replyEnabled = false,
     forwardEnabled = false,
+    replyAllEnabled = false,
     canMarkRead = true,
     canMarkUnread = true,
     onReply,
@@ -79,7 +80,7 @@ export function MailBulkActionBar({
             label,
             icon,
             () => onReply?.(mode),
-            !(mode === "forward" ? forwardEnabled : replyEnabled) || !onReply
+            !(mode === "forward" ? forwardEnabled : mode === "replyAll" ? replyAllEnabled : replyEnabled) || !onReply
         );
     const items: ReactNode[] = [];
     if (isTrash) {
@@ -94,7 +95,7 @@ export function MailBulkActionBar({
             items.push(button("스팸 등록", <ReportGmailerrorredOutlinedIcon fontSize="small" />, "spam"));
         if (folder !== "draft") {
             items.push(replyButton("답장", <ReplyArrowIcon fontSize="small" />, "reply"));
-            items.push(replyButton("전체 답장", <ReplyAllOutlinedIcon fontSize="small" />, "replyAll"));
+            items.push(replyButton("전체 답장", <ReplyAllArrowIcon fontSize="small" />, "replyAll"));
             items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
         }
         items.push(button("읽음", <MarkEmailReadOutlinedIcon fontSize="small" />, "read", canMarkRead));

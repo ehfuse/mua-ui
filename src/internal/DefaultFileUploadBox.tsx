@@ -5,6 +5,7 @@ import { Box, Chip, Stack, Typography } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { WarningAlert } from "@ehfuse/alerts";
 import type { MuaFileUploadBoxProps } from "../types/config";
+import { FileTypeIcon } from "./FileTypeIcon";
 
 /** 기본 드롭존 */
 export function DefaultFileUploadBox({
@@ -114,7 +115,7 @@ export function DefaultFileUploadBox({
                     {files.map((file, index) => (
                         <Chip
                             key={`${file.name}-${index}`}
-                            icon={<AttachFileIcon />}
+                            icon={<FileTypeIcon name={file.name} mime={file.type} size={20} />}
                             label={file.name}
                             variant="outlined"
                             sx={{ fontSize: "13.5px", color: "#111" }}

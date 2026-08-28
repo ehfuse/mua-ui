@@ -378,6 +378,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     )
                 );
                 const account = accounts.find((a) => a.seq === details[0].mail_account_seq) ?? defaultAccount;
+                if (mode === "replyAll" && details[0].cc.length === 0) {
+                    WarningAlert({ message: "참조가 없는 메일은 전체 답장할 수 없습니다. 답장을 사용하세요." });
+                    return;
+                }
                 if (mode === "forward") compose.form.actions.openForwardMany(details, account);
                 else compose.form.actions.openFromMessage(details[0], mode, account);
             } catch (error) {
@@ -395,6 +399,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 compact={isMobile}
                 onAction={runBulkAction}
                 replyEnabled={replyTargetSeq > 0 && filters.folder !== "draft"}
+                // 상세가 열린 대상은 참조 유무를 바로 알고, 체크만 한 행은 상세를 받은 뒤 검증한다.
+                replyAllEnabled={
+                    replyTargetSeq > 0 &&
+                    filters.folder !== "draft" &&
+                    (detail?.seq === replyTargetSeq ? detail.cc.length > 0 : true)
+                }
                 forwardEnabled={forwardTargetSeqs.length > 0 && filters.folder !== "draft"}
                 canMarkRead={checkedRows.some((row) => !row.is_read)}
                 canMarkUnread={checkedRows.some((row) => row.is_read)}

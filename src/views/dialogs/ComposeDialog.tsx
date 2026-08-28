@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Box, Button, Chip, CircularProgress, Stack, Typography } from "@mui/material";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
+import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
 import { ErrorAlert, WarningAlert } from "@ehfuse/alerts";
@@ -209,7 +209,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         {existingAttachments.map((item) => (
                                             <Chip
                                                 key={refKey(item)}
-                                                icon={<AttachFileIcon />}
+                                                icon={<FileTypeIcon name={item.name} mime={item.mime} size={20} />}
                                                 label={`${item.name} (${formatBytes(item.size)})`}
                                                 variant="outlined"
                                                 sx={{ fontSize: "13.5px", color: "#111" }}
