@@ -88,9 +88,9 @@ export function MailBulkActionBar({
             items.push(replyButton("전체 답장", <ReplyAllOutlinedIcon fontSize="small" />, "replyAll"));
             items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
         }
-        items.push(button("읽음으로 표시", <MarkEmailReadOutlinedIcon fontSize="small" />, "read", canMarkRead));
+        items.push(button("읽음", <MarkEmailReadOutlinedIcon fontSize="small" />, "read", canMarkRead));
         items.push(
-            button("읽지 않음으로 표시", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread)
+            button("읽지 않음", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread)
         );
     }
     return (
