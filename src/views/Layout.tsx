@@ -5,7 +5,7 @@
  * 목록 재조회는 필터(계정/폴더/검색/미읽음/중요) 변화를 effect 가 보고 호출하고, realtime(mua.mail.changed)은 조용히 갱신한다.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Box, Button, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -17,6 +17,7 @@ import { mfs } from "../internal/mobileFontScale";
 import { useMobileSearchOverlay } from "../internal/mobileSearchOverlay";
 import { getMuaSubPageBridge } from "../internal/subPageBridge";
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
+import { MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
 import { mailApi } from "../apis/mailApi";
@@ -221,15 +222,36 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [detailAccount, compose.form.actions, accountForm.form.actions]
     );
 
-    /** 상세의 보낸 사람 → 주소록 추가(같은 주소가 이미 있으면 안내만). */
+    // 주소록에 있는 메일 주소 집합 — 상세의 "주소록 추가" 아이콘은 없는 주소에만 보인다(추가하면 즉시 사라진다).
+    const [contactEmails, setContactEmails] = useState<Set<string>>(() => new Set());
+    useEffect(() => {
+        if (!logined) return;
+        let cancelled = false;
+        void mailApi
+            .listContacts("")
+            .then((res) => {
+                if (cancelled || !res || res.ok === false) return;
+                setContactEmails(new Set((res.data?.items ?? []).map((c) => c.email.toLowerCase())));
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, [logined]);
+    const detailFromAddress = String(detail?.from?.address ?? "").toLowerCase();
+    const canAddContact = Boolean(detailFromAddress) && !contactEmails.has(detailFromAddress);
+
+    /** 상세의 보낸 사람 → 주소록 추가(같은 주소가 이미 있으면 안내만 하고 아이콘을 감춘다). */
     const handleAddContact = useCallback(async (address: string, name: string) => {
+        const key = address.toLowerCase();
         try {
             const res = await mailApi.createContact({ email: address, name });
             if (res && res.ok === false) {
                 WarningAlert({ message: res.error || "이미 주소록에 있는 메일 주소입니다." });
-                return;
+            } else {
+                SuccessAlert("주소록에 추가했습니다.");
             }
-            SuccessAlert("주소록에 추가했습니다.");
+            setContactEmails((prev) => new Set(prev).add(key));
         } catch (error) {
             ErrorAlert({ message: error instanceof Error ? error.message : "주소록에 추가하지 못했습니다." });
         }
@@ -309,6 +331,32 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const columns = useMemo(() => getMailColumns(handleToggleStar), [handleToggleStar]);
     const hasMore = messages.length < total;
 
+    // 무한 스크롤 — 데스크탑은 vdt onLoadMore, 모바일은 하단 sentinel. 진행 중 중복 호출을 막는다.
+    const [loadingMore, setLoadingMore] = useState(false);
+    const loadingMoreRef = useRef(false);
+    const handleLoadMore = useCallback(() => {
+        if (!hasMore || loadingList || loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+        void state.actions.loadMessages({ append: true, silent: true }).finally(() => {
+            loadingMoreRef.current = false;
+            setLoadingMore(false);
+        });
+    }, [hasMore, loadingList, state.actions]);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
+        const el = sentinelRef.current;
+        if (!el || !isMobile || !hasMore) return;
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting) handleLoadMore();
+            },
+            { root: findScrollParent(el), rootMargin: "320px" }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [isMobile, hasMore, handleLoadMore, messages.length]);
+
     const detailPanel = (
         <MessageDetailPanel
             detail={detail}
@@ -319,7 +367,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             onReply={(mode) => detail && compose.form.actions.openFromMessage(detail, mode, detailAccount)}
             onEditDraft={() => detail && compose.form.actions.openDraft(detail)}
             onComposeTo={handleComposeTo}
-            onAddContact={(address, name) => void handleAddContact(address, name)}
+            onAddContact={canAddContact ? (address, name) => void handleAddContact(address, name) : undefined}
             onToggleStar={() =>
                 detail && void state.actions.applyMessageAction([detail.seq], detail.is_starred ? "unstar" : "star")
             }
@@ -401,17 +449,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             onSelect={(row) => void state.actions.selectMessage(row.seq)}
                             onToggleStar={handleToggleStar}
                         />
-                        {hasMore ? (
-                            <Button
-                                fullWidth
-                                variant="outlined"
-                                onClick={() => void state.actions.loadMessages({ append: true })}
-                                disabled={loadingList}
-                                sx={{ bgcolor: "#fff", fontSize: mfs(15), minHeight: 44 }}
-                            >
-                                더 보기 ({messages.length}/{total})
-                            </Button>
-                        ) : null}
+                        {/* 무한 스크롤 sentinel — 뷰포트(또는 다이얼로그 스크롤러)에 들어오면 다음 페이지 */}
+                        {loadingMore ? <MobileListLoadingMoreSpinner /> : null}
+                        {hasMore ? <Box ref={sentinelRef} sx={{ height: 1 }} /> : null}
                     </Box>
                 </MobileCardListLayout>
                 {/* 새 메일 — 업무함 새 업무 FAB 와 같은 자리(우·하단 24). 다이얼로그(portal) 안에서는 하단 바 변수가 0 이라
@@ -468,36 +508,13 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     selectedRowSx: { backgroundColor: "#dbeafe", boxShadow: "inset 3px 0 0 #3b82f6" },
                     onRowClick: (row: MailMessageListItem) => void state.actions.selectMessage(row.seq),
                     emptyMessage,
-                    showFooter: hasMore,
-                    footerHeight: 44,
+                    // 스크롤이 끝에 가까워지면 다음 페이지를 이어 붙인다(더 보기 버튼 없음).
+                    onLoadMore: hasMore ? handleLoadMore : undefined,
                 }}
                 onEscape={() => state.actions.clearSelection()}
                 rightConfig={{ visible: Boolean(detail) || loadingDetail, ratio: 0.5, minWidth: 420 }}
                 rightPanel={detailPanel}
             />
-            {hasMore ? (
-                <Box
-                    sx={{
-                        position: "absolute",
-                        left: 0,
-                        right: 0,
-                        bottom: 8,
-                        display: "flex",
-                        justifyContent: "center",
-                        pointerEvents: "none",
-                    }}
-                >
-                    <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => void state.actions.loadMessages({ append: true })}
-                        disabled={loadingList}
-                        sx={{ pointerEvents: "auto", bgcolor: "#fff", fontSize: "13.5px" }}
-                    >
-                        더 보기 ({messages.length}/{total})
-                    </Button>
-                </Box>
-            ) : null}
             {dialogs}
         </Box>
     );

@@ -77,3 +77,28 @@ export function MobileCardStack({ children }: { children: ReactNode }) {
         </Box>
     );
 }
+
+/** 모바일 다음 페이지(무한 스크롤) 로딩 — 하단 중앙 작은 스피너. */
+export function MobileListLoadingMoreSpinner() {
+    return (
+        <Box sx={{ py: 2, display: "flex", justifyContent: "center" }}>
+            <CircularProgress size={24} thickness={4} sx={{ color: "#94a3b8" }} />
+        </Box>
+    );
+}
+
+/**
+ * 무한 스크롤 sentinel 이 속한 실제 스크롤 컨테이너를 찾는다(서브페이지 다이얼로그 안은 본문이 자체 스크롤이라
+ * IntersectionObserver root 를 명시해야 교차가 감지된다). 없으면 null(=뷰포트).
+ */
+export function findScrollParent(node: HTMLElement | null): HTMLElement | null {
+    let current = node?.parentElement ?? null;
+    while (current) {
+        const { overflowY } = window.getComputedStyle(current);
+        if ((overflowY === "auto" || overflowY === "scroll") && current.scrollHeight > current.clientHeight) {
+            return current;
+        }
+        current = current.parentElement;
+    }
+    return null;
+}
