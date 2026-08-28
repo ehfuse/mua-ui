@@ -118,7 +118,7 @@ export function DefaultFileUploadBox({
                             icon={<FileTypeIcon name={file.name} mime={file.type} size={20} />}
                             label={file.name}
                             variant="outlined"
-                            sx={{ fontSize: "13.5px", color: "#111", "& .MuiChip-icon": { ml: 1 } }}
+                            sx={{ fontSize: "13.5px", color: "#111", pl: 0.75, "& .MuiChip-icon": { ml: 0.5 } }}
                             onDelete={() => removeAt(index)}
                         />
                     ))}

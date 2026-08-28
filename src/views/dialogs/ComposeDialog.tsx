@@ -212,7 +212,12 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                                 icon={<FileTypeIcon name={item.name} mime={item.mime} size={20} />}
                                                 label={`${item.name} (${formatBytes(item.size)})`}
                                                 variant="outlined"
-                                                sx={{ fontSize: "13.5px", color: "#111", "& .MuiChip-icon": { ml: 1 } }}
+                                                sx={{
+                                                    fontSize: "13.5px",
+                                                    color: "#111",
+                                                    pl: 0.75,
+                                                    "& .MuiChip-icon": { ml: 0.5 },
+                                                }}
                                                 onDelete={() => handleRemoveExisting(refKey(item))}
                                             />
                                         ))}

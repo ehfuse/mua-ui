@@ -91,7 +91,7 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
             variant="outlined"
             onClick={() => void handleClick()}
             disabled={downloading}
-            sx={{ fontSize: "13.5px", color: "#111", maxWidth: 360, "& .MuiChip-icon": { ml: 1 } }}
+            sx={{ fontSize: "13.5px", color: "#111", maxWidth: 360, pl: 0.75, "& .MuiChip-icon": { ml: 0.5 } }}
         />
     );
 }
