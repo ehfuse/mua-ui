@@ -426,20 +426,27 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                         </Link>
                                     )}
                                     {detail.from.name ? ">" : ""}
-                                    {onAddContact ? (
-                                        <Tooltip title="주소록에 추가">
-                                            <IconButton
-                                                size="small"
-                                                aria-label="주소록에 추가"
-                                                onClick={() =>
-                                                    onAddContact(detail.from!.address, detail.from!.name ?? "")
-                                                }
-                                                sx={{ ml: 0.5, p: 0.25, verticalAlign: "middle" }}
-                                            >
-                                                <PersonAddAlt1OutlinedIcon sx={{ fontSize: 18 }} />
-                                            </IconButton>
-                                        </Tooltip>
-                                    ) : null}
+                                    {/* 주소록 추가 — 이미 있으면 자리만 남기고 숨겨(visibility) 줄 높이가 흔들리지 않게 한다 */}
+                                    <Tooltip title={onAddContact ? "주소록에 추가" : ""}>
+                                        <IconButton
+                                            size="small"
+                                            aria-label="주소록에 추가"
+                                            aria-hidden={!onAddContact}
+                                            tabIndex={onAddContact ? 0 : -1}
+                                            disabled={!onAddContact}
+                                            onClick={() =>
+                                                onAddContact?.(detail.from!.address, detail.from!.name ?? "")
+                                            }
+                                            sx={{
+                                                ml: 0.5,
+                                                p: 0.25,
+                                                verticalAlign: "middle",
+                                                visibility: onAddContact ? "visible" : "hidden",
+                                            }}
+                                        >
+                                            <PersonAddAlt1OutlinedIcon sx={{ fontSize: 18 }} />
+                                        </IconButton>
+                                    </Tooltip>
                                 </>
                             ) : (
                                 "-"
