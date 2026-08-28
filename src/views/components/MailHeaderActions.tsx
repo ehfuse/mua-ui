@@ -56,12 +56,12 @@ export function MailHeaderActions({
                     sx={{ mx: 0.5, "& .MuiToggleButton-root": { px: 1, py: 0.5, border: "1px solid #cbd5e1" } }}
                 >
                     <ToggleButton value="list" aria-label="목록형">
-                        <Tooltip title="목록형 (상세는 오른쪽 드로어)">
+                        <Tooltip title="목록형">
                             <FormatListBulletedIcon fontSize="small" />
                         </Tooltip>
                     </ToggleButton>
-                    <ToggleButton value="split" aria-label="분할화면">
-                        <Tooltip title="분할화면 (목록 + 오른쪽 상세)">
+                    <ToggleButton value="split" aria-label="분할형">
+                        <Tooltip title="분할형">
                             <VerticalSplitOutlinedIcon fontSize="small" />
                         </Tooltip>
                     </ToggleButton>
