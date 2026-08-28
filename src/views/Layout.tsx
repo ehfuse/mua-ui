@@ -449,14 +449,45 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const [loadingMore, setLoadingMore] = useState(false);
     const loadingMoreRef = useRef(false);
     const handleLoadMore = useCallback(() => {
+        // 진단 로그(무한 스크롤이 안 이어질 때 원인 확인용) — 호출 자체가 없으면 끝 감지가 안 온 것이다.
+        console.log("[mua:loadMore] requested", {
+            hasMore,
+            loadingList,
+            inFlight: loadingMoreRef.current,
+        });
         if (!hasMore || loadingList || loadingMoreRef.current) return;
         loadingMoreRef.current = true;
         setLoadingMore(true);
         void state.actions.loadMessages({ append: true, silent: true }).finally(() => {
             loadingMoreRef.current = false;
             setLoadingMore(false);
+            console.log("[mua:loadMore] done", {
+                messages: (state.getValue("messages") as MailMessageListItem[]).length,
+                total: state.getValue("total"),
+                page: state.getValue("page"),
+            });
         });
-    }, [hasMore, loadingList, state.actions]);
+    }, [hasMore, loadingList, state]);
+    // 데스크탑 폴백 — vdt(react-virtuoso) 의 endReached 가 오지 않는 경우를 대비해 표 스크롤러의 scroll 이벤트로도 감지한다.
+    const tableWrapRef = useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
+        if (isMobile || !hasMore) return;
+        const wrap = tableWrapRef.current;
+        if (!wrap) return;
+        const scroller =
+            wrap.querySelector<HTMLElement>('[data-virtuoso-scroller="true"]') ??
+            wrap.querySelector<HTMLElement>(".list-layout-left, .overlay-scrollbar-container");
+        if (!scroller) {
+            console.log("[mua:loadMore] scroller not found (fallback off)");
+            return;
+        }
+        const onScroll = () => {
+            const remain = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+            if (remain < 300) handleLoadMore();
+        };
+        scroller.addEventListener("scroll", onScroll, { passive: true });
+        return () => scroller.removeEventListener("scroll", onScroll);
+    }, [isMobile, hasMore, handleLoadMore, messages.length]);
     const sentinelRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {
         const el = sentinelRef.current;
@@ -622,7 +653,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }
 
     return (
-        <Box sx={{ userSelect: "none", height: "100%", minHeight: 0 }}>
+        <Box ref={tableWrapRef} sx={{ userSelect: "none", height: "100%", minHeight: 0 }}>
             <ListLayout
                 storageKey="mail-list-layout"
                 header={headerConfig}
@@ -638,7 +669,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     onRowClick: (row: MailMessageListItem) => void state.actions.selectMessage(row.seq),
                     emptyMessage,
                     // 스크롤이 끝에 가까워지면 다음 페이지를 이어 붙인다(더 보기 버튼 없음).
-                    onLoadMore: hasMore ? handleLoadMore : undefined,
+                    onLoadMore: hasMore
+                        ? () => {
+                              console.log("[mua:loadMore] vdt onLoadMore");
+                              handleLoadMore();
+                          }
+                        : undefined,
                 }}
                 onEscape={() => state.actions.clearSelection()}
             />
