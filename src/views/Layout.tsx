@@ -44,7 +44,7 @@ import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutl
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
-import { MailHeaderActions } from "./components/MailHeaderActions";
+import { MailHeaderActions, type MailViewMode } from "./components/MailHeaderActions";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
@@ -52,6 +52,9 @@ import { ComposeDialog } from "./dialogs/ComposeDialog";
 import { MailAccountFormDialog } from "./dialogs/MailAccountFormDialog";
 import { MailAccountsManageDialog } from "./dialogs/MailAccountsManageDialog";
 import { toRouteFolder } from "../utils/routeFolder";
+
+/** 보기 타입 저장 키 */
+const VIEW_MODE_STORAGE_KEY = "mua-mail-view-mode";
 
 interface MailLayoutProps {
     /**
@@ -527,9 +530,29 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             />
         ) : null;
 
+    // 보기 타입(데스크탑) — 목록형(드로어) / 분할화면(오른쪽 패널). 브라우저별 기억.
+    const [viewMode, setViewMode] = useState<MailViewMode>(() => {
+        try {
+            return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === "split" ? "split" : "list";
+        } catch {
+            return "list";
+        }
+    });
+    const handleViewModeChange = useCallback((mode: MailViewMode) => {
+        setViewMode(mode);
+        try {
+            window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+        } catch {
+            // 저장 실패는 무시(세션 동안만 유지)
+        }
+    }, []);
+    const isSplit = !isMobile && viewMode === "split";
+
     const headerActions = (
         <MailHeaderActions
             accounts={accounts}
+            viewMode={isMobile ? undefined : viewMode}
+            onViewModeChange={isMobile ? undefined : handleViewModeChange}
             syncing={syncing}
             onSync={() => void state.actions.syncNow(filters.mailAccountSeq).then(() => refreshList())}
             onOpenSettings={handleManageAccounts}
@@ -811,11 +834,15 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         : undefined,
                 }}
                 onEscape={() => state.actions.clearSelection()}
+                rightConfig={
+                    isSplit ? { visible: Boolean(detail) || loadingDetail, ratio: 0.5, minWidth: 420 } : undefined
+                }
+                rightPanel={isSplit ? detailPanel : undefined}
             />
-            {/* 상세 — 오른쪽 드로어(목록을 분할하지 않는다). 닫기 = X · Esc · 바깥 클릭. */}
+            {/* 목록형: 상세는 오른쪽 드로어(목록을 분할하지 않는다). 닫기 = X · Esc · 바깥 클릭. */}
             <Drawer
                 anchor="right"
-                open={Boolean(detail) || loadingDetail}
+                open={!isSplit && (Boolean(detail) || loadingDetail)}
                 onClose={() => state.actions.clearSelection()}
                 slotProps={{
                     paper: {
