@@ -150,7 +150,6 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
 export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: MailFoldersManageDialogProps) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
-    const [adding, setAdding] = useState(false);
     const [newName, setNewName] = useState("");
     const [busy, setBusy] = useState(false);
     const add = useCallback(async () => {
@@ -161,7 +160,6 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
             unwrap(await mailApi.createFolder({ name }), "메일함을 추가하지 못했습니다.");
             SuccessAlert("메일함을 추가했습니다.");
             setNewName("");
-            setAdding(false);
             onChanged();
         } catch (error) {
             ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 추가하지 못했습니다." });
@@ -189,41 +187,37 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                     showTitle: false,
                     children: (
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
-                            {folders.length === 0 && !adding ? (
+                            {/* 메일함 추가 — 항상 상단에 */}
+                            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                                <TextField
+                                    size="small"
+                                    fullWidth
+                                    placeholder="새 메일함 이름"
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") void add();
+                                    }}
+                                    slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    startIcon={<AddIcon />}
+                                    onClick={() => void add()}
+                                    disabled={busy || !newName.trim()}
+                                    sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
+                                >
+                                    추가
+                                </Button>
+                            </Box>
+                            {folders.length === 0 ? (
                                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                                    만든 메일함이 없습니다. 아래 [메일함 추가]로 만드세요.
+                                    만든 메일함이 없습니다. 위에서 이름을 입력해 추가하세요.
                                 </Typography>
                             ) : null}
                             {folders.map((folder) => (
                                 <FolderRow key={folder.seq} folder={folder} onChanged={onChanged} />
                             ))}
-                            {adding ? (
-                                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                                    <TextField
-                                        size="small"
-                                        fullWidth
-                                        autoFocus
-                                        placeholder="새 메일함 이름"
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") void add();
-                                            if (e.key === "Escape") setAdding(false);
-                                        }}
-                                        slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
-                                    />
-                                    <Button
-                                        variant="contained"
-                                        onClick={() => void add()}
-                                        disabled={busy || !newName.trim()}
-                                    >
-                                        추가
-                                    </Button>
-                                    <Button variant="outlined" onClick={() => setAdding(false)}>
-                                        취소
-                                    </Button>
-                                </Box>
-                            ) : null}
                         </Box>
                     ),
                 },
@@ -231,17 +225,6 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
             actions={{
                 visible: true,
                 showCancelButton: false,
-                left: (
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        startIcon={<AddIcon />}
-                        onClick={() => setAdding(true)}
-                        disabled={adding}
-                    >
-                        메일함 추가
-                    </Button>
-                ),
                 right: (
                     <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
                         닫기
