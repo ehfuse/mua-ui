@@ -4,17 +4,7 @@
  */
 
 import { useCallback, useState } from "react";
-import {
-    Box,
-    Button,
-    ButtonBase,
-    FormControlLabel,
-    IconButton,
-    Stack,
-    Switch,
-    TextField,
-    Typography,
-} from "@mui/material";
+import { Box, Button, FormControlLabel, IconButton, Stack, Switch, TextField, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -77,21 +67,14 @@ function FolderIconButton({
         <>
             <Tooltip title={disabled ? "" : "아이콘/색 선택"}>
                 <span>
-                    <ButtonBase
+                    <IconButton
                         disabled={disabled}
                         onClick={(e) => setAnchor(e.currentTarget)}
-                        sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 1,
-                            border: "1px solid #dedddb",
-                            bgcolor: "#fff",
-                            "&:hover": { bgcolor: "#f4f4f2" },
-                        }}
                         aria-label="아이콘 선택"
+                        sx={{ width: 40, height: 40 }}
                     >
-                        <FolderIcon icon={icon} color={color || "#475569"} shared={shared} fontSize={22} />
-                    </ButtonBase>
+                        <FolderIcon icon={icon} color={color || "#475569"} shared={shared} fontSize={24} />
+                    </IconButton>
                 </span>
             </Tooltip>
             <TaskIconPickerPopover
@@ -377,7 +360,12 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                         children: (
                             <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
                                 <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-                                    <Box sx={{ "& .MuiButtonBase-root": { width: 56, height: 56 } }}>
+                                    <Box
+                                        sx={{
+                                            "& .MuiIconButton-root": { width: 56, height: 56 },
+                                            "& .MuiSvgIcon-root": { fontSize: 30 },
+                                        }}
+                                    >
                                         <FolderIconButton
                                             icon={newIcon}
                                             color={newColor}
