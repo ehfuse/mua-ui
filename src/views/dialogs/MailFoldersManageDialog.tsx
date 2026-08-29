@@ -212,7 +212,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                             </Box>
                             {folders.length === 0 ? (
                                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                                    만든 메일함이 없습니다. 위에서 이름을 입력해 추가하세요.
+                                    만든 메일함이 없습니다.
                                 </Typography>
                             ) : null}
                             {folders.map((folder) => (
