@@ -1,13 +1,11 @@
 /**
- * 사용자 메일함 목록(메일 관리 다이얼로그의 "메일함" 탭) — 행: [아이콘(클릭=아이콘/색 선택)][이름·개인/공용 칩][메일 수 · 사용량][이름 변경·삭제].
- * MailFolderAddDialog 는 이름/아이콘/공용 여부를 받는 mfd(관리 다이얼로그의 [+ 만들기]가 띄운다).
+ * 사용자 메일함 목록(메일 관리 다이얼로그의 "메일함" 탭) — 행: [아이콘(클릭=아이콘/색 선택)][이름·개인/공용 칩][메일 수 · 사용량][수정·삭제].
+ * MailFolderFormDialog 는 이름/아이콘/공용 여부를 받는 mfd — 관리 다이얼로그의 [+ 만들기](신규)와 행의 ✎(수정)이 같은 창을 쓴다.
  * 삭제하면 그 메일함의 메일은 받은편지함으로 돌아간다.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Box, Button, FormControlLabel, IconButton, Stack, Switch, Typography } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { ClearTextField } from "@ehfuse/mui-form-controls";
@@ -84,38 +82,34 @@ function FolderIconButton({
 }
 
 /** 메일함 한 줄 */
-function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: () => void }) {
-    const [editing, setEditing] = useState(false);
-    const [name, setName] = useState(folder.name);
+function FolderRow({
+    folder,
+    onEdit,
+    onChanged,
+}: {
+    folder: MailUserFolder;
+    onEdit: () => void;
+    onChanged: () => void;
+}) {
     const [busy, setBusy] = useState(false);
     const canManage = folder.can_manage !== false;
     const shared = folder.scope === "shared";
 
-    const patch = useCallback(
-        async (body: { name?: string; icon?: string; color?: string }) => {
+    // 행에서 바로 바꾸는 건 아이콘/색뿐 — 이름·공용 여부는 ✎(수정) 창에서
+    const patchIcon = useCallback(
+        async (body: { icon?: string; color?: string }) => {
             setBusy(true);
             try {
                 unwrap(await mailApi.updateFolder(folder.seq, body), "메일함을 저장하지 못했습니다.");
                 onChanged();
-                return true;
             } catch (error) {
                 ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 저장하지 못했습니다." });
-                return false;
             } finally {
                 setBusy(false);
             }
         },
         [folder.seq, onChanged]
     );
-    const save = useCallback(async () => {
-        const next = name.trim();
-        if (!next || next === folder.name) {
-            setEditing(false);
-            setName(folder.name);
-            return;
-        }
-        if (await patch({ name: next })) setEditing(false);
-    }, [name, folder.name, patch]);
     const remove = useCallback(() => {
         ConfirmDialog({
             title: "메일함 삭제",
@@ -158,92 +152,41 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
                 color={folder.color}
                 shared={shared}
                 disabled={!canManage || busy}
-                onChange={(next) => void patch(next)}
+                onChange={(next) => void patchIcon(next)}
             />
-            {editing ? (
-                <ClearTextField
-                    size="small"
-                    value={name}
-                    autoFocus
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") void save();
-                        if (e.key === "Escape") {
-                            setEditing(false);
-                            setName(folder.name);
-                        }
-                    }}
-                    slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
-                />
-            ) : (
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-                    <Typography noWrap sx={{ fontSize: "15px", fontWeight: 600, color: "#111" }}>
-                        {folder.name}
-                    </Typography>
-                    <ScopeChip shared={shared} />
-                </Stack>
-            )}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                <Typography noWrap sx={{ fontSize: "15px", fontWeight: 600, color: "#111" }}>
+                    {folder.name}
+                </Typography>
+                <ScopeChip shared={shared} />
+            </Stack>
             {/* 메일 수 · 스토리지 사용량 — 오른쪽 컬럼 */}
             <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569", textAlign: "right" }}>
                 {folder.message_count ?? 0}통 · {formatBytes(folder.total_size ?? 0)}
             </Typography>
             <Stack direction="row" spacing={0.25} alignItems="center">
-                {editing ? (
-                    <>
-                        <Tooltip title="저장">
-                            <span>
-                                <IconButton size="small" onClick={() => void save()} disabled={busy} aria-label="저장">
-                                    <CheckIcon fontSize="small" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                        <Tooltip title="취소">
-                            <IconButton
-                                size="small"
-                                onClick={() => {
-                                    setEditing(false);
-                                    setName(folder.name);
-                                }}
-                                aria-label="취소"
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    </>
-                ) : (
-                    <>
-                        <Tooltip
-                            title={canManage ? "이름 변경" : "공용 메일함은 관리자 또는 만든 사람만 수정할 수 있습니다"}
-                        >
-                            <span>
-                                <IconButton
-                                    size="small"
-                                    onClick={() => setEditing(true)}
-                                    aria-label="이름 변경"
-                                    disabled={!canManage}
-                                >
-                                    <EditOutlinedIcon fontSize="small" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                        <Tooltip
-                            title={canManage ? "삭제" : "공용 메일함은 관리자 또는 만든 사람만 삭제할 수 있습니다"}
-                        >
-                            <span>
-                                <IconButton size="small" onClick={remove} aria-label="삭제" disabled={!canManage}>
-                                    <TrashIcon fontSize="small" />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                    </>
-                )}
+                <Tooltip title={canManage ? "수정" : "공용 메일함은 관리자 또는 만든 사람만 수정할 수 있습니다"}>
+                    <span>
+                        <IconButton size="small" onClick={onEdit} aria-label="수정" disabled={!canManage}>
+                            <EditOutlinedIcon fontSize="small" />
+                        </IconButton>
+                    </span>
+                </Tooltip>
+                <Tooltip title={canManage ? "삭제" : "공용 메일함은 관리자 또는 만든 사람만 삭제할 수 있습니다"}>
+                    <span>
+                        <IconButton size="small" onClick={remove} aria-label="삭제" disabled={!canManage}>
+                            <TrashIcon fontSize="small" />
+                        </IconButton>
+                    </span>
+                </Tooltip>
             </Stack>
         </Box>
     );
 }
 
-/** 메일함 목록 */
+/** 메일함 목록(+ 행의 ✎ 로 여는 수정 창) */
 export function MailFoldersList({ folders, onChanged }: { folders: MailUserFolder[]; onChanged: () => void }) {
+    const [editing, setEditing] = useState<MailUserFolder | null>(null);
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
             {folders.length === 0 ? (
@@ -252,65 +195,77 @@ export function MailFoldersList({ folders, onChanged }: { folders: MailUserFolde
                 </Typography>
             ) : null}
             {folders.map((folder) => (
-                <FolderRow key={folder.seq} folder={folder} onChanged={onChanged} />
+                <FolderRow key={folder.seq} folder={folder} onEdit={() => setEditing(folder)} onChanged={onChanged} />
             ))}
+            <MailFolderFormDialog
+                open={Boolean(editing)}
+                folder={editing}
+                onClose={() => setEditing(null)}
+                onChanged={onChanged}
+            />
         </Box>
     );
 }
 
-/** 메일함 추가 다이얼로그 — [아이콘][이름] + 공용 스위치(액션바) */
-export function MailFolderAddDialog({
+/** 메일함 추가/수정 다이얼로그 — [아이콘][이름] + 공용 스위치(액션바). folder 가 있으면 수정 */
+export function MailFolderFormDialog({
     open,
+    folder,
     onClose,
     onChanged,
 }: {
     open: boolean; // 열림
+    folder?: MailUserFolder | null; // 수정 대상(없으면 신규)
     onClose: () => void; // 닫기
-    onChanged: () => void; // 추가 후(목록 재조회)
+    onChanged: () => void; // 저장 후(목록 재조회)
 }) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
-    const [newName, setNewName] = useState("");
-    const [newShared, setNewShared] = useState(false);
-    const [newIcon, setNewIcon] = useState("");
-    const [newColor, setNewColor] = useState("");
+    const isEdit = Boolean(folder && folder.seq > 0);
+    const [name, setName] = useState("");
+    const [shared, setShared] = useState(false);
+    const [icon, setIcon] = useState("");
+    const [color, setColor] = useState("");
     const [busy, setBusy] = useState(false);
-    const add = useCallback(async () => {
-        const name = newName.trim();
-        if (!name) return;
+    // 열릴 때 대상 값으로 초기화(신규는 비움)
+    useEffect(() => {
+        if (!open) return;
+        setName(folder?.name ?? "");
+        setShared(folder?.scope === "shared");
+        setIcon(folder?.icon ?? "");
+        setColor(folder?.color ?? "");
+    }, [open, folder]);
+
+    const save = useCallback(async () => {
+        const next = name.trim();
+        if (!next) return;
         setBusy(true);
         try {
-            unwrap(
-                await mailApi.createFolder({
-                    name,
-                    scope: newShared ? "shared" : "personal",
-                    icon: newIcon,
-                    color: newColor,
-                }),
-                "메일함을 추가하지 못했습니다."
-            );
-            SuccessAlert("메일함을 추가했습니다.");
-            setNewName("");
-            setNewShared(false);
-            setNewIcon("");
-            setNewColor("");
+            const body = { name: next, scope: shared ? ("shared" as const) : ("personal" as const), icon, color };
+            if (isEdit && folder) {
+                unwrap(await mailApi.updateFolder(folder.seq, body), "메일함을 저장하지 못했습니다.");
+                SuccessAlert("메일함을 저장했습니다.");
+            } else {
+                unwrap(await mailApi.createFolder(body), "메일함을 추가하지 못했습니다.");
+                SuccessAlert("메일함을 추가했습니다.");
+            }
             onClose();
             onChanged();
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 추가하지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 저장하지 못했습니다." });
         } finally {
             setBusy(false);
         }
-    }, [newName, newShared, newIcon, newColor, onChanged]);
+    }, [name, shared, icon, color, isEdit, folder, onClose, onChanged]);
 
     return (
         <FormDialog
-            fontScaleKey="MailFolderAddDialog"
+            fontScaleKey="MailFolderFormDialog"
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
             open={open}
             onClose={onClose}
-            title={{ text: "메일함 추가" }}
+            title={{ text: isEdit ? "메일함 수정" : "메일함 추가" }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
             locale="ko"
@@ -319,7 +274,7 @@ export function MailFolderAddDialog({
             contentBottomPadding={24}
             sections={[
                 {
-                    id: "mail-folder-add",
+                    id: "mail-folder-form",
                     showTitle: false,
                     children: (
                         <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
@@ -331,12 +286,12 @@ export function MailFolderAddDialog({
                                     }}
                                 >
                                     <FolderIconButton
-                                        icon={newIcon}
-                                        color={newColor}
-                                        shared={newShared}
+                                        icon={icon}
+                                        color={color}
+                                        shared={shared}
                                         onChange={(next) => {
-                                            if (next.icon !== undefined) setNewIcon(next.icon);
-                                            if (next.color !== undefined) setNewColor(next.color);
+                                            if (next.icon !== undefined) setIcon(next.icon);
+                                            if (next.color !== undefined) setColor(next.color);
                                         }}
                                     />
                                 </Box>
@@ -345,10 +300,10 @@ export function MailFolderAddDialog({
                                     size="medium"
                                     fullWidth
                                     autoFocus
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
                                     onKeyDown={(e) => {
-                                        if (e.key === "Enter") void add();
+                                        if (e.key === "Enter") void save();
                                     }}
                                     slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
                                 />
@@ -376,7 +331,7 @@ export function MailFolderAddDialog({
                 showCancelButton: false,
                 left: (
                     <FormControlLabel
-                        control={<Switch checked={newShared} onChange={(_, v) => setNewShared(v)} />}
+                        control={<Switch checked={shared} onChange={(_, v) => setShared(v)} />}
                         label="공용 메일함"
                         sx={{ ml: 0 }}
                     />
@@ -386,7 +341,7 @@ export function MailFolderAddDialog({
                         <Button variant="outlined" onClick={onClose} disabled={busy}>
                             취소
                         </Button>
-                        <Button variant="contained" onClick={() => void add()} disabled={busy || !newName.trim()}>
+                        <Button variant="contained" onClick={() => void save()} disabled={busy || !name.trim()}>
                             저장
                         </Button>
                     </Stack>

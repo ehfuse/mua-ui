@@ -11,7 +11,7 @@ import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailAccount, MailRule, MailUserFolder } from "../../models/types";
 import { MailAccountsList } from "./MailAccountsList";
-import { MailFolderAddDialog, MailFoldersList } from "./MailFoldersList";
+import { MailFolderFormDialog, MailFoldersList } from "./MailFoldersList";
 import { MailRulesList } from "./MailRulesList";
 
 /** 관리 탭 키 */
@@ -156,7 +156,7 @@ export function MailManageDialog({
                         : { left: addButton, right: closeButton }),
                 }}
             />
-            <MailFolderAddDialog
+            <MailFolderFormDialog
                 open={folderAddOpen}
                 onClose={() => setFolderAddOpen(false)}
                 onChanged={onFoldersChanged}
