@@ -246,16 +246,16 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                     showCancelButton: false,
                     left: (
                         <Button
-                            variant="contained"
-                            color="primary"
+                            variant="outlined"
                             startIcon={<AddIcon />}
                             onClick={() => setAddOpen(true)}
+                            sx={{ color: "#111", borderColor: "#cbd5e1" }}
                         >
-                            메일함 추가
+                            만들기
                         </Button>
                     ),
                     right: (
-                        <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
+                        <Button variant="contained" onClick={onClose} sx={{ minWidth: 80 }}>
                             닫기
                         </Button>
                     ),
