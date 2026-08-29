@@ -294,6 +294,7 @@ export interface MailUserFolder {
     can_manage?: boolean; // 수정/삭제 가능(개인=소유자, 공용=관리자·등록자)
     message_count?: number; // 메일 수
     total_size?: number; // 메일 크기 합계(bytes)
+    unread_count?: number; // 미읽음 수(사이드바 배지)
 }
 
 /** 규칙 조건 */

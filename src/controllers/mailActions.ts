@@ -136,6 +136,13 @@ export const loadCounts =
                 "accounts",
                 accounts.map((acc) => ({ ...acc, unread_count: Number(byAccount[String(acc.seq)] ?? 0) }))
             );
+            // 사용자 메일함별 미읽음(사이드바 배지)
+            const byFolder = data.by_folder ?? {};
+            const folders = context.getValue("folders") as MailUserFolder[];
+            context.setValue(
+                "folders",
+                folders.map((f) => ({ ...f, unread_count: Number(byFolder[String(f.seq)] ?? 0) }))
+            );
         } catch {
             // 건수는 보조 정보 — 실패해도 조용히 둔다.
         }

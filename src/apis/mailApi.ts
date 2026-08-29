@@ -88,9 +88,9 @@ export const mailApi = {
         entityAppServer.http.get<ApiOk<MailAccountSecrets>>(`/v1/mua/accounts/${seq}/secrets`),
     /** 건수 */
     counts: (mailAccountSeq: number) =>
-        entityAppServer.http.get<ApiOk<{ by_account: Record<string, number>; folders: MailFolderCounts }>>(
-            `/v1/mua/counts${toQuery({ mail_account_seq: mailAccountSeq })}`
-        ),
+        entityAppServer.http.get<
+            ApiOk<{ by_account: Record<string, number>; by_folder?: Record<string, number>; folders: MailFolderCounts }>
+        >(`/v1/mua/counts${toQuery({ mail_account_seq: mailAccountSeq })}`),
     /** 목록 */
     listMessages: (params: ListMessagesParams) =>
         entityAppServer.http.get<ApiOk<ListMessagesResponse>>(`/v1/mua/messages${toQuery(params)}`),

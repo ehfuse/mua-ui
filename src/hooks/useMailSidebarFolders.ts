@@ -1,10 +1,12 @@
 /**
- * 사이드바용 사용자 메일함 로더 — 전역 mail-state 의 folders 를 채운다(메일 화면과 공유, 메일함 관리 후 갱신).
+ * 사이드바용 사용자 메일함 로더 — 전역 mail-state 의 folders(+미읽음 수)를 채운다(메일 화면과 공유, 메일함 관리 후 갱신).
+ * realtime(mua.mail.changed) 수신 시 다시 읽어 배지를 맞춘다.
  */
 
 import { useCallback, useEffect, useRef } from "react";
 import { useGlobalFormaState } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
+import { useMailRealtime } from "../apis/useMailRealtime";
 import { MAIL_STATE_ID } from "../controllers/mailController";
 import { defaultMailState } from "../models/defaults";
 import type { MailState, MailUserFolder } from "../models/types";
@@ -35,5 +37,7 @@ export function useMailSidebarFolders(enabled: boolean): MailUserFolder[] {
         loadedRef.current = true;
         void load();
     }, [enabled, load]);
+    useMailRealtime({ enabled, onEvent: () => void load() });
+
     return folders;
 }

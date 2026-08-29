@@ -168,7 +168,15 @@ export function MailRulesList({ rules, folders, onEdit, onChanged }: MailRulesLi
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
             {/* 설명 — 테두리 없는 색상 박스, 검정 15px */}
             <Typography
-                sx={{ fontSize: "15px", color: "#111", bgcolor: "#f1f5f9", borderRadius: 1, px: 2, py: 1.5, lineHeight: 1.6 }}
+                sx={{
+                    fontSize: "15px",
+                    color: "#111",
+                    bgcolor: "#f1f5f9",
+                    borderRadius: 1,
+                    px: 2,
+                    py: 1.5,
+                    lineHeight: 1.6,
+                }}
             >
                 규칙은 새 메일을 받을 때 위에서부터 차례로 적용됩니다. 기존 메일에는 각 규칙의 ▶(지금 적용)으로 적용할
                 수 있습니다.
