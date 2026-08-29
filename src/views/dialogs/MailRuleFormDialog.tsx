@@ -106,6 +106,23 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     const fromOptions = [hints?.from_address, hints?.from_name]
         .map((v) => (v ?? "").trim())
         .filter((v, i, arr) => v && arr.indexOf(v) === i);
+    /** 대상별 미리 채울 값(우클릭으로 만들 때) — 보낸 사람=이름(없으면 주소), 제목=제목 */
+    const hintValue = useCallback(
+        (field: MailRuleCondition["field"]): string => {
+            if (field === "from") return (hints?.from_name || hints?.from_address || "").trim();
+            if (field === "subject") return (hints?.subject ?? "").trim();
+            return "";
+        },
+        [hints?.from_name, hints?.from_address, hints?.subject]
+    );
+    /** [조건 추가] — 보낸 사람 → 제목 순으로 아직 없는 대상을 고르고 값을 미리 채운다 */
+    const addCondition = useCallback(() => {
+        setValues((prev) => {
+            const has = (f: MailRuleCondition["field"]) => prev.conditions.some((c) => c.field === f);
+            const field: MailRuleCondition["field"] = !has("from") ? "from" : "subject";
+            return { ...prev, conditions: [...prev.conditions, { field, op: "contains", value: hintValue(field) }] };
+        });
+    }, [hintValue]);
     useEffect(() => {
         if (!open) return;
         setApplyNow(false);
@@ -114,7 +131,8 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                 ? toForm(rule)
                 : {
                       ...defaultMailRuleForm,
-                      conditions: [{ field: "from", op: "contains", value: "" }],
+                      // 기본 조건 없음 — [조건 추가]로 넣는다
+                      conditions: [],
                       ...(prefillValues ?? {}),
                   }
         );
@@ -248,6 +266,11 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     ]}
                                 />
                             </Stack>
+                            {values.conditions.length === 0 ? (
+                                <Typography sx={{ fontSize: "15px", color: "#475569" }}>
+                                    조건이 없습니다. [조건 추가]로 보낸 사람·제목 등을 넣으세요.
+                                </Typography>
+                            ) : null}
                             {values.conditions.map((c, index) => (
                                 <Box
                                     key={index}
@@ -261,11 +284,15 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     <TextField
                                         select
                                         value={c.field}
-                                        onChange={(e) =>
+                                        onChange={(e) => {
+                                            const field = e.target.value as MailRuleCondition["field"];
+                                            // 값이 비었거나 이전 대상의 미리 채운 값 그대로면 새 대상의 값으로 바꾼다
+                                            const untouched = !c.value.trim() || c.value === hintValue(c.field);
                                             patchCondition(index, {
-                                                field: e.target.value as MailRuleCondition["field"],
-                                            })
-                                        }
+                                                field,
+                                                ...(untouched ? { value: hintValue(field) } : {}),
+                                            });
+                                        }}
                                         sx={INPUT_SX}
                                     >
                                         {FIELD_OPTIONS.map((o) => (
@@ -356,7 +383,6 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     <IconButton
                                         size="small"
                                         aria-label="조건 삭제"
-                                        disabled={values.conditions.length <= 1}
                                         onClick={() =>
                                             patch({ conditions: values.conditions.filter((_, i) => i !== index) })
                                         }
@@ -370,14 +396,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                 <Button
                                     size="small"
                                     startIcon={<AddIcon />}
-                                    onClick={() =>
-                                        patch({
-                                            conditions: [
-                                                ...values.conditions,
-                                                { field: "subject", op: "contains", value: "" },
-                                            ],
-                                        })
-                                    }
+                                    onClick={addCondition}
                                     disabled={values.conditions.length >= 20}
                                 >
                                     조건 추가
