@@ -4,6 +4,7 @@
 
 import { useCallback, useState } from "react";
 import { Box, IconButton, Stack, Switch, Typography } from "@mui/material";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
@@ -126,9 +127,12 @@ function RuleRow({
                 <Typography sx={{ fontSize: "13.5px", color: "#475569", mt: 0.25, wordBreak: "break-word" }}>
                     {summarizeConditions(rule)}
                 </Typography>
-                <Typography sx={{ fontSize: "13.5px", color: "#1d4ed8", mt: 0.25 }}>
-                    → {summarizeActions(rule, folders)}
-                </Typography>
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
+                    <ArrowForwardIcon sx={{ fontSize: 15, color: "#1d4ed8" }} />
+                    <Typography sx={{ fontSize: "13.5px", color: "#1d4ed8" }}>
+                        {summarizeActions(rule, folders)}
+                    </Typography>
+                </Stack>
             </Box>
             <Stack direction="row" spacing={0.25} alignItems="center">
                 <Tooltip title="지금 적용 (받은편지함의 기존 메일에)">
@@ -162,7 +166,10 @@ function RuleRow({
 export function MailRulesList({ rules, folders, onEdit, onChanged }: MailRulesListProps) {
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
-            <Typography sx={{ fontSize: "14px", color: "#475569" }}>
+            {/* 설명 — 테두리 없는 색상 박스, 검정 15px */}
+            <Typography
+                sx={{ fontSize: "15px", color: "#111", bgcolor: "#f1f5f9", borderRadius: 1, px: 2, py: 1.5, lineHeight: 1.6 }}
+            >
                 규칙은 새 메일을 받을 때 위에서부터 차례로 적용됩니다. 기존 메일에는 각 규칙의 ▶(지금 적용)으로 적용할
                 수 있습니다.
             </Typography>
