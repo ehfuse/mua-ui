@@ -293,7 +293,17 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                                     }}
                                     slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
                                 />
-                                <Typography sx={{ fontSize: "15px", color: "#111" }}>
+                                <Typography
+                                    sx={{
+                                        fontSize: "15px",
+                                        color: "#111",
+                                        bgcolor: "#f1f5f9",
+                                        borderRadius: 1,
+                                        px: 2,
+                                        py: 1.5,
+                                        lineHeight: 1.6,
+                                    }}
+                                >
                                     공용 메일함은 같은 회사 전원이 보고 메일을 넣을 수 있습니다. 수정·삭제는 관리자 또는
                                     만든 사람만 할 수 있습니다.
                                 </Typography>
