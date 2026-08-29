@@ -5,11 +5,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-    Autocomplete,
     Box,
     Button,
     FormControlLabel,
     IconButton,
+    InputAdornment,
+    Menu,
     MenuItem,
     Stack,
     Switch,
@@ -17,6 +18,7 @@ import {
     Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import CloseIcon from "@mui/icons-material/Close";
 import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../../apis/mailApi";
@@ -101,6 +103,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     const [values, setValues] = useState<MailRuleForm>(defaultMailRuleForm);
     const [busy, setBusy] = useState(false);
     const [applyNow, setApplyNow] = useState(false); // 저장 후 받은편지함의 기존 메일에도 바로 적용
+    const [fromMenu, setFromMenu] = useState<{ index: number; anchor: HTMLElement } | null>(null); // 보낸 사람 후보 메뉴
     // hints(보낸 사람 후보)는 폼 값이 아니므로 분리
     const { hints, ...prefillValues } = prefill ?? {};
     const fromOptions = [hints?.from_address, hints?.from_name]
@@ -202,306 +205,305 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     }, [values.seq, onSaved, onClose]);
 
     return (
-        <FormDialog
-            fontScaleKey="MailRuleFormDialog"
-            draggable
-            fullScreen={isMobile}
-            mobilePresentation={isMobile ? "slide" : "dialog"}
-            open={open}
-            onClose={onClose}
-            title={{ text: values.seq > 0 ? "규칙 수정" : "규칙 만들기" }}
-            titleIcons={{ delete: { visible: values.seq > 0 } }}
-            onDelete={values.seq > 0 ? remove : undefined}
-            tabs={{ visible: false }}
-            locale="ko"
-            maxWidth="sm"
-            scrollPastLastSection={false}
-            contentBottomPadding={24}
-            sections={[
-                {
-                    id: "mail-rule-basic",
-                    title: "기본",
-                    showTitle: true,
-                    children: (
-                        <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
-                            <TextField
-                                label="규칙 이름"
-                                fullWidth
-                                value={values.name}
-                                onChange={(e) => patch({ name: e.target.value })}
-                                placeholder="예) 공고 메일은 공고함으로"
-                                sx={INPUT_SX}
-                            />
-                            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch checked={values.enabled} onChange={(_, v) => patch({ enabled: v })} />
-                                    }
-                                    label="규칙 사용"
+        <>
+            <FormDialog
+                fontScaleKey="MailRuleFormDialog"
+                draggable
+                fullScreen={isMobile}
+                mobilePresentation={isMobile ? "slide" : "dialog"}
+                open={open}
+                onClose={onClose}
+                title={{ text: values.seq > 0 ? "규칙 수정" : "규칙 만들기" }}
+                titleIcons={{ delete: { visible: values.seq > 0 } }}
+                onDelete={values.seq > 0 ? remove : undefined}
+                tabs={{ visible: false }}
+                locale="ko"
+                maxWidth="sm"
+                scrollPastLastSection={false}
+                contentBottomPadding={24}
+                sections={[
+                    {
+                        id: "mail-rule-basic",
+                        title: "기본",
+                        showTitle: true,
+                        children: (
+                            <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
+                                <TextField
+                                    label="규칙 이름"
+                                    fullWidth
+                                    value={values.name}
+                                    onChange={(e) => patch({ name: e.target.value })}
+                                    placeholder="예) 공고 메일은 공고함으로"
+                                    sx={INPUT_SX}
                                 />
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={values.stop_processing}
-                                            onChange={(_, v) => patch({ stop_processing: v })}
-                                        />
-                                    }
-                                    label="이 규칙이 적용되면 다음 규칙은 적용하지 않음"
-                                />
-                            </Stack>
-                        </Box>
-                    ),
-                },
-                {
-                    id: "mail-rule-conditions",
-                    title: "조건",
-                    showTitle: true,
-                    children: (
-                        <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
-                            <Stack direction="row" spacing={1.5} alignItems="center">
-                                <OptionToggleGroup
-                                    value={values.match}
-                                    onChange={(v) => patch({ match: (v ?? "all") as "all" | "any" })}
-                                    options={[
-                                        { value: "all", label: "모두 만족" },
-                                        { value: "any", label: "하나라도 만족" },
-                                    ]}
-                                />
-                            </Stack>
-                            {values.conditions.length === 0 ? (
-                                <Typography sx={{ fontSize: "15px", color: "#475569" }}>
-                                    조건이 없습니다. [조건 추가]로 보낸 사람·제목·받는 사람 등을 넣으세요.
-                                </Typography>
-                            ) : null}
-                            {values.conditions.map((c, index) => (
-                                <Box
-                                    key={index}
-                                    sx={{
-                                        display: "grid",
-                                        gridTemplateColumns: { xs: "1fr 1fr", sm: "130px 120px minmax(0,1fr) 36px" },
-                                        gap: 1.5,
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <TextField
-                                        select
-                                        value={c.field}
-                                        onChange={(e) => {
-                                            const field = e.target.value as MailRuleCondition["field"];
-                                            // 값이 비었거나 이전 대상의 미리 채운 값 그대로면 새 대상의 값으로 바꾼다
-                                            const untouched = !c.value.trim() || c.value === hintValue(c.field);
-                                            patchCondition(index, {
-                                                field,
-                                                ...(untouched ? { value: hintValue(field) } : {}),
-                                            });
-                                        }}
-                                        sx={INPUT_SX}
-                                    >
-                                        {FIELD_OPTIONS.map((o) => (
-                                            <MenuItem key={o.value} value={o.value} sx={{ fontSize: 15 }}>
-                                                {o.label}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                    <TextField
-                                        select
-                                        value={c.op}
-                                        onChange={(e) =>
-                                            patchCondition(index, { op: e.target.value as MailRuleCondition["op"] })
+                                <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={values.enabled}
+                                                onChange={(_, v) => patch({ enabled: v })}
+                                            />
                                         }
-                                        sx={INPUT_SX}
+                                        label="규칙 사용"
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={values.stop_processing}
+                                                onChange={(_, v) => patch({ stop_processing: v })}
+                                            />
+                                        }
+                                        label="이 규칙이 적용되면 다음 규칙은 적용하지 않음"
+                                    />
+                                </Stack>
+                            </Box>
+                        ),
+                    },
+                    {
+                        id: "mail-rule-conditions",
+                        title: "조건",
+                        showTitle: true,
+                        children: (
+                            <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
+                                <Stack direction="row" spacing={1.5} alignItems="center">
+                                    <OptionToggleGroup
+                                        value={values.match}
+                                        onChange={(v) => patch({ match: (v ?? "all") as "all" | "any" })}
+                                        options={[
+                                            { value: "all", label: "모두 만족" },
+                                            { value: "any", label: "하나라도 만족" },
+                                        ]}
+                                    />
+                                </Stack>
+                                {values.conditions.length === 0 ? (
+                                    <Typography sx={{ fontSize: "15px", color: "#475569" }}>
+                                        조건이 없습니다. [조건 추가]로 보낸 사람·제목·받는 사람 등을 넣으세요.
+                                    </Typography>
+                                ) : null}
+                                {values.conditions.map((c, index) => (
+                                    <Box
+                                        key={index}
+                                        sx={{
+                                            display: "grid",
+                                            gridTemplateColumns: {
+                                                xs: "1fr 1fr",
+                                                sm: "130px 120px minmax(0,1fr) 36px",
+                                            },
+                                            gap: 1.5,
+                                            alignItems: "center",
+                                        }}
                                     >
-                                        {OP_OPTIONS.map((o) => (
-                                            <MenuItem key={o.value} value={o.value} sx={{ fontSize: 15 }}>
-                                                {o.label}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                    {c.field === "from" && fromOptions.length > 0 ? (
-                                        // 우클릭으로 만들 때 — 드롭다운에서 주소/이름 중 골라 넣을 수 있다(직접 입력도 가능)
-                                        <Autocomplete
-                                            freeSolo
-                                            disableClearable
-                                            options={fromOptions}
-                                            value={c.value}
-                                            inputValue={c.value}
-                                            // 드롭다운 선택은 onChange, 직접 입력은 onInputChange — 둘 다 값에 반영
-                                            onChange={(_, v) => {
-                                                if (typeof v === "string") patchCondition(index, { value: v });
+                                        <TextField
+                                            select
+                                            value={c.field}
+                                            onChange={(e) => {
+                                                const field = e.target.value as MailRuleCondition["field"];
+                                                // 값이 비었거나 이전 대상의 미리 채운 값 그대로면 새 대상의 값으로 바꾼다
+                                                const untouched = !c.value.trim() || c.value === hintValue(c.field);
+                                                patchCondition(index, {
+                                                    field,
+                                                    ...(untouched ? { value: hintValue(field) } : {}),
+                                                });
                                             }}
-                                            onInputChange={(_, v, reason) => {
-                                                if (reason !== "reset") patchCondition(index, { value: v });
-                                            }}
-                                            renderOption={(props, option) => (
-                                                // [주소|이름] 라벨은 줄바꿈 없이, 긴 값은 말줄임
-                                                <li
-                                                    {...props}
-                                                    key={option}
-                                                    style={{
-                                                        fontSize: 15,
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: 8,
-                                                    }}
-                                                >
-                                                    <span
-                                                        style={{
-                                                            color: "#64748b",
-                                                            fontSize: 13,
-                                                            whiteSpace: "nowrap",
-                                                            flexShrink: 0,
-                                                            width: 30,
-                                                        }}
-                                                    >
-                                                        {option === (hints?.from_address ?? "").trim()
-                                                            ? "주소"
-                                                            : "이름"}
-                                                    </span>
-                                                    <span
-                                                        style={{
-                                                            overflow: "hidden",
-                                                            textOverflow: "ellipsis",
-                                                            whiteSpace: "nowrap",
-                                                            minWidth: 0,
-                                                        }}
-                                                    >
-                                                        {option}
-                                                    </span>
-                                                </li>
-                                            )}
-                                            // 드롭다운은 입력칸보다 넓게(주소가 길다)
-                                            slotProps={{ popper: { sx: { minWidth: 380 } } }}
-                                            sx={{ gridColumn: { xs: "1 / span 2", sm: "auto" } }}
-                                            renderInput={(params) => (
-                                                <TextField
-                                                    {...params}
-                                                    placeholder="이름 또는 메일 주소"
-                                                    sx={INPUT_SX}
-                                                />
-                                            )}
-                                        />
-                                    ) : (
+                                            sx={INPUT_SX}
+                                        >
+                                            {FIELD_OPTIONS.map((o) => (
+                                                <MenuItem key={o.value} value={o.value} sx={{ fontSize: 15 }}>
+                                                    {o.label}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
+                                        <TextField
+                                            select
+                                            value={c.op}
+                                            onChange={(e) =>
+                                                patchCondition(index, { op: e.target.value as MailRuleCondition["op"] })
+                                            }
+                                            sx={INPUT_SX}
+                                        >
+                                            {OP_OPTIONS.map((o) => (
+                                                <MenuItem key={o.value} value={o.value} sx={{ fontSize: 15 }}>
+                                                    {o.label}
+                                                </MenuItem>
+                                            ))}
+                                        </TextField>
                                         <TextField
                                             fullWidth
                                             value={c.value}
                                             placeholder={c.field === "from" ? "이름 또는 메일 주소" : "단어"}
                                             onChange={(e) => patchCondition(index, { value: e.target.value })}
                                             sx={{ ...INPUT_SX, gridColumn: { xs: "1 / span 2", sm: "auto" } }}
+                                            slotProps={{
+                                                input:
+                                                    c.field === "from" && fromOptions.length > 0
+                                                        ? {
+                                                              // 우클릭으로 만들 때 — ▾ 메뉴에서 주소/이름을 골라 넣는다
+                                                              endAdornment: (
+                                                                  <InputAdornment position="end">
+                                                                      <IconButton
+                                                                          size="small"
+                                                                          aria-label="보낸 사람 후보"
+                                                                          onClick={(e) =>
+                                                                              setFromMenu({
+                                                                                  index,
+                                                                                  anchor: e.currentTarget,
+                                                                              })
+                                                                          }
+                                                                          edge="end"
+                                                                      >
+                                                                          <ArrowDropDownIcon />
+                                                                      </IconButton>
+                                                                  </InputAdornment>
+                                                              ),
+                                                          }
+                                                        : undefined,
+                                            }}
                                         />
-                                    )}
-                                    <IconButton
-                                        size="small"
-                                        aria-label="조건 삭제"
-                                        onClick={() =>
-                                            patch({ conditions: values.conditions.filter((_, i) => i !== index) })
-                                        }
-                                        sx={{ justifySelf: "end" }}
-                                    >
-                                        <CloseIcon fontSize="small" />
-                                    </IconButton>
-                                </Box>
-                            ))}
-                            <Box>
-                                <Button
-                                    size="small"
-                                    startIcon={<AddIcon />}
-                                    onClick={addCondition}
-                                    disabled={values.conditions.length >= 20}
-                                >
-                                    조건 추가
-                                </Button>
-                            </Box>
-                        </Box>
-                    ),
-                },
-                {
-                    id: "mail-rule-actions",
-                    title: "동작",
-                    showTitle: true,
-                    children: (
-                        <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
-                            {/* 1행 [이동 select] / 2행 [읽음 스위치][중요 스위치] */}
-                            <TextField
-                                select
-                                label="이동"
-                                value={
-                                    values.move_to === "custom"
-                                        ? `custom:${values.mail_folder_seq || 0}`
-                                        : values.move_to
-                                }
-                                onChange={(e) => {
-                                    const v = String(e.target.value);
-                                    if (v.startsWith("custom:"))
-                                        patch({ move_to: "custom", mail_folder_seq: Number(v.slice(7)) || 0 });
-                                    else patch({ move_to: v as MailRuleForm["move_to"], mail_folder_seq: 0 });
-                                }}
-                                sx={{ ...INPUT_SX, width: { xs: "100%", sm: 260 } }}
-                            >
-                                <MenuItem value="" sx={{ fontSize: 15 }}>
-                                    이동하지 않음
-                                </MenuItem>
-                                {/* 사용자 메일함은 각각 항목으로(별도 메일함 선택 없이) */}
-                                {folders.map((f) => (
-                                    <MenuItem key={f.seq} value={`custom:${f.seq}`} sx={{ fontSize: 15 }}>
-                                        "{f.name}" 메일함으로 이동
-                                    </MenuItem>
+                                        <IconButton
+                                            size="small"
+                                            aria-label="조건 삭제"
+                                            onClick={() =>
+                                                patch({ conditions: values.conditions.filter((_, i) => i !== index) })
+                                            }
+                                            sx={{ justifySelf: "end" }}
+                                        >
+                                            <CloseIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
                                 ))}
-                                {values.move_to === "custom" &&
-                                values.mail_folder_seq > 0 &&
-                                !folders.some((f) => f.seq === values.mail_folder_seq) ? (
-                                    <MenuItem value={`custom:${values.mail_folder_seq}`} sx={{ fontSize: 15 }} disabled>
-                                        (삭제된 메일함)으로 이동
-                                    </MenuItem>
-                                ) : null}
-                                <MenuItem value="spam" sx={{ fontSize: 15 }}>
-                                    스팸함으로 이동
-                                </MenuItem>
-                                <MenuItem value="trash" sx={{ fontSize: 15 }}>
-                                    휴지통으로 이동
-                                </MenuItem>
-                            </TextField>
-                            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={values.mark_read}
-                                            onChange={(_, v) => patch({ mark_read: v })}
-                                        />
+                                <Box>
+                                    <Button
+                                        size="small"
+                                        startIcon={<AddIcon />}
+                                        onClick={addCondition}
+                                        disabled={values.conditions.length >= 20}
+                                    >
+                                        조건 추가
+                                    </Button>
+                                </Box>
+                            </Box>
+                        ),
+                    },
+                    {
+                        id: "mail-rule-actions",
+                        title: "동작",
+                        showTitle: true,
+                        children: (
+                            <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
+                                {/* 1행 [이동 select] / 2행 [읽음 스위치][중요 스위치] */}
+                                <TextField
+                                    select
+                                    label="이동"
+                                    value={
+                                        values.move_to === "custom"
+                                            ? `custom:${values.mail_folder_seq || 0}`
+                                            : values.move_to
                                     }
-                                    label="읽음으로 표시"
-                                    sx={{ ml: 0 }}
-                                />
-                                <FormControlLabel
-                                    control={<Switch checked={values.star} onChange={(_, v) => patch({ star: v })} />}
-                                    label="중요 표시"
-                                    sx={{ ml: 0 }}
-                                />
-                            </Stack>
-                        </Box>
+                                    onChange={(e) => {
+                                        const v = String(e.target.value);
+                                        if (v.startsWith("custom:"))
+                                            patch({ move_to: "custom", mail_folder_seq: Number(v.slice(7)) || 0 });
+                                        else patch({ move_to: v as MailRuleForm["move_to"], mail_folder_seq: 0 });
+                                    }}
+                                    sx={{ ...INPUT_SX, width: { xs: "100%", sm: 260 } }}
+                                >
+                                    <MenuItem value="" sx={{ fontSize: 15 }}>
+                                        이동하지 않음
+                                    </MenuItem>
+                                    {/* 사용자 메일함은 각각 항목으로(별도 메일함 선택 없이) */}
+                                    {folders.map((f) => (
+                                        <MenuItem key={f.seq} value={`custom:${f.seq}`} sx={{ fontSize: 15 }}>
+                                            "{f.name}" 메일함으로 이동
+                                        </MenuItem>
+                                    ))}
+                                    {values.move_to === "custom" &&
+                                    values.mail_folder_seq > 0 &&
+                                    !folders.some((f) => f.seq === values.mail_folder_seq) ? (
+                                        <MenuItem
+                                            value={`custom:${values.mail_folder_seq}`}
+                                            sx={{ fontSize: 15 }}
+                                            disabled
+                                        >
+                                            (삭제된 메일함)으로 이동
+                                        </MenuItem>
+                                    ) : null}
+                                    <MenuItem value="spam" sx={{ fontSize: 15 }}>
+                                        스팸함으로 이동
+                                    </MenuItem>
+                                    <MenuItem value="trash" sx={{ fontSize: 15 }}>
+                                        휴지통으로 이동
+                                    </MenuItem>
+                                </TextField>
+                                <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                checked={values.mark_read}
+                                                onChange={(_, v) => patch({ mark_read: v })}
+                                            />
+                                        }
+                                        label="읽음으로 표시"
+                                        sx={{ ml: 0 }}
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Switch checked={values.star} onChange={(_, v) => patch({ star: v })} />
+                                        }
+                                        label="중요 표시"
+                                        sx={{ ml: 0 }}
+                                    />
+                                </Stack>
+                            </Box>
+                        ),
+                    },
+                ]}
+                actions={{
+                    visible: true,
+                    showCancelButton: false,
+                    left: (
+                        <FormControlLabel
+                            control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
+                            label="받은편지함 기존 메일에도 적용"
+                            sx={{ ml: 0 }}
+                        />
                     ),
-                },
-            ]}
-            actions={{
-                visible: true,
-                showCancelButton: false,
-                left: (
-                    <FormControlLabel
-                        control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
-                        label="받은편지함 기존 메일에도 적용"
-                        sx={{ ml: 0 }}
-                    />
-                ),
-                right: (
-                    <Stack direction="row" spacing={1}>
-                        <Button variant="outlined" onClick={onClose} disabled={busy}>
-                            취소
-                        </Button>
-                        <Button variant="contained" onClick={() => void save()} disabled={busy}>
-                            저장
-                        </Button>
-                    </Stack>
-                ),
-            }}
-        />
+                    right: (
+                        <Stack direction="row" spacing={1}>
+                            <Button variant="outlined" onClick={onClose} disabled={busy}>
+                                취소
+                            </Button>
+                            <Button variant="contained" onClick={() => void save()} disabled={busy}>
+                                저장
+                            </Button>
+                        </Stack>
+                    ),
+                }}
+            />
+            {/* 보낸 사람 후보 메뉴 — 주소/이름 중 하나를 골라 조건 값에 넣는다 */}
+            <Menu
+                open={Boolean(fromMenu)}
+                anchorEl={fromMenu?.anchor ?? null}
+                onClose={() => setFromMenu(null)}
+                transitionDuration={0}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+                {fromOptions.map((option) => (
+                    <MenuItem
+                        key={option}
+                        sx={{ fontSize: 15, gap: 1 }}
+                        onClick={() => {
+                            if (fromMenu) patchCondition(fromMenu.index, { value: option });
+                            setFromMenu(null);
+                        }}
+                    >
+                        <span style={{ color: "#64748b", fontSize: 13, width: 30, flexShrink: 0 }}>
+                            {option === (hints?.from_address ?? "").trim() ? "주소" : "이름"}
+                        </span>
+                        {option}
+                    </MenuItem>
+                ))}
+            </Menu>
+        </>
     );
 }
