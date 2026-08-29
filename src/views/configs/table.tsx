@@ -23,7 +23,8 @@ export interface MailListSelection {
 export function getMailColumns(
     onToggleStar: (row: MailMessageListItem) => void,
     selection: MailListSelection,
-    search = ""
+    search = "",
+    showSnippet = true
 ): DataColumn<MailMessageListItem>[] {
     return [
         {
@@ -99,13 +100,20 @@ export function getMailColumns(
                 <Box sx={{ minWidth: 0, display: "flex", alignItems: "baseline", gap: 1 }}>
                     <Typography
                         noWrap
-                        sx={{ fontWeight: row.is_read ? 400 : 700, fontSize: "14px", flexShrink: 0, maxWidth: "60%" }}
+                        sx={{
+                            fontWeight: row.is_read ? 400 : 700,
+                            fontSize: "14px",
+                            // 미리보기를 같이 그릴 때만 제목 폭을 제한한다(분할형 상세가 열리면 제목이 폭을 다 쓴다)
+                            ...(showSnippet ? { flexShrink: 0, maxWidth: "60%" } : { minWidth: 0 }),
+                        }}
                     >
                         <HighlightText text={row.subject || "(제목 없음)"} query={search} />
                     </Typography>
-                    <Typography noWrap sx={{ color: "#64748b", fontSize: "13.5px", minWidth: 0 }}>
-                        {row.snippet ? `— ${row.snippet}` : ""}
-                    </Typography>
+                    {showSnippet ? (
+                        <Typography noWrap sx={{ color: "#64748b", fontSize: "13.5px", minWidth: 0 }}>
+                            {row.snippet ? `— ${row.snippet}` : ""}
+                        </Typography>
+                    ) : null}
                 </Box>
             ),
         },

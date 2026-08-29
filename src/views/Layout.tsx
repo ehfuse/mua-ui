@@ -774,9 +774,22 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     onToggle: toggleChecked,
                     onToggleAll: toggleAllChecked,
                 },
-                filters.search
+                filters.search,
+                // 분할형에서 상세가 열려 목록이 좁아지면 미리보기를 숨겨 제목이 잘 보이게 한다
+                !(isSplit && (Boolean(detail) || loadingDetail))
             ),
-        [handleToggleStar, checkedSeqs, allChecked, someChecked, toggleChecked, toggleAllChecked, filters.search]
+        [
+            handleToggleStar,
+            checkedSeqs,
+            allChecked,
+            someChecked,
+            toggleChecked,
+            toggleAllChecked,
+            filters.search,
+            isSplit,
+            detail,
+            loadingDetail,
+        ]
     );
     const hasMore = messages.length < total;
 
