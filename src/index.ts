@@ -39,6 +39,7 @@ export { useMailSidebarAccounts } from "./hooks/useMailSidebarAccounts";
 export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
 export { requestMailFoldersManage } from "./internal/foldersManageRequest";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";
+export { FolderIcon as MailFolderIcon } from "./internal/FolderIcon";
 export { findMailProvider, type MailProviderInfo, type MailProviderKey } from "./utils/providers";
 export {
     CODEMARKET_MAIL_INBOX_PATH,

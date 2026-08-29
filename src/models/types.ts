@@ -289,6 +289,8 @@ export interface MailUserFolder {
     scope: "personal" | "shared"; // 개인/공용
     name: string; // 이름
     sort_order: number; // 정렬
+    icon: string; // 아이콘 키(@ehfuse/taskbox PROJECT_ICON_OPTIONS, 빈 값=기본 폴더)
+    color: string; // 아이콘 색(hex, 빈 값=기본)
     can_manage?: boolean; // 수정/삭제 가능(개인=소유자, 공용=관리자·등록자)
     message_count?: number; // 메일 수
     total_size?: number; // 메일 크기 합계(bytes)

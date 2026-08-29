@@ -49,7 +49,7 @@ import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerro
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
-import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import { FolderIcon } from "../internal/FolderIcon";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import { ConfirmActionPopper } from "../internal/ConfirmActionPopper";
@@ -515,13 +515,16 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         return subscribeMailFoldersManage(check);
     }, [foldersModal]);
     /** 이동 대상 목록(우클릭 "이동 ▸" / 툴바 이동) — 사용자 메일함 + 받은편지함/스팸함/휴지통(현재 폴더 제외) */
-    const moveTargets = useMemo<{ key: string; label: string; target: MailMoveTarget }[]>(() => {
-        const items: { key: string; label: string; target: MailMoveTarget }[] = folders
+    const moveTargets = useMemo<
+        { key: string; label: string; target: MailMoveTarget; folder?: MailUserFolder }[]
+    >(() => {
+        const items: { key: string; label: string; target: MailMoveTarget; folder?: MailUserFolder }[] = folders
             .filter((f) => !(filters.folder === "custom" && f.seq === filters.mailFolderSeq))
             .map((f) => ({
                 key: `f${f.seq}`,
                 label: f.scope === "shared" ? `${f.name} (공용)` : f.name,
                 target: { folder: "custom", mail_folder_seq: f.seq },
+                folder: f,
             }));
         if (filters.folder !== "inbox") items.push({ key: "inbox", label: "받은편지함", target: { folder: "inbox" } });
         if (filters.folder !== "spam") items.push({ key: "spam", label: "스팸함", target: { folder: "spam" } });
@@ -577,7 +580,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     label: t.label,
                     icon:
                         t.target.folder === "custom" ? (
-                            <FolderOutlinedIcon fontSize="small" />
+                            <FolderIcon
+                                icon={t.folder?.icon}
+                                color={t.folder?.color}
+                                shared={t.folder?.scope === "shared"}
+                                fontSize={20}
+                            />
                         ) : t.target.folder === "spam" ? (
                             <ReportGmailerrorredOutlinedIcon fontSize="small" />
                         ) : t.target.folder === "trash" ? (

@@ -1,22 +1,34 @@
 /**
- * 사용자 메일함 관리(mfd) — 목록(이름 인라인 수정·삭제) + [메일함 추가]. 삭제하면 그 메일함의 메일은 받은편지함으로 돌아간다.
+ * 사용자 메일함 관리(mfd) — 행: [아이콘(클릭=아이콘/색 선택)][이름·개인/공용 칩][메일 수 · 사용량][이름 변경·삭제].
+ * [+ 만들기]는 이름/아이콘/공용 여부를 받는 mfd 를 위에 띄운다. 삭제하면 그 메일함의 메일은 받은편지함으로 돌아간다.
  */
 
 import { useCallback, useState } from "react";
-import { Box, Button, FormControlLabel, IconButton, Stack, Switch, TextField, Typography } from "@mui/material";
-import { formatBytes } from "../../utils/format";
+import {
+    Box,
+    Button,
+    ButtonBase,
+    FormControlLabel,
+    IconButton,
+    Stack,
+    Switch,
+    TextField,
+    Typography,
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
+import { TaskIconPickerPopover } from "@ehfuse/taskbox";
 import { mailApi, unwrap } from "../../apis/mailApi";
+import { FolderIcon } from "../../internal/FolderIcon";
 import { TrashIcon } from "../../internal/icons";
 import { Tooltip } from "../../internal/Tooltip";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailUserFolder } from "../../models/types";
+import { formatBytes } from "../../utils/format";
 
 interface MailFoldersManageDialogProps {
     open: boolean; // 열림
@@ -25,12 +37,99 @@ interface MailFoldersManageDialogProps {
     onChanged: () => void; // 추가/수정/삭제 후(목록 재조회)
 }
 
-/** 메일함 한 줄 — 이름 인라인 수정 */
+/** 개인/공용 사각 칩 */
+function ScopeChip({ shared }: { shared: boolean }) {
+    return (
+        <Box
+            component="span"
+            sx={{
+                px: 0.75,
+                py: 0.2,
+                borderRadius: "4px",
+                fontSize: "12.5px",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                color: shared ? "#1d4ed8" : "#334155",
+                bgcolor: shared ? "#eff6ff" : "#f1f5f9",
+            }}
+        >
+            {shared ? "공용" : "개인"}
+        </Box>
+    );
+}
+
+/** 아이콘 선택 버튼(클릭 → taskbox 아이콘/색 팝오버) */
+function FolderIconButton({
+    icon,
+    color,
+    shared,
+    disabled,
+    onChange,
+}: {
+    icon: string;
+    color: string;
+    shared: boolean;
+    disabled?: boolean;
+    onChange: (next: { icon?: string; color?: string }) => void;
+}) {
+    const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+    return (
+        <>
+            <Tooltip title={disabled ? "" : "아이콘/색 선택"}>
+                <span>
+                    <ButtonBase
+                        disabled={disabled}
+                        onClick={(e) => setAnchor(e.currentTarget)}
+                        sx={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 1,
+                            border: "1px solid #dedddb",
+                            bgcolor: "#fff",
+                            "&:hover": { bgcolor: "#f4f4f2" },
+                        }}
+                        aria-label="아이콘 선택"
+                    >
+                        <FolderIcon icon={icon} color={color || "#475569"} shared={shared} fontSize={22} />
+                    </ButtonBase>
+                </span>
+            </Tooltip>
+            <TaskIconPickerPopover
+                anchorEl={anchor}
+                value={icon}
+                color={color}
+                onSelect={(key) => onChange({ icon: key })}
+                onSelectColor={(hex) => onChange({ color: hex })}
+                onClose={() => setAnchor(null)}
+            />
+        </>
+    );
+}
+
+/** 메일함 한 줄 */
 function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: () => void }) {
     const [editing, setEditing] = useState(false);
     const [name, setName] = useState(folder.name);
-    const canManage = folder.can_manage !== false;
     const [busy, setBusy] = useState(false);
+    const canManage = folder.can_manage !== false;
+    const shared = folder.scope === "shared";
+
+    const patch = useCallback(
+        async (body: { name?: string; icon?: string; color?: string }) => {
+            setBusy(true);
+            try {
+                unwrap(await mailApi.updateFolder(folder.seq, body), "메일함을 저장하지 못했습니다.");
+                onChanged();
+                return true;
+            } catch (error) {
+                ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 저장하지 못했습니다." });
+                return false;
+            } finally {
+                setBusy(false);
+            }
+        },
+        [folder.seq, onChanged]
+    );
     const save = useCallback(async () => {
         const next = name.trim();
         if (!next || next === folder.name) {
@@ -38,17 +137,8 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
             setName(folder.name);
             return;
         }
-        setBusy(true);
-        try {
-            unwrap(await mailApi.updateFolder(folder.seq, { name: next }), "메일함을 저장하지 못했습니다.");
-            setEditing(false);
-            onChanged();
-        } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 저장하지 못했습니다." });
-        } finally {
-            setBusy(false);
-        }
-    }, [name, folder, onChanged]);
+        if (await patch({ name: next })) setEditing(false);
+    }, [name, folder.name, patch]);
     const remove = useCallback(() => {
         ConfirmDialog({
             title: "메일함 삭제",
@@ -71,11 +161,12 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
                 })(),
         });
     }, [folder, onChanged]);
+
     return (
         <Box
             sx={{
                 display: "grid",
-                gridTemplateColumns: "28px minmax(0, 1fr) auto",
+                gridTemplateColumns: "40px minmax(0, 1fr) auto auto",
                 alignItems: "center",
                 gap: 1.5,
                 px: 2,
@@ -85,7 +176,13 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
                 bgcolor: "#fff",
             }}
         >
-            <FolderOutlinedIcon sx={{ color: "#475569" }} />
+            <FolderIconButton
+                icon={folder.icon}
+                color={folder.color}
+                shared={shared}
+                disabled={!canManage || busy}
+                onChange={(next) => void patch(next)}
+            />
             {editing ? (
                 <TextField
                     size="small"
@@ -102,33 +199,17 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
                     slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
                 />
             ) : (
-                <Box sx={{ minWidth: 0 }}>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-                        <Typography noWrap sx={{ fontSize: "15px", fontWeight: 600, color: "#111" }}>
-                            {folder.name}
-                        </Typography>
-                        <Box
-                            component="span"
-                            sx={{
-                                px: 0.75,
-                                py: 0.2,
-                                borderRadius: "4px",
-                                fontSize: "12.5px",
-                                fontWeight: 600,
-                                whiteSpace: "nowrap",
-                                color: folder.scope === "shared" ? "#1d4ed8" : "#334155",
-                                bgcolor: folder.scope === "shared" ? "#eff6ff" : "#f1f5f9",
-                            }}
-                        >
-                            {folder.scope === "shared" ? "공용" : "개인"}
-                        </Box>
-                    </Stack>
-                    {/* 메일 수 · 스토리지 사용량 */}
-                    <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569", mt: 0.25 }}>
-                        메일 {folder.message_count ?? 0}통 · {formatBytes(folder.total_size ?? 0)}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                    <Typography noWrap sx={{ fontSize: "15px", fontWeight: 600, color: "#111" }}>
+                        {folder.name}
                     </Typography>
-                </Box>
+                    <ScopeChip shared={shared} />
+                </Stack>
             )}
+            {/* 메일 수 · 스토리지 사용량 — 오른쪽 컬럼 */}
+            <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569", textAlign: "right" }}>
+                {folder.message_count ?? 0}통 · {formatBytes(folder.total_size ?? 0)}
+            </Typography>
             <Stack direction="row" spacing={0.25} alignItems="center">
                 {editing ? (
                     <>
@@ -157,21 +238,25 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
                         <Tooltip
                             title={canManage ? "이름 변경" : "공용 메일함은 관리자 또는 만든 사람만 수정할 수 있습니다"}
                         >
-                            <IconButton
-                                size="small"
-                                onClick={() => setEditing(true)}
-                                aria-label="이름 변경"
-                                disabled={!canManage}
-                            >
-                                <EditOutlinedIcon fontSize="small" />
-                            </IconButton>
+                            <span>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => setEditing(true)}
+                                    aria-label="이름 변경"
+                                    disabled={!canManage}
+                                >
+                                    <EditOutlinedIcon fontSize="small" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                         <Tooltip
                             title={canManage ? "삭제" : "공용 메일함은 관리자 또는 만든 사람만 삭제할 수 있습니다"}
                         >
-                            <IconButton size="small" onClick={remove} aria-label="삭제" disabled={!canManage}>
-                                <TrashIcon fontSize="small" />
-                            </IconButton>
+                            <span>
+                                <IconButton size="small" onClick={remove} aria-label="삭제" disabled={!canManage}>
+                                    <TrashIcon fontSize="small" />
+                                </IconButton>
+                            </span>
                         </Tooltip>
                     </>
                 )}
@@ -184,9 +269,11 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
 export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: MailFoldersManageDialogProps) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
-    const [newName, setNewName] = useState("");
     const [addOpen, setAddOpen] = useState(false);
+    const [newName, setNewName] = useState("");
     const [newShared, setNewShared] = useState(false);
+    const [newIcon, setNewIcon] = useState("");
+    const [newColor, setNewColor] = useState("");
     const [busy, setBusy] = useState(false);
     const add = useCallback(async () => {
         const name = newName.trim();
@@ -194,12 +281,19 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
         setBusy(true);
         try {
             unwrap(
-                await mailApi.createFolder({ name, scope: newShared ? "shared" : "personal" }),
+                await mailApi.createFolder({
+                    name,
+                    scope: newShared ? "shared" : "personal",
+                    icon: newIcon,
+                    color: newColor,
+                }),
                 "메일함을 추가하지 못했습니다."
             );
             SuccessAlert("메일함을 추가했습니다.");
             setNewName("");
             setNewShared(false);
+            setNewIcon("");
+            setNewColor("");
             setAddOpen(false);
             onChanged();
         } catch (error) {
@@ -207,7 +301,8 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
         } finally {
             setBusy(false);
         }
-    }, [newName, onChanged]);
+    }, [newName, newShared, newIcon, newColor, onChanged]);
+
     return (
         <>
             <FormDialog
@@ -261,7 +356,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                     ),
                 }}
             />
-            {/* 메일함 추가 — 이름 입력 mfd(관리 다이얼로그 위에 겹친다) */}
+            {/* 메일함 추가 — [아이콘][이름] + 공용 스위치(액션바) */}
             <FormDialog
                 fontScaleKey="MailFolderAddDialog"
                 fullScreen={isMobile}
@@ -281,18 +376,31 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                         showTitle: false,
                         children: (
                             <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
-                                <TextField
-                                    label="메일함 이름"
-                                    size="medium"
-                                    fullWidth
-                                    autoFocus
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") void add();
-                                    }}
-                                    slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
-                                />
+                                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                                    <Box sx={{ "& .MuiButtonBase-root": { width: 56, height: 56 } }}>
+                                        <FolderIconButton
+                                            icon={newIcon}
+                                            color={newColor}
+                                            shared={newShared}
+                                            onChange={(next) => {
+                                                if (next.icon !== undefined) setNewIcon(next.icon);
+                                                if (next.color !== undefined) setNewColor(next.color);
+                                            }}
+                                        />
+                                    </Box>
+                                    <TextField
+                                        label="메일함 이름"
+                                        size="medium"
+                                        fullWidth
+                                        autoFocus
+                                        value={newName}
+                                        onChange={(e) => setNewName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") void add();
+                                        }}
+                                        slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
+                                    />
+                                </Box>
                                 <Typography
                                     sx={{
                                         fontSize: "15px",
@@ -304,8 +412,8 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                                         lineHeight: 1.6,
                                     }}
                                 >
-                                    공용 메일함은 같은 회사 전원이 보고 메일을 넣을 수 있습니다. 수정·삭제는 관리자 또는
-                                    만든 사람만 할 수 있습니다.
+                                    아이콘을 눌러 모양과 색을 고를 수 있습니다. 공용 메일함은 같은 회사 전원이 보고
+                                    메일을 넣을 수 있으며, 수정·삭제는 관리자 또는 만든 사람만 할 수 있습니다.
                                 </Typography>
                             </Box>
                         ),
