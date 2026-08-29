@@ -171,6 +171,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     return (
         <FormDialog
             fontScaleKey="MailRuleFormDialog"
+            draggable
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
             open={open}

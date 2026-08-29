@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { Box, IconButton, Stack, Switch, Typography } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import { TrashIcon } from "../../internal/icons";
@@ -143,7 +143,7 @@ function RuleRow({
                             disabled={applying || !rule.enabled}
                             aria-label="지금 적용"
                         >
-                            <PlayArrowOutlinedIcon fontSize="small" />
+                            <PlayArrowIcon fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>

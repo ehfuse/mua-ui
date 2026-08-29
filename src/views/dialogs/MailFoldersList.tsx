@@ -5,11 +5,12 @@
  */
 
 import { useCallback, useState } from "react";
-import { Box, Button, FormControlLabel, IconButton, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Box, Button, FormControlLabel, IconButton, Stack, Switch, Typography } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
+import { ClearTextField } from "@ehfuse/mui-form-controls";
 import { TaskIconPickerPopover } from "@ehfuse/taskbox";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import { FolderIcon } from "../../internal/FolderIcon";
@@ -160,7 +161,7 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
                 onChange={(next) => void patch(next)}
             />
             {editing ? (
-                <TextField
+                <ClearTextField
                     size="small"
                     value={name}
                     autoFocus
@@ -339,7 +340,7 @@ export function MailFolderAddDialog({
                                         }}
                                     />
                                 </Box>
-                                <TextField
+                                <ClearTextField
                                     label="메일함 이름"
                                     size="medium"
                                     fullWidth
