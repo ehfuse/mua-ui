@@ -615,6 +615,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                 from_address: row.from_address ?? "",
                                 from_name: row.from_name ?? "",
                                 subject: row.subject ?? "",
+                                // 받는 사람 = 첫 수신자의 주소("이름 <주소>, …" 요약에서 추출)
+                                to: (() => {
+                                    const first = (row.to_summary ?? "").split(",")[0]?.trim() ?? "";
+                                    return /<([^>]+)>/.exec(first)?.[1]?.trim() ?? first;
+                                })(),
                             },
                             name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
                             conditions: [],

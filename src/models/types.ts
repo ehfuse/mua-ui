@@ -346,7 +346,7 @@ export interface MailRuleForm {
 
 /** 규칙 폼 미리 채움(우클릭 "규칙 만들기") — hints 는 저장되지 않고 보낸 사람 값 후보(주소/이름)로만 쓴다 */
 export type MailRuleFormPrefill = Partial<MailRuleForm> & {
-    hints?: { from_address?: string; from_name?: string; subject?: string };
+    hints?: { from_address?: string; from_name?: string; subject?: string; to?: string };
 };
 
 /** 이동 대상 */

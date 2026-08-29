@@ -106,20 +106,22 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     const fromOptions = [hints?.from_address, hints?.from_name]
         .map((v) => (v ?? "").trim())
         .filter((v, i, arr) => v && arr.indexOf(v) === i);
-    /** 대상별 미리 채울 값(우클릭으로 만들 때) — 보낸 사람=이름(없으면 주소), 제목=제목 */
+    /** 대상별 미리 채울 값(우클릭으로 만들 때) — 보낸 사람=이름(없으면 주소), 제목=제목, 받는 사람=첫 수신자 주소 */
     const hintValue = useCallback(
         (field: MailRuleCondition["field"]): string => {
             if (field === "from") return (hints?.from_name || hints?.from_address || "").trim();
             if (field === "subject") return (hints?.subject ?? "").trim();
+            if (field === "to") return (hints?.to ?? "").trim();
             return "";
         },
-        [hints?.from_name, hints?.from_address, hints?.subject]
+        [hints?.from_name, hints?.from_address, hints?.subject, hints?.to]
     );
-    /** [조건 추가] — 보낸 사람 → 제목 순으로 아직 없는 대상을 고르고 값을 미리 채운다 */
+    /** [조건 추가] — 보낸 사람 → 제목 → 받는 사람 순으로 아직 없는 대상을 고르고 값을 미리 채운다 */
     const addCondition = useCallback(() => {
         setValues((prev) => {
             const has = (f: MailRuleCondition["field"]) => prev.conditions.some((c) => c.field === f);
-            const field: MailRuleCondition["field"] = !has("from") ? "from" : "subject";
+            // 보낸 사람 → 제목 → 받는 사람 순
+            const field: MailRuleCondition["field"] = !has("from") ? "from" : !has("subject") ? "subject" : "to";
             return { ...prev, conditions: [...prev.conditions, { field, op: "contains", value: hintValue(field) }] };
         });
     }, [hintValue]);
@@ -268,7 +270,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                             </Stack>
                             {values.conditions.length === 0 ? (
                                 <Typography sx={{ fontSize: "15px", color: "#475569" }}>
-                                    조건이 없습니다. [조건 추가]로 보낸 사람·제목 등을 넣으세요.
+                                    조건이 없습니다. [조건 추가]로 보낸 사람·제목·받는 사람 등을 넣으세요.
                                 </Typography>
                             ) : null}
                             {values.conditions.map((c, index) => (
