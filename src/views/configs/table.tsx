@@ -82,7 +82,8 @@ export function getMailColumns(
         {
             id: "from_name",
             text: "보낸 사람",
-            width: 200,
+            // 분할형 상세가 열려 목록이 좁아지면 보낸 사람 컬럼도 줄인다
+            width: showSnippet ? 200 : 140,
             render: (row) => (
                 <Typography
                     noWrap
