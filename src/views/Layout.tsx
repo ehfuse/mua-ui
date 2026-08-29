@@ -755,25 +755,15 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         isMobile,
         // 모바일은 헤더가 검색 오버레이라 새 메일은 우하단 FAB, 동기화/설정은 목록 위 툴바가 맡는다.
         left: isMobile ? undefined : (
-            <Stack direction="row" spacing={2} alignItems="center">
-                <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<EditOutlinedIcon />}
-                    onClick={handleCompose}
-                    disabled={accounts.length === 0}
-                >
-                    새 메일
-                </Button>
-                <Button
-                    variant="outlined"
-                    startIcon={<RuleOutlinedIcon />}
-                    onClick={() => openManage("rules")}
-                    sx={{ color: "#111", borderColor: "#cbd5e1" }}
-                >
-                    규칙
-                </Button>
-            </Stack>
+            <Button
+                variant="contained"
+                color="primary"
+                startIcon={<EditOutlinedIcon />}
+                onClick={handleCompose}
+                disabled={accounts.length === 0}
+            >
+                새 메일
+            </Button>
         ),
         toolbar: isMobile ? undefined : bulkBar,
         right: isMobile ? undefined : headerActions,
