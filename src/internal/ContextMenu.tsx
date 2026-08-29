@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Box, Divider } from "@mui/material";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 /** 우클릭 메뉴 위치/대상 상태다. */
 export interface ContextMenuState<T> {
@@ -201,9 +202,7 @@ function ContextMenuRow<T>({
                     {label}
                 </Box>
                 {hasChildren ? (
-                    <Box component="span" sx={{ ml: 2, color: "#64748b", fontSize: 13 }}>
-                        ▶
-                    </Box>
+                    <ChevronRightIcon sx={{ ml: 2, color: "#64748b", fontSize: "18px !important" }} />
                 ) : null}
             </Box>
             {hasChildren && open ? (
