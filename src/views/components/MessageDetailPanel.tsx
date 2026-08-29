@@ -166,6 +166,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 flexDirection: "column",
                 minHeight: 0,
                 bgcolor: "#fff",
+                // 목록 래퍼의 userSelect:none(행 드래그 선택 방지)을 상세에서는 풀어 제목/본문을 복사할 수 있게
+                userSelect: "text",
             }}
         >
             {/* 액션 바 */}
