@@ -297,15 +297,44 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                             inputValue={c.value}
                                             onInputChange={(_, v) => patchCondition(index, { value: v })}
                                             renderOption={(props, option) => (
-                                                <li {...props} key={option} style={{ fontSize: 15 }}>
-                                                    <span style={{ color: "#64748b", fontSize: 13, marginRight: 8 }}>
+                                                // [주소|이름] 라벨은 줄바꿈 없이, 긴 값은 말줄임
+                                                <li
+                                                    {...props}
+                                                    key={option}
+                                                    style={{
+                                                        fontSize: 15,
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 8,
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            color: "#64748b",
+                                                            fontSize: 13,
+                                                            whiteSpace: "nowrap",
+                                                            flexShrink: 0,
+                                                            width: 30,
+                                                        }}
+                                                    >
                                                         {option === (hints?.from_address ?? "").trim()
                                                             ? "주소"
                                                             : "이름"}
                                                     </span>
-                                                    {option}
+                                                    <span
+                                                        style={{
+                                                            overflow: "hidden",
+                                                            textOverflow: "ellipsis",
+                                                            whiteSpace: "nowrap",
+                                                            minWidth: 0,
+                                                        }}
+                                                    >
+                                                        {option}
+                                                    </span>
                                                 </li>
                                             )}
+                                            // 드롭다운은 입력칸보다 넓게(주소가 길다)
+                                            slotProps={{ popper: { sx: { minWidth: 380 } } }}
                                             sx={{ gridColumn: { xs: "1 / span 2", sm: "auto" } }}
                                             renderInput={(params) => (
                                                 <TextField
