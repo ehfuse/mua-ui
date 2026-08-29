@@ -192,19 +192,31 @@ export const selectMessage =
             if (requestSeq !== latestDetailRequestSeq) return;
             context.setValue("detail", detail);
             patchLocalMessage(context, seq, { is_read: true });
-            if (wasUnread) {
-                // 미읽음 건수 낙관 감소(서버 재집계는 loadCounts 로).
-                const counts = context.getValue("counts") as MailFolderCounts;
-                context.setValue("counts", { ...counts, inbox_unread: Math.max(0, counts.inbox_unread - 1) });
-                const accounts = context.getValue("accounts") as MailAccount[];
-                context.setValue(
-                    "accounts",
-                    accounts.map((acc) =>
-                        acc.seq === row?.mail_account_seq
-                            ? { ...acc, unread_count: Math.max(0, (acc.unread_count ?? 0) - 1) }
-                            : acc
-                    )
-                );
+            if (wasUnread && row) {
+                // 미읽음 건수 낙관 감소(서버 재집계는 loadCounts 로) — 메일이 있는 폴더의 배지만 줄인다.
+                if (row.folder === "custom" && row.mail_folder_seq > 0) {
+                    const folders = context.getValue("folders") as MailUserFolder[];
+                    context.setValue(
+                        "folders",
+                        folders.map((f) =>
+                            f.seq === row.mail_folder_seq
+                                ? { ...f, unread_count: Math.max(0, (f.unread_count ?? 0) - 1) }
+                                : f
+                        )
+                    );
+                } else if (row.folder === "inbox") {
+                    const counts = context.getValue("counts") as MailFolderCounts;
+                    context.setValue("counts", { ...counts, inbox_unread: Math.max(0, counts.inbox_unread - 1) });
+                    const accounts = context.getValue("accounts") as MailAccount[];
+                    context.setValue(
+                        "accounts",
+                        accounts.map((acc) =>
+                            acc.seq === row.mail_account_seq
+                                ? { ...acc, unread_count: Math.max(0, (acc.unread_count ?? 0) - 1) }
+                                : acc
+                        )
+                    );
+                }
             }
         } catch (error) {
             if (requestSeq !== latestDetailRequestSeq) return;
