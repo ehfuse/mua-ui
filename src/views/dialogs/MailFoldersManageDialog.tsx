@@ -180,7 +180,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
             locale="ko"
-            maxWidth="xs"
+            maxWidth="sm"
             scrollPastLastSection={false}
             contentBottomPadding={24}
             sections={[
