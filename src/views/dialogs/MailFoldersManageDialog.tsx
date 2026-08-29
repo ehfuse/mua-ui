@@ -283,7 +283,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                             <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
                                 <TextField
                                     label="메일함 이름"
-                                    size="small"
+                                    size="medium"
                                     fullWidth
                                     autoFocus
                                     value={newName}
@@ -293,11 +293,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                                     }}
                                     slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
                                 />
-                                <FormControlLabel
-                                    control={<Switch checked={newShared} onChange={(_, v) => setNewShared(v)} />}
-                                    label="공용 메일함"
-                                />
-                                <Typography sx={{ fontSize: "14px", color: "#475569" }}>
+                                <Typography sx={{ fontSize: "15px", color: "#111" }}>
                                     공용 메일함은 같은 회사 전원이 보고 메일을 넣을 수 있습니다. 수정·삭제는 관리자 또는
                                     만든 사람만 할 수 있습니다.
                                 </Typography>
@@ -308,6 +304,13 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                 actions={{
                     visible: true,
                     showCancelButton: false,
+                    left: (
+                        <FormControlLabel
+                            control={<Switch checked={newShared} onChange={(_, v) => setNewShared(v)} />}
+                            label="공용 메일함"
+                            sx={{ ml: 0 }}
+                        />
+                    ),
                     right: (
                         <Stack direction="row" spacing={1}>
                             <Button variant="outlined" onClick={() => setAddOpen(false)} disabled={busy}>
