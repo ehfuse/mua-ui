@@ -137,6 +137,8 @@ export const mailApi = {
     updateRule: (seq: number, body: MailRuleRequest) =>
         entityAppServer.http.patch<ApiOk<MailRule>>(`/v1/mua/rules/${seq}`, body),
     /** 규칙 삭제 */
+    reorderRules: (seqs: number[]) =>
+        entityAppServer.http.post<ApiOk<{ updated: number }>>("/v1/mua/rules/reorder", { seqs }),
     deleteRule: (seq: number) => entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/rules/${seq}`, {}),
     /** 규칙 지금 적용(seq=0 이면 전체) — 내가 소유한 계정의 받은편지함 최근 1000건 */
     applyRules: (seq: number) =>

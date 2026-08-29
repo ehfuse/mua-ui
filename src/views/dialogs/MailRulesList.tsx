@@ -2,8 +2,12 @@
  * 규칙 목록(메일 관리 다이얼로그의 "규칙" 탭) — 규칙마다 조건 요약·동작 요약·사용 스위치·[지금 적용]·수정·삭제.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Box, IconButton, Stack, Switch, Typography } from "@mui/material";
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -64,6 +68,10 @@ function RuleRow({
     onChanged: () => void;
 }) {
     const [applying, setApplying] = useState(false);
+    // 드래그 정렬(핸들에서만 시작)
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+        id: rule.seq,
+    });
     const toggle = useCallback(
         async (enabled: boolean) => {
             try {
@@ -104,9 +112,14 @@ function RuleRow({
     }, [rule, onChanged]);
     return (
         <Box
+            ref={setNodeRef}
+            style={{ transform: CSS.Transform.toString(transform), transition }}
             sx={{
                 display: "grid",
-                gridTemplateColumns: "auto minmax(0, 1fr) auto",
+                gridTemplateColumns: "auto auto minmax(0, 1fr) auto",
+                position: "relative",
+                zIndex: isDragging ? 1 : undefined,
+                boxShadow: isDragging ? "0 6px 16px rgba(15,23,42,0.18)" : undefined,
                 alignItems: "center",
                 gap: 1.5,
                 px: 2,
@@ -117,19 +130,38 @@ function RuleRow({
                 opacity: rule.enabled ? 1 : 0.6,
             }}
         >
+            {/* 드래그 핸들 — 왼쪽 세로 중앙(규칙은 위에서부터 차례로 적용되므로 순서가 의미 있다) */}
+            <Box
+                ref={setActivatorNodeRef}
+                {...attributes}
+                {...listeners}
+                aria-label="순서 이동"
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    alignSelf: "center",
+                    cursor: isDragging ? "grabbing" : "grab",
+                    color: "#94a3b8",
+                    touchAction: "none",
+                    mr: -0.5,
+                    "&:hover": { color: "#475569" },
+                }}
+            >
+                <DragIndicatorIcon fontSize="small" />
+            </Box>
             <Tooltip title={rule.enabled ? "사용 중 — 끄기" : "사용 안 함 — 켜기"}>
                 <Switch checked={rule.enabled} onChange={(_, v) => void toggle(v)} />
             </Tooltip>
             <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: "15px", fontWeight: 700, color: "#111" }}>
+                <Typography noWrap sx={{ fontSize: "16px", fontWeight: 700, color: "#111" }}>
                     {rule.name || "(이름 없음)"}
                 </Typography>
-                <Typography sx={{ fontSize: "13.5px", color: "#475569", mt: 0.25, wordBreak: "break-word" }}>
+                <Typography sx={{ fontSize: "15px", color: "#111", mt: 0.25, wordBreak: "break-word" }}>
                     {summarizeConditions(rule)}
                 </Typography>
                 <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
-                    <ArrowForwardIcon sx={{ fontSize: 15, color: "#1d4ed8" }} />
-                    <Typography sx={{ fontSize: "13.5px", color: "#1d4ed8" }}>
+                    <ArrowForwardIcon sx={{ fontSize: 16, color: "#1d4ed8" }} />
+                    <Typography sx={{ fontSize: "15px", color: "#1d4ed8" }}>
                         {summarizeActions(rule, folders)}
                     </Typography>
                 </Stack>
@@ -162,8 +194,33 @@ function RuleRow({
     );
 }
 
-/** 규칙 목록 */
+/** 규칙 목록(드래그로 순서 변경 → 서버 저장) */
 export function MailRulesList({ rules, folders, onEdit, onChanged }: MailRulesListProps) {
+    // 드래그 중 즉시 반영하려고 로컬 순서를 두고, 서버 목록이 바뀌면 다시 맞춘다
+    const [ordered, setOrdered] = useState<MailRule[]>(rules);
+    useEffect(() => setOrdered(rules), [rules]);
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+    const handleDragEnd = useCallback(
+        (event: DragEndEvent) => {
+            const { active, over } = event;
+            if (!over || active.id === over.id) return;
+            const from = ordered.findIndex((r) => r.seq === active.id);
+            const to = ordered.findIndex((r) => r.seq === over.id);
+            if (from < 0 || to < 0) return;
+            const next = arrayMove(ordered, from, to);
+            setOrdered(next);
+            void (async () => {
+                try {
+                    unwrap(await mailApi.reorderRules(next.map((r) => r.seq)), "순서를 저장하지 못했습니다.");
+                    onChanged();
+                } catch (error) {
+                    ErrorAlert({ message: error instanceof Error ? error.message : "순서를 저장하지 못했습니다." });
+                    setOrdered(rules);
+                }
+            })();
+        },
+        [ordered, rules, onChanged]
+    );
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
             {/* 설명 — 테두리 없는 색상 박스, 검정 15px */}
@@ -178,23 +235,27 @@ export function MailRulesList({ rules, folders, onEdit, onChanged }: MailRulesLi
                     lineHeight: 1.6,
                 }}
             >
-                규칙은 새 메일을 받을 때 위에서부터 차례로 적용됩니다. 기존 메일에는 각 규칙의 ▶(지금 적용)으로 적용할
-                수 있습니다.
+                규칙은 새 메일을 받을 때 위에서부터 차례로 적용됩니다(왼쪽 핸들을 끌어 순서를 바꿀 수 있습니다). 기존
+                메일에는 각 규칙의 ▶(지금 적용)으로 적용할 수 있습니다.
             </Typography>
-            {rules.length === 0 ? (
+            {ordered.length === 0 ? (
                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
                     만든 규칙이 없습니다. 아래 [규칙 추가]로 만드세요.
                 </Typography>
             ) : (
-                rules.map((rule) => (
-                    <RuleRow
-                        key={rule.seq}
-                        rule={rule}
-                        folders={folders}
-                        onEdit={() => onEdit(rule)}
-                        onChanged={onChanged}
-                    />
-                ))
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={ordered.map((r) => r.seq)} strategy={verticalListSortingStrategy}>
+                        {ordered.map((rule) => (
+                            <RuleRow
+                                key={rule.seq}
+                                rule={rule}
+                                folders={folders}
+                                onEdit={() => onEdit(rule)}
+                                onChanged={onChanged}
+                            />
+                        ))}
+                    </SortableContext>
+                </DndContext>
             )}
         </Box>
     );

@@ -50,7 +50,7 @@ const FIELD_OPTIONS: { value: MailRuleCondition["field"]; label: string }[] = [
 ];
 const OP_OPTIONS: { value: MailRuleCondition["op"]; label: string }[] = [
     { value: "contains", label: "포함" },
-    { value: "not_contains", label: "포함하지 않음" },
+    { value: "not_contains", label: "미포함" },
     { value: "equals", label: "일치" },
     { value: "starts", label: "시작" },
     { value: "ends", label: "끝" },
@@ -226,7 +226,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                             onChange={(_, v) => patch({ stop_processing: v })}
                                         />
                                     }
-                                    label="이 규칙이 맞으면 뒤 규칙은 적용하지 않음"
+                                    label="이 규칙이 적용되면 다음 규칙은 적용하지 않음"
                                 />
                             </Stack>
                         </Box>
@@ -239,7 +239,6 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     children: (
                         <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
                             <Stack direction="row" spacing={1.5} alignItems="center">
-                                <Typography sx={{ fontSize: "15px", color: "#111" }}>조건 결합</Typography>
                                 <OptionToggleGroup
                                     value={values.match}
                                     onChange={(v) => patch({ match: (v ?? "all") as "all" | "any" })}
@@ -254,8 +253,8 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     key={index}
                                     sx={{
                                         display: "grid",
-                                        gridTemplateColumns: { xs: "1fr 1fr", sm: "130px 150px minmax(0,1fr) 36px" },
-                                        gap: 1,
+                                        gridTemplateColumns: { xs: "1fr 1fr", sm: "130px 120px minmax(0,1fr) 36px" },
+                                        gap: 1.5,
                                         alignItems: "center",
                                     }}
                                 >
