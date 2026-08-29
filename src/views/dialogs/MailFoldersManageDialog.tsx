@@ -151,6 +151,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
     const [newName, setNewName] = useState("");
+    const [addOpen, setAddOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const add = useCallback(async () => {
         const name = newName.trim();
@@ -160,6 +161,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
             unwrap(await mailApi.createFolder({ name }), "메일함을 추가하지 못했습니다.");
             SuccessAlert("메일함을 추가했습니다.");
             setNewName("");
+            setAddOpen(false);
             onChanged();
         } catch (error) {
             ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 추가하지 못했습니다." });
@@ -168,71 +170,107 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
         }
     }, [newName, onChanged]);
     return (
-        <FormDialog
-            fontScaleKey="MailFoldersManageDialog"
-            fullScreen={isMobile}
-            mobilePresentation={isMobile ? "slide" : "dialog"}
-            open={open}
-            onClose={onClose}
-            title={{ text: "메일함 관리" }}
-            titleIcons={{ delete: { visible: false } }}
-            tabs={{ visible: false }}
-            locale="ko"
-            maxWidth="sm"
-            scrollPastLastSection={false}
-            contentBottomPadding={24}
-            sections={[
-                {
-                    id: "mail-folders-list",
-                    showTitle: false,
-                    children: (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
-                            {folders.length === 0 ? (
-                                <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                                    만든 메일함이 없습니다.
-                                </Typography>
-                            ) : null}
-                            {folders.map((folder) => (
-                                <FolderRow key={folder.seq} folder={folder} onChanged={onChanged} />
-                            ))}
-                        </Box>
-                    ),
-                },
-            ]}
-            actions={{
-                visible: true,
-                showCancelButton: false,
-                // 메일함 추가는 액션바 왼쪽(입력칸 + 추가)
-                left: (
-                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", flex: 1, minWidth: 0 }}>
-                        <TextField
-                            size="small"
-                            placeholder="새 메일함 이름"
-                            value={newName}
-                            onChange={(e) => setNewName(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") void add();
-                            }}
-                            sx={{ flex: 1, minWidth: 160 }}
-                            slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
-                        />
+        <>
+            <FormDialog
+                fontScaleKey="MailFoldersManageDialog"
+                fullScreen={isMobile}
+                mobilePresentation={isMobile ? "slide" : "dialog"}
+                open={open}
+                onClose={onClose}
+                title={{ text: "메일함 관리" }}
+                titleIcons={{ delete: { visible: false } }}
+                tabs={{ visible: false }}
+                locale="ko"
+                maxWidth="sm"
+                scrollPastLastSection={false}
+                contentBottomPadding={24}
+                sections={[
+                    {
+                        id: "mail-folders-list",
+                        showTitle: false,
+                        children: (
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
+                                {folders.length === 0 ? (
+                                    <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
+                                        만든 메일함이 없습니다.
+                                    </Typography>
+                                ) : null}
+                                {folders.map((folder) => (
+                                    <FolderRow key={folder.seq} folder={folder} onChanged={onChanged} />
+                                ))}
+                            </Box>
+                        ),
+                    },
+                ]}
+                actions={{
+                    visible: true,
+                    showCancelButton: false,
+                    left: (
                         <Button
                             variant="contained"
+                            color="primary"
                             startIcon={<AddIcon />}
-                            onClick={() => void add()}
-                            disabled={busy || !newName.trim()}
-                            sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
+                            onClick={() => setAddOpen(true)}
                         >
-                            추가
+                            메일함 추가
                         </Button>
-                    </Box>
-                ),
-                right: (
-                    <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
-                        닫기
-                    </Button>
-                ),
-            }}
-        />
+                    ),
+                    right: (
+                        <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
+                            닫기
+                        </Button>
+                    ),
+                }}
+            />
+            {/* 메일함 추가 — 이름 입력 mfd(관리 다이얼로그 위에 겹친다) */}
+            <FormDialog
+                fontScaleKey="MailFolderAddDialog"
+                fullScreen={isMobile}
+                mobilePresentation={isMobile ? "slide" : "dialog"}
+                open={addOpen}
+                onClose={() => setAddOpen(false)}
+                title={{ text: "메일함 추가" }}
+                titleIcons={{ delete: { visible: false } }}
+                tabs={{ visible: false }}
+                locale="ko"
+                maxWidth="xs"
+                scrollPastLastSection={false}
+                contentBottomPadding={24}
+                sections={[
+                    {
+                        id: "mail-folder-add",
+                        showTitle: false,
+                        children: (
+                            <TextField
+                                label="메일함 이름"
+                                size="small"
+                                fullWidth
+                                autoFocus
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") void add();
+                                }}
+                                slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
+                            />
+                        ),
+                    },
+                ]}
+                actions={{
+                    visible: true,
+                    showCancelButton: false,
+                    right: (
+                        <Stack direction="row" spacing={1}>
+                            <Button variant="outlined" onClick={() => setAddOpen(false)} disabled={busy}>
+                                취소
+                            </Button>
+                            <Button variant="contained" onClick={() => void add()} disabled={busy || !newName.trim()}>
+                                저장
+                            </Button>
+                        </Stack>
+                    ),
+                }}
+            />
+        </>
     );
 }
