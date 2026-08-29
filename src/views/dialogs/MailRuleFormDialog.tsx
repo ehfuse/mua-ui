@@ -323,8 +323,15 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                             freeSolo
                                             disableClearable
                                             options={fromOptions}
+                                            value={c.value}
                                             inputValue={c.value}
-                                            onInputChange={(_, v) => patchCondition(index, { value: v })}
+                                            // 드롭다운 선택은 onChange, 직접 입력은 onInputChange — 둘 다 값에 반영
+                                            onChange={(_, v) => {
+                                                if (typeof v === "string") patchCondition(index, { value: v });
+                                            }}
+                                            onInputChange={(_, v, reason) => {
+                                                if (reason !== "reset") patchCondition(index, { value: v });
+                                            }}
                                             renderOption={(props, option) => (
                                                 // [주소|이름] 라벨은 줄바꿈 없이, 긴 값은 말줄임
                                                 <li
@@ -412,8 +419,8 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     title: "동작",
                     showTitle: true,
                     children: (
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center", width: "100%" }}>
-                            {/* [이동][메일함(이동=메일함일 때)][읽음 스위치][중요 스위치] — 한 줄, 좁으면 줄바꿈 */}
+                        <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
+                            {/* 1행 [이동 select] / 2행 [읽음 스위치][중요 스위치] */}
                             <TextField
                                 select
                                 label="이동"
@@ -453,18 +460,23 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     휴지통으로 이동
                                 </MenuItem>
                             </TextField>
-                            <FormControlLabel
-                                control={
-                                    <Switch checked={values.mark_read} onChange={(_, v) => patch({ mark_read: v })} />
-                                }
-                                label="읽음으로 표시"
-                                sx={{ ml: 0 }}
-                            />
-                            <FormControlLabel
-                                control={<Switch checked={values.star} onChange={(_, v) => patch({ star: v })} />}
-                                label="중요 표시"
-                                sx={{ ml: 0 }}
-                            />
+                            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={values.mark_read}
+                                            onChange={(_, v) => patch({ mark_read: v })}
+                                        />
+                                    }
+                                    label="읽음으로 표시"
+                                    sx={{ ml: 0 }}
+                                />
+                                <FormControlLabel
+                                    control={<Switch checked={values.star} onChange={(_, v) => patch({ star: v })} />}
+                                    label="중요 표시"
+                                    sx={{ ml: 0 }}
+                                />
+                            </Stack>
                         </Box>
                     ),
                 },
