@@ -610,12 +610,18 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     setRuleEditing({
                         rule: null,
                         prefill: {
-                            // 보낸 사람 값은 주소로 채우되, 입력칸 드롭다운에서 이름으로 바꿀 수 있게 후보를 넘긴다
+                            // 보낸 사람 값은 목록에 보이는 이름으로 채우고(없으면 주소), 드롭다운에서 주소로 바꿀 수 있게 후보를 넘긴다
                             hints: { from_address: row.from_address ?? "", from_name: row.from_name ?? "" },
                             name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
                             conditions: [
-                                ...(row.from_address
-                                    ? [{ field: "from" as const, op: "contains" as const, value: row.from_address }]
+                                ...(row.from_name || row.from_address
+                                    ? [
+                                          {
+                                              field: "from" as const,
+                                              op: "contains" as const,
+                                              value: (row.from_name || row.from_address || "").trim(),
+                                          },
+                                      ]
                                     : []),
                                 ...(row.subject
                                     ? [{ field: "subject" as const, op: "contains" as const, value: row.subject }]
