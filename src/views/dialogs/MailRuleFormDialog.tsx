@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+    Autocomplete,
     Box,
     Button,
     FormControlLabel,
@@ -23,12 +24,19 @@ import { OptionToggleGroup } from "../../internal/OptionToggleGroup";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaFormDialog } from "../../MuaProvider";
 import { defaultMailRuleForm } from "../../models/defaults";
-import type { MailRule, MailRuleCondition, MailRuleForm, MailRuleRequest, MailUserFolder } from "../../models/types";
+import type {
+    MailRule,
+    MailRuleCondition,
+    MailRuleForm,
+    MailRuleFormPrefill,
+    MailRuleRequest,
+    MailUserFolder,
+} from "../../models/types";
 
 interface MailRuleFormDialogProps {
     open: boolean; // 열림
     rule: MailRule | null; // 수정 대상(null = 신규)
-    prefill?: Partial<MailRuleForm> | null; // 신규 미리 채움(우클릭 "규칙 만들기")
+    prefill?: MailRuleFormPrefill | null; // 신규 미리 채움(우클릭 "규칙 만들기", hints=보낸 사람 후보)
     folders: MailUserFolder[]; // 사용자 메일함(이동 대상)
     onClose: () => void; // 닫기
     onSaved: () => void; // 저장/삭제 후(목록 재조회)
@@ -93,6 +101,11 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     const [values, setValues] = useState<MailRuleForm>(defaultMailRuleForm);
     const [busy, setBusy] = useState(false);
     const [applyNow, setApplyNow] = useState(false); // 저장 후 받은편지함의 기존 메일에도 바로 적용
+    // hints(보낸 사람 후보)는 폼 값이 아니므로 분리
+    const { hints, ...prefillValues } = prefill ?? {};
+    const fromOptions = [hints?.from_address, hints?.from_name]
+        .map((v) => (v ?? "").trim())
+        .filter((v, i, arr) => v && arr.indexOf(v) === i);
     useEffect(() => {
         if (!open) return;
         setApplyNow(false);
@@ -102,10 +115,10 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                 : {
                       ...defaultMailRuleForm,
                       conditions: [{ field: "from", op: "contains", value: "" }],
-                      ...(prefill ?? {}),
+                      ...(prefillValues ?? {}),
                   }
         );
-    }, [open, rule, prefill]);
+    }, [open, rule, prefill]); // eslint-disable-line react-hooks/exhaustive-deps
     const patch = useCallback((next: Partial<MailRuleForm>) => setValues((prev) => ({ ...prev, ...next })), []);
     const patchCondition = useCallback(
         (index: number, next: Partial<MailRuleCondition>) =>
@@ -276,13 +289,42 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                             </MenuItem>
                                         ))}
                                     </TextField>
-                                    <TextField
-                                        fullWidth
-                                        value={c.value}
-                                        placeholder={c.field === "from" ? "이름 또는 메일 주소" : "단어"}
-                                        onChange={(e) => patchCondition(index, { value: e.target.value })}
-                                        sx={{ ...INPUT_SX, gridColumn: { xs: "1 / span 2", sm: "auto" } }}
-                                    />
+                                    {c.field === "from" && fromOptions.length > 0 ? (
+                                        // 우클릭으로 만들 때 — 드롭다운에서 주소/이름 중 골라 넣을 수 있다(직접 입력도 가능)
+                                        <Autocomplete
+                                            freeSolo
+                                            disableClearable
+                                            options={fromOptions}
+                                            inputValue={c.value}
+                                            onInputChange={(_, v) => patchCondition(index, { value: v })}
+                                            renderOption={(props, option) => (
+                                                <li {...props} key={option} style={{ fontSize: 15 }}>
+                                                    <span style={{ color: "#64748b", fontSize: 13, marginRight: 8 }}>
+                                                        {option === (hints?.from_address ?? "").trim()
+                                                            ? "주소"
+                                                            : "이름"}
+                                                    </span>
+                                                    {option}
+                                                </li>
+                                            )}
+                                            sx={{ gridColumn: { xs: "1 / span 2", sm: "auto" } }}
+                                            renderInput={(params) => (
+                                                <TextField
+                                                    {...params}
+                                                    placeholder="이름 또는 메일 주소"
+                                                    sx={INPUT_SX}
+                                                />
+                                            )}
+                                        />
+                                    ) : (
+                                        <TextField
+                                            fullWidth
+                                            value={c.value}
+                                            placeholder={c.field === "from" ? "이름 또는 메일 주소" : "단어"}
+                                            onChange={(e) => patchCondition(index, { value: e.target.value })}
+                                            sx={{ ...INPUT_SX, gridColumn: { xs: "1 / span 2", sm: "auto" } }}
+                                        />
+                                    )}
                                     <IconButton
                                         size="small"
                                         aria-label="조건 삭제"
@@ -326,16 +368,35 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                             <TextField
                                 select
                                 label="이동"
-                                value={values.move_to}
-                                onChange={(e) => patch({ move_to: e.target.value as MailRuleForm["move_to"] })}
-                                sx={{ ...INPUT_SX, width: { xs: "100%", sm: 200 } }}
+                                value={
+                                    values.move_to === "custom"
+                                        ? `custom:${values.mail_folder_seq || 0}`
+                                        : values.move_to
+                                }
+                                onChange={(e) => {
+                                    const v = String(e.target.value);
+                                    if (v.startsWith("custom:"))
+                                        patch({ move_to: "custom", mail_folder_seq: Number(v.slice(7)) || 0 });
+                                    else patch({ move_to: v as MailRuleForm["move_to"], mail_folder_seq: 0 });
+                                }}
+                                sx={{ ...INPUT_SX, width: { xs: "100%", sm: 260 } }}
                             >
                                 <MenuItem value="" sx={{ fontSize: 15 }}>
                                     이동하지 않음
                                 </MenuItem>
-                                <MenuItem value="custom" sx={{ fontSize: 15 }}>
-                                    메일함으로 이동
-                                </MenuItem>
+                                {/* 사용자 메일함은 각각 항목으로(별도 메일함 선택 없이) */}
+                                {folders.map((f) => (
+                                    <MenuItem key={f.seq} value={`custom:${f.seq}`} sx={{ fontSize: 15 }}>
+                                        "{f.name}" 메일함으로 이동
+                                    </MenuItem>
+                                ))}
+                                {values.move_to === "custom" &&
+                                values.mail_folder_seq > 0 &&
+                                !folders.some((f) => f.seq === values.mail_folder_seq) ? (
+                                    <MenuItem value={`custom:${values.mail_folder_seq}`} sx={{ fontSize: 15 }} disabled>
+                                        (삭제된 메일함)으로 이동
+                                    </MenuItem>
+                                ) : null}
                                 <MenuItem value="spam" sx={{ fontSize: 15 }}>
                                     스팸함으로 이동
                                 </MenuItem>
@@ -343,24 +404,6 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     휴지통으로 이동
                                 </MenuItem>
                             </TextField>
-                            {values.move_to === "custom" ? (
-                                <TextField
-                                    select
-                                    label="메일함"
-                                    value={values.mail_folder_seq || ""}
-                                    onChange={(e) => patch({ mail_folder_seq: Number(e.target.value) || 0 })}
-                                    sx={{ ...INPUT_SX, width: { xs: "100%", sm: 200 } }}
-                                    helperText={
-                                        folders.length === 0 ? "먼저 메일함을 만드세요(메일 관리 > 메일함)." : undefined
-                                    }
-                                >
-                                    {folders.map((f) => (
-                                        <MenuItem key={f.seq} value={f.seq} sx={{ fontSize: 15 }}>
-                                            {f.name}
-                                        </MenuItem>
-                                    ))}
-                                </TextField>
-                            ) : null}
                             <FormControlLabel
                                 control={
                                     <Switch checked={values.mark_read} onChange={(_, v) => patch({ mark_read: v })} />

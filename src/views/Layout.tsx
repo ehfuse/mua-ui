@@ -36,6 +36,7 @@ import type {
     MailMoveTarget,
     MailRule,
     MailRuleForm,
+    MailRuleFormPrefill,
     MailUserFolder,
 } from "../models/types";
 import { useHeaderConfig } from "./Header";
@@ -500,7 +501,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 규칙 폼(관리 다이얼로그의 [규칙 추가]/수정, 우클릭 "규칙 만들기")
     const [ruleEditing, setRuleEditing] = useState<{
         rule: MailRule | null;
-        prefill: Partial<MailRuleForm> | null;
+        prefill: MailRuleFormPrefill | null;
     } | null>(null);
     const refreshRulesAndList = useCallback(() => {
         void state.actions.loadRules();
@@ -609,6 +610,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     setRuleEditing({
                         rule: null,
                         prefill: {
+                            // 보낸 사람 값은 주소로 채우되, 입력칸 드롭다운에서 이름으로 바꿀 수 있게 후보를 넘긴다
+                            hints: { from_address: row.from_address ?? "", from_name: row.from_name ?? "" },
                             name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
                             conditions: [
                                 ...(row.from_address
