@@ -518,7 +518,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const moveTargets = useMemo<{ key: string; label: string; target: MailMoveTarget }[]>(() => {
         const items: { key: string; label: string; target: MailMoveTarget }[] = folders
             .filter((f) => !(filters.folder === "custom" && f.seq === filters.mailFolderSeq))
-            .map((f) => ({ key: `f${f.seq}`, label: f.name, target: { folder: "custom", mail_folder_seq: f.seq } }));
+            .map((f) => ({
+                key: `f${f.seq}`,
+                label: f.scope === "shared" ? `${f.name} (공용)` : f.name,
+                target: { folder: "custom", mail_folder_seq: f.seq },
+            }));
         if (filters.folder !== "inbox") items.push({ key: "inbox", label: "받은편지함", target: { folder: "inbox" } });
         if (filters.folder !== "spam") items.push({ key: "spam", label: "스팸함", target: { folder: "spam" } });
         if (filters.folder !== "trash") items.push({ key: "trash", label: "휴지통", target: { folder: "trash" } });
