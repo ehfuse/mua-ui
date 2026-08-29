@@ -187,29 +187,6 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
                     showTitle: false,
                     children: (
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
-                            {/* 메일함 추가 — 항상 상단에 */}
-                            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                                <TextField
-                                    size="small"
-                                    fullWidth
-                                    placeholder="새 메일함 이름"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") void add();
-                                    }}
-                                    slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
-                                />
-                                <Button
-                                    variant="contained"
-                                    startIcon={<AddIcon />}
-                                    onClick={() => void add()}
-                                    disabled={busy || !newName.trim()}
-                                    sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
-                                >
-                                    추가
-                                </Button>
-                            </Box>
                             {folders.length === 0 ? (
                                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
                                     만든 메일함이 없습니다.
@@ -225,6 +202,31 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
             actions={{
                 visible: true,
                 showCancelButton: false,
+                // 메일함 추가는 액션바 왼쪽(입력칸 + 추가)
+                left: (
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", flex: 1, minWidth: 0 }}>
+                        <TextField
+                            size="small"
+                            placeholder="새 메일함 이름"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") void add();
+                            }}
+                            sx={{ flex: 1, minWidth: 160 }}
+                            slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
+                        />
+                        <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={() => void add()}
+                            disabled={busy || !newName.trim()}
+                            sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
+                        >
+                            추가
+                        </Button>
+                    </Box>
+                ),
                 right: (
                     <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
                         닫기
