@@ -285,9 +285,13 @@ export interface MailContactForm {
 /** 사용자 메일함 */
 export interface MailUserFolder {
     seq: number; // seq
-    account_seq: number; // 소유자
+    account_seq: number; // 소유자(개인) / 등록자(공용)
+    scope: "personal" | "shared"; // 개인/공용
     name: string; // 이름
     sort_order: number; // 정렬
+    can_manage?: boolean; // 수정/삭제 가능(개인=소유자, 공용=관리자·등록자)
+    message_count?: number; // 메일 수
+    total_size?: number; // 메일 크기 합계(bytes)
 }
 
 /** 규칙 조건 */

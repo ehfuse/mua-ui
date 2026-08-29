@@ -119,9 +119,10 @@ export const mailApi = {
     /** 사용자 메일함 목록 */
     listFolders: () => entityAppServer.http.get<ApiOk<{ items: MailUserFolder[] }>>("/v1/mua/folders"),
     /** 메일함 추가 */
-    createFolder: (body: { name: string }) => entityAppServer.http.post<ApiOk<MailUserFolder>>("/v1/mua/folders", body),
+    createFolder: (body: { name: string; scope?: "personal" | "shared" }) =>
+        entityAppServer.http.post<ApiOk<MailUserFolder>>("/v1/mua/folders", body),
     /** 메일함 수정 */
-    updateFolder: (seq: number, body: { name?: string; sort_order?: number }) =>
+    updateFolder: (seq: number, body: { name?: string; sort_order?: number; scope?: "personal" | "shared" }) =>
         entityAppServer.http.patch<ApiOk<MailUserFolder>>(`/v1/mua/folders/${seq}`, body),
     /** 메일함 삭제(메일은 받은편지함으로) */
     deleteFolder: (seq: number) =>
