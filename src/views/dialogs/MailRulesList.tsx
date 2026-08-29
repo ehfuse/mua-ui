@@ -1,26 +1,20 @@
 /**
- * 규칙 목록(mfd) — 규칙마다 조건 요약·동작 요약·사용 스위치·[지금 적용]·수정·삭제. [규칙 추가]는 규칙 폼(mfd)을 위에 띄운다.
+ * 규칙 목록(메일 관리 다이얼로그의 "규칙" 탭) — 규칙마다 조건 요약·동작 요약·사용 스위치·[지금 적용]·수정·삭제.
  */
 
 import { useCallback, useState } from "react";
-import { Box, Button, IconButton, Stack, Switch, Typography } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { Box, IconButton, Stack, Switch, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import { TrashIcon } from "../../internal/icons";
 import { Tooltip } from "../../internal/Tooltip";
-import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailRule, MailUserFolder } from "../../models/types";
 
-interface MailRulesDialogProps {
-    open: boolean; // 열림
+interface MailRulesListProps {
     rules: MailRule[]; // 규칙 목록
     folders: MailUserFolder[]; // 메일함(동작 요약용)
-    onClose: () => void; // 닫기
-    onAdd: () => void; // 규칙 추가
     onEdit: (rule: MailRule) => void; // 규칙 수정
     onChanged: () => void; // 변경 후(목록·메일 재조회)
 }
@@ -164,67 +158,29 @@ function RuleRow({
     );
 }
 
-/** 규칙 목록 다이얼로그 */
-export function MailRulesDialog({ open, rules, folders, onClose, onAdd, onEdit, onChanged }: MailRulesDialogProps) {
-    const isMobile = useIsMobile();
-    const FormDialog = useMuaFormDialog();
+/** 규칙 목록 */
+export function MailRulesList({ rules, folders, onEdit, onChanged }: MailRulesListProps) {
     return (
-        <FormDialog
-            fontScaleKey="MailRulesDialog"
-            fullScreen={isMobile}
-            mobilePresentation={isMobile ? "slide" : "dialog"}
-            open={open}
-            onClose={onClose}
-            title={{ text: "규칙" }}
-            titleIcons={{ delete: { visible: false } }}
-            tabs={{ visible: false }}
-            locale="ko"
-            maxWidth="sm"
-            scrollPastLastSection={false}
-            contentBottomPadding={24}
-            sections={[
-                {
-                    id: "mail-rules-list",
-                    showTitle: false,
-                    children: (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
-                            <Typography sx={{ fontSize: "14px", color: "#475569" }}>
-                                규칙은 새 메일을 받을 때 위에서부터 차례로 적용됩니다. 기존 메일에는 각 규칙의 ▶(지금
-                                적용)으로 적용할 수 있습니다.
-                            </Typography>
-                            {rules.length === 0 ? (
-                                <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                                    만든 규칙이 없습니다. 아래 [규칙 추가]로 만드세요.
-                                </Typography>
-                            ) : (
-                                rules.map((rule) => (
-                                    <RuleRow
-                                        key={rule.seq}
-                                        rule={rule}
-                                        folders={folders}
-                                        onEdit={() => onEdit(rule)}
-                                        onChanged={onChanged}
-                                    />
-                                ))
-                            )}
-                        </Box>
-                    ),
-                },
-            ]}
-            actions={{
-                visible: true,
-                showCancelButton: false,
-                left: (
-                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={onAdd}>
-                        규칙 추가
-                    </Button>
-                ),
-                right: (
-                    <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
-                        닫기
-                    </Button>
-                ),
-            }}
-        />
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
+            <Typography sx={{ fontSize: "14px", color: "#475569" }}>
+                규칙은 새 메일을 받을 때 위에서부터 차례로 적용됩니다. 기존 메일에는 각 규칙의 ▶(지금 적용)으로 적용할
+                수 있습니다.
+            </Typography>
+            {rules.length === 0 ? (
+                <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
+                    만든 규칙이 없습니다. 아래 [규칙 추가]로 만드세요.
+                </Typography>
+            ) : (
+                rules.map((rule) => (
+                    <RuleRow
+                        key={rule.seq}
+                        rule={rule}
+                        folders={folders}
+                        onEdit={() => onEdit(rule)}
+                        onChanged={onChanged}
+                    />
+                ))
+            )}
+        </Box>
     );
 }

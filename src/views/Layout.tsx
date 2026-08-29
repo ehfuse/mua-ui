@@ -54,16 +54,14 @@ import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import { ConfirmActionPopper } from "../internal/ConfirmActionPopper";
 import { consumeMailFoldersManageRequest, subscribeMailFoldersManage } from "../internal/foldersManageRequest";
-import { MailFoldersManageDialog } from "./dialogs/MailFoldersManageDialog";
+import { MailManageDialog, type MailManageTab } from "./dialogs/MailManageDialog";
 import { MailRuleFormDialog } from "./dialogs/MailRuleFormDialog";
-import { MailRulesDialog } from "./dialogs/MailRulesDialog";
 import { MailHeaderActions, type MailViewMode } from "./components/MailHeaderActions";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
 import { ComposeDialog } from "./dialogs/ComposeDialog";
 import { MailAccountFormDialog } from "./dialogs/MailAccountFormDialog";
-import { MailAccountsManageDialog } from "./dialogs/MailAccountsManageDialog";
 import { toRouteFolder } from "../utils/routeFolder";
 
 /** 보기 타입 저장 키 */
@@ -314,9 +312,17 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [detailAccount]
     );
 
-    // ⚙ = 계정 관리 다이얼로그(목록에서 추가/수정/삭제/동기화). 등록·수정 창은 그 위에 겹쳐 연다.
-    const manageModal = useModal({ modalId: "mail-accounts-manage-dialog" });
-    const handleManageAccounts = useCallback(() => manageModal.open(), [manageModal]);
+    // 메일 관리 다이얼로그(계정/메일함/규칙 탭). ⚙ = 계정 탭. 계정 등록·수정 창은 그 위에 겹쳐 연다.
+    const manageModal = useModal({ modalId: "mail-manage-dialog" });
+    const [manageTab, setManageTab] = useState<MailManageTab>("accounts");
+    const openManage = useCallback(
+        (tab: MailManageTab) => {
+            setManageTab(tab);
+            manageModal.open();
+        },
+        [manageModal]
+    );
+    const handleManageAccounts = useCallback(() => openManage("accounts"), [openManage]);
 
     /** 관리 목록에서 계정 삭제(확인 후) — 삭제 성공 시 폼 컨트롤러가 목록을 재조회한다. */
     const handleDeleteAccount = useCallback(
@@ -491,9 +497,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 : null,
         [rowConfirm]
     );
-    // 규칙/메일함 관리 다이얼로그
-    const rulesModal = useModal({ modalId: "mail-rules-dialog" });
-    const foldersModal = useModal({ modalId: "mail-folders-dialog" });
+    // 규칙 폼(관리 다이얼로그의 [규칙 추가]/수정, 우클릭 "규칙 만들기")
     const [ruleEditing, setRuleEditing] = useState<{
         rule: MailRule | null;
         prefill: Partial<MailRuleForm> | null;
@@ -506,14 +510,14 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         void state.actions.loadFolders().then(() => state.actions.loadCounts());
         refreshList();
     }, [state.actions, refreshList]);
-    // 사이드바의 + 로 요청된 "메일함 관리" 열기
+    // 사이드바 메일 그룹의 ⚙ 로 요청된 "메일함 관리" 열기 → 관리 다이얼로그의 메일함 탭
     useEffect(() => {
         const check = () => {
-            if (consumeMailFoldersManageRequest()) foldersModal.open();
+            if (consumeMailFoldersManageRequest()) openManage("folders");
         };
         check();
         return subscribeMailFoldersManage(check);
-    }, [foldersModal]);
+    }, [openManage]);
     /** 이동 대상 목록(우클릭 "이동 ▸" / 툴바 이동) — 사용자 메일함 + 받은편지함/스팸함/휴지통(현재 폴더 제외) */
     const moveTargets = useMemo<
         { key: string; label: string; target: MailMoveTarget; folder?: MailUserFolder }[]
@@ -764,7 +768,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 <Button
                     variant="outlined"
                     startIcon={<RuleOutlinedIcon />}
-                    onClick={rulesModal.open}
+                    onClick={() => openManage("rules")}
                     sx={{ color: "#111", borderColor: "#cbd5e1" }}
                 >
                     규칙
@@ -910,27 +914,26 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 공용 다이얼로그(계정 관리/등록·작성) — 데스크탑·모바일 공통.
     const dialogs = (
         <>
-            <MailAccountsManageDialog
+            <MailManageDialog
                 open={manageModal.isOpen}
+                tab={manageTab}
+                onTabChange={setManageTab}
+                onClose={manageModal.close}
                 accounts={accounts}
                 syncingSeqs={syncingSeqs}
-                onClose={manageModal.close}
-                onAdd={() => accountForm.form.actions.openDialog(null)}
-                onEdit={(account) => accountForm.form.actions.openDialog(account)}
-                onDelete={handleDeleteAccount}
-                onSync={(account) => void state.actions.syncNow(account.seq).then(() => refreshList())}
+                folders={folders}
+                rules={rules}
+                onAddAccount={() => accountForm.form.actions.openDialog(null)}
+                onEditAccount={(account) => accountForm.form.actions.openDialog(account)}
+                onDeleteAccount={handleDeleteAccount}
+                onSyncAccount={(account) => void state.actions.syncNow(account.seq).then(() => refreshList())}
+                onFoldersChanged={refreshFolders}
+                onAddRule={() => setRuleEditing({ rule: null, prefill: null })}
+                onEditRule={(rule) => setRuleEditing({ rule, prefill: null })}
+                onRulesChanged={refreshRulesAndList}
             />
             <MailAccountFormDialog controller={accountForm} />
             <ComposeDialog controller={compose} accounts={accounts} />
-            <MailRulesDialog
-                open={rulesModal.isOpen}
-                rules={rules}
-                folders={folders}
-                onClose={rulesModal.close}
-                onAdd={() => setRuleEditing({ rule: null, prefill: null })}
-                onEdit={(rule) => setRuleEditing({ rule, prefill: null })}
-                onChanged={refreshRulesAndList}
-            />
             <MailRuleFormDialog
                 open={Boolean(ruleEditing)}
                 rule={ruleEditing?.rule ?? null}
@@ -938,12 +941,6 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 folders={folders}
                 onClose={() => setRuleEditing(null)}
                 onSaved={refreshRulesAndList}
-            />
-            <MailFoldersManageDialog
-                open={foldersModal.isOpen}
-                folders={folders}
-                onClose={foldersModal.close}
-                onChanged={refreshFolders}
             />
             <ConfirmActionPopper
                 open={Boolean(rowConfirm)}

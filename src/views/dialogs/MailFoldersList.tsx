@@ -1,11 +1,11 @@
 /**
- * 사용자 메일함 관리(mfd) — 행: [아이콘(클릭=아이콘/색 선택)][이름·개인/공용 칩][메일 수 · 사용량][이름 변경·삭제].
- * [+ 만들기]는 이름/아이콘/공용 여부를 받는 mfd 를 위에 띄운다. 삭제하면 그 메일함의 메일은 받은편지함으로 돌아간다.
+ * 사용자 메일함 목록(메일 관리 다이얼로그의 "메일함" 탭) — 행: [아이콘(클릭=아이콘/색 선택)][이름·개인/공용 칩][메일 수 · 사용량][이름 변경·삭제].
+ * MailFolderAddDialog 는 이름/아이콘/공용 여부를 받는 mfd(관리 다이얼로그의 [+ 만들기]가 띄운다).
+ * 삭제하면 그 메일함의 메일은 받은편지함으로 돌아간다.
  */
 
 import { useCallback, useState } from "react";
 import { Box, Button, FormControlLabel, IconButton, Stack, Switch, TextField, Typography } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
@@ -19,13 +19,6 @@ import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailUserFolder } from "../../models/types";
 import { formatBytes } from "../../utils/format";
-
-interface MailFoldersManageDialogProps {
-    open: boolean; // 열림
-    folders: MailUserFolder[]; // 메일함 목록
-    onClose: () => void; // 닫기
-    onChanged: () => void; // 추가/수정/삭제 후(목록 재조회)
-}
 
 /** 개인/공용 사각 칩 */
 function ScopeChip({ shared }: { shared: boolean }) {
@@ -248,11 +241,34 @@ function FolderRow({ folder, onChanged }: { folder: MailUserFolder; onChanged: (
     );
 }
 
-/** 메일함 관리 다이얼로그 */
-export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: MailFoldersManageDialogProps) {
+/** 메일함 목록 */
+export function MailFoldersList({ folders, onChanged }: { folders: MailUserFolder[]; onChanged: () => void }) {
+    return (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
+            {folders.length === 0 ? (
+                <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
+                    만든 메일함이 없습니다. 아래 [만들기]로 만드세요.
+                </Typography>
+            ) : null}
+            {folders.map((folder) => (
+                <FolderRow key={folder.seq} folder={folder} onChanged={onChanged} />
+            ))}
+        </Box>
+    );
+}
+
+/** 메일함 추가 다이얼로그 — [아이콘][이름] + 공용 스위치(액션바) */
+export function MailFolderAddDialog({
+    open,
+    onClose,
+    onChanged,
+}: {
+    open: boolean; // 열림
+    onClose: () => void; // 닫기
+    onChanged: () => void; // 추가 후(목록 재조회)
+}) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
-    const [addOpen, setAddOpen] = useState(false);
     const [newName, setNewName] = useState("");
     const [newShared, setNewShared] = useState(false);
     const [newIcon, setNewIcon] = useState("");
@@ -277,7 +293,7 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
             setNewShared(false);
             setNewIcon("");
             setNewColor("");
-            setAddOpen(false);
+            onClose();
             onChanged();
         } catch (error) {
             ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 추가하지 못했습니다." });
@@ -287,148 +303,94 @@ export function MailFoldersManageDialog({ open, folders, onClose, onChanged }: M
     }, [newName, newShared, newIcon, newColor, onChanged]);
 
     return (
-        <>
-            <FormDialog
-                fontScaleKey="MailFoldersManageDialog"
-                fullScreen={isMobile}
-                mobilePresentation={isMobile ? "slide" : "dialog"}
-                open={open}
-                onClose={onClose}
-                title={{ text: "메일함 관리" }}
-                titleIcons={{ delete: { visible: false } }}
-                tabs={{ visible: false }}
-                locale="ko"
-                maxWidth="sm"
-                scrollPastLastSection={false}
-                contentBottomPadding={24}
-                sections={[
-                    {
-                        id: "mail-folders-list",
-                        showTitle: false,
-                        children: (
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
-                                {folders.length === 0 ? (
-                                    <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                                        만든 메일함이 없습니다.
-                                    </Typography>
-                                ) : null}
-                                {folders.map((folder) => (
-                                    <FolderRow key={folder.seq} folder={folder} onChanged={onChanged} />
-                                ))}
-                            </Box>
-                        ),
-                    },
-                ]}
-                actions={{
-                    visible: true,
-                    showCancelButton: false,
-                    left: (
-                        <Button
-                            variant="outlined"
-                            startIcon={<AddIcon />}
-                            onClick={() => setAddOpen(true)}
-                            sx={{ color: "#111", borderColor: "#cbd5e1" }}
-                        >
-                            만들기
-                        </Button>
-                    ),
-                    right: (
-                        <Button variant="contained" onClick={onClose} sx={{ minWidth: 80 }}>
-                            닫기
-                        </Button>
-                    ),
-                }}
-            />
-            {/* 메일함 추가 — [아이콘][이름] + 공용 스위치(액션바) */}
-            <FormDialog
-                fontScaleKey="MailFolderAddDialog"
-                fullScreen={isMobile}
-                mobilePresentation={isMobile ? "slide" : "dialog"}
-                open={addOpen}
-                onClose={() => setAddOpen(false)}
-                title={{ text: "메일함 추가" }}
-                titleIcons={{ delete: { visible: false } }}
-                tabs={{ visible: false }}
-                locale="ko"
-                maxWidth="xs"
-                scrollPastLastSection={false}
-                contentBottomPadding={24}
-                sections={[
-                    {
-                        id: "mail-folder-add",
-                        showTitle: false,
-                        children: (
-                            <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
-                                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-                                    <Box
-                                        sx={{
-                                            "& .MuiIconButton-root": { width: 56, height: 56 },
-                                            "& .MuiSvgIcon-root": { fontSize: 30 },
-                                        }}
-                                    >
-                                        <FolderIconButton
-                                            icon={newIcon}
-                                            color={newColor}
-                                            shared={newShared}
-                                            onChange={(next) => {
-                                                if (next.icon !== undefined) setNewIcon(next.icon);
-                                                if (next.color !== undefined) setNewColor(next.color);
-                                            }}
-                                        />
-                                    </Box>
-                                    <TextField
-                                        label="메일함 이름"
-                                        size="medium"
-                                        fullWidth
-                                        autoFocus
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") void add();
-                                        }}
-                                        slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
-                                    />
-                                </Box>
-                                <Typography
+        <FormDialog
+            fontScaleKey="MailFolderAddDialog"
+            fullScreen={isMobile}
+            mobilePresentation={isMobile ? "slide" : "dialog"}
+            open={open}
+            onClose={onClose}
+            title={{ text: "메일함 추가" }}
+            titleIcons={{ delete: { visible: false } }}
+            tabs={{ visible: false }}
+            locale="ko"
+            maxWidth="xs"
+            scrollPastLastSection={false}
+            contentBottomPadding={24}
+            sections={[
+                {
+                    id: "mail-folder-add",
+                    showTitle: false,
+                    children: (
+                        <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
+                            <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                                <Box
                                     sx={{
-                                        fontSize: "15px",
-                                        color: "#111",
-                                        bgcolor: "#f1f5f9",
-                                        borderRadius: 1,
-                                        px: 2,
-                                        py: 1.5,
-                                        lineHeight: 1.6,
+                                        "& .MuiIconButton-root": { width: 56, height: 56 },
+                                        "& .MuiSvgIcon-root": { fontSize: 30 },
                                     }}
                                 >
-                                    아이콘을 눌러 모양과 색을 고를 수 있습니다. 공용 메일함은 같은 회사 전원이 보고
-                                    메일을 넣을 수 있으며, 수정·삭제는 관리자 또는 만든 사람만 할 수 있습니다.
-                                </Typography>
+                                    <FolderIconButton
+                                        icon={newIcon}
+                                        color={newColor}
+                                        shared={newShared}
+                                        onChange={(next) => {
+                                            if (next.icon !== undefined) setNewIcon(next.icon);
+                                            if (next.color !== undefined) setNewColor(next.color);
+                                        }}
+                                    />
+                                </Box>
+                                <TextField
+                                    label="메일함 이름"
+                                    size="medium"
+                                    fullWidth
+                                    autoFocus
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") void add();
+                                    }}
+                                    slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
+                                />
                             </Box>
-                        ),
-                    },
-                ]}
-                actions={{
-                    visible: true,
-                    showCancelButton: false,
-                    left: (
-                        <FormControlLabel
-                            control={<Switch checked={newShared} onChange={(_, v) => setNewShared(v)} />}
-                            label="공용 메일함"
-                            sx={{ ml: 0 }}
-                        />
+                            <Typography
+                                sx={{
+                                    fontSize: "15px",
+                                    color: "#111",
+                                    bgcolor: "#f1f5f9",
+                                    borderRadius: 1,
+                                    px: 2,
+                                    py: 1.5,
+                                    lineHeight: 1.6,
+                                }}
+                            >
+                                아이콘을 눌러 모양과 색을 고를 수 있습니다. 공용 메일함은 같은 회사 전원이 보고 메일을
+                                넣을 수 있으며, 수정·삭제는 관리자 또는 만든 사람만 할 수 있습니다.
+                            </Typography>
+                        </Box>
                     ),
-                    right: (
-                        <Stack direction="row" spacing={1}>
-                            <Button variant="outlined" onClick={() => setAddOpen(false)} disabled={busy}>
-                                취소
-                            </Button>
-                            <Button variant="contained" onClick={() => void add()} disabled={busy || !newName.trim()}>
-                                저장
-                            </Button>
-                        </Stack>
-                    ),
-                }}
-            />
-        </>
+                },
+            ]}
+            actions={{
+                visible: true,
+                showCancelButton: false,
+                left: (
+                    <FormControlLabel
+                        control={<Switch checked={newShared} onChange={(_, v) => setNewShared(v)} />}
+                        label="공용 메일함"
+                        sx={{ ml: 0 }}
+                    />
+                ),
+                right: (
+                    <Stack direction="row" spacing={1}>
+                        <Button variant="outlined" onClick={onClose} disabled={busy}>
+                            취소
+                        </Button>
+                        <Button variant="contained" onClick={() => void add()} disabled={busy || !newName.trim()}>
+                            저장
+                        </Button>
+                    </Stack>
+                ),
+            }}
+        />
     );
 }

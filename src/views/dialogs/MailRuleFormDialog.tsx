@@ -92,8 +92,10 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     const FormDialog = useMuaFormDialog();
     const [values, setValues] = useState<MailRuleForm>(defaultMailRuleForm);
     const [busy, setBusy] = useState(false);
+    const [applyNow, setApplyNow] = useState(false); // 저장 후 받은편지함의 기존 메일에도 바로 적용
     useEffect(() => {
         if (!open) return;
+        setApplyNow(false);
         setValues(
             rule
                 ? toForm(rule)
@@ -130,9 +132,14 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
         }
         setBusy(true);
         try {
+            let seq = values.seq;
             if (values.seq > 0) unwrap(await mailApi.updateRule(values.seq, body), "규칙을 저장하지 못했습니다.");
-            else unwrap(await mailApi.createRule(body), "규칙을 저장하지 못했습니다.");
-            SuccessAlert("규칙을 저장했습니다.");
+            else seq = unwrap(await mailApi.createRule(body), "규칙을 저장하지 못했습니다.").seq;
+            if (applyNow && seq > 0 && values.enabled) {
+                // 저장 직후 받은편지함의 기존 메일에 이 규칙을 적용
+                const res = unwrap(await mailApi.applyRules(seq), "규칙을 적용하지 못했습니다.");
+                SuccessAlert(`규칙을 저장하고 받은편지함 ${res.scanned}건 중 ${res.affected}건에 적용했습니다.`);
+            } else SuccessAlert("규칙을 저장했습니다.");
             onSaved();
             onClose();
         } catch (error) {
@@ -140,7 +147,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
         } finally {
             setBusy(false);
         }
-    }, [values, onSaved, onClose]);
+    }, [values, applyNow, onSaved, onClose]);
 
     const remove = useCallback(() => {
         if (!(values.seq > 0)) return;
@@ -185,7 +192,6 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                         <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
                             <TextField
                                 label="규칙 이름"
-                                size="small"
                                 fullWidth
                                 value={values.name}
                                 onChange={(e) => patch({ name: e.target.value })}
@@ -241,7 +247,6 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                 >
                                     <TextField
                                         select
-                                        size="small"
                                         value={c.field}
                                         onChange={(e) =>
                                             patchCondition(index, {
@@ -258,7 +263,6 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     </TextField>
                                     <TextField
                                         select
-                                        size="small"
                                         value={c.op}
                                         onChange={(e) =>
                                             patchCondition(index, { op: e.target.value as MailRuleCondition["op"] })
@@ -272,7 +276,6 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                         ))}
                                     </TextField>
                                     <TextField
-                                        size="small"
                                         fullWidth
                                         value={c.value}
                                         placeholder={c.field === "from" ? "이름 또는 메일 주소" : "단어"}
@@ -317,72 +320,58 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     title: "동작",
                     showTitle: true,
                     children: (
-                        <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
-                            <Box
-                                sx={{
-                                    display: "grid",
-                                    gridTemplateColumns: { xs: "1fr", sm: "200px minmax(0,1fr)" },
-                                    gap: 1,
-                                }}
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center", width: "100%" }}>
+                            {/* [이동][메일함(이동=메일함일 때)][읽음 스위치][중요 스위치] — 한 줄, 좁으면 줄바꿈 */}
+                            <TextField
+                                select
+                                label="이동"
+                                value={values.move_to}
+                                onChange={(e) => patch({ move_to: e.target.value as MailRuleForm["move_to"] })}
+                                sx={{ ...INPUT_SX, width: { xs: "100%", sm: 200 } }}
                             >
+                                <MenuItem value="" sx={{ fontSize: 15 }}>
+                                    이동하지 않음
+                                </MenuItem>
+                                <MenuItem value="custom" sx={{ fontSize: 15 }}>
+                                    메일함으로 이동
+                                </MenuItem>
+                                <MenuItem value="spam" sx={{ fontSize: 15 }}>
+                                    스팸함으로 이동
+                                </MenuItem>
+                                <MenuItem value="trash" sx={{ fontSize: 15 }}>
+                                    휴지통으로 이동
+                                </MenuItem>
+                            </TextField>
+                            {values.move_to === "custom" ? (
                                 <TextField
                                     select
-                                    size="small"
-                                    label="이동"
-                                    value={values.move_to}
-                                    onChange={(e) => patch({ move_to: e.target.value as MailRuleForm["move_to"] })}
-                                    sx={INPUT_SX}
-                                >
-                                    <MenuItem value="" sx={{ fontSize: 15 }}>
-                                        이동하지 않음
-                                    </MenuItem>
-                                    <MenuItem value="custom" sx={{ fontSize: 15 }}>
-                                        메일함으로 이동
-                                    </MenuItem>
-                                    <MenuItem value="spam" sx={{ fontSize: 15 }}>
-                                        스팸함으로 이동
-                                    </MenuItem>
-                                    <MenuItem value="trash" sx={{ fontSize: 15 }}>
-                                        휴지통으로 이동
-                                    </MenuItem>
-                                </TextField>
-                                {values.move_to === "custom" ? (
-                                    <TextField
-                                        select
-                                        size="small"
-                                        label="메일함"
-                                        value={values.mail_folder_seq || ""}
-                                        onChange={(e) => patch({ mail_folder_seq: Number(e.target.value) || 0 })}
-                                        sx={INPUT_SX}
-                                        helperText={
-                                            folders.length === 0
-                                                ? "먼저 메일함을 만드세요(사이드바 메일 그룹의 +)."
-                                                : undefined
-                                        }
-                                    >
-                                        {folders.map((f) => (
-                                            <MenuItem key={f.seq} value={f.seq} sx={{ fontSize: 15 }}>
-                                                {f.name}
-                                            </MenuItem>
-                                        ))}
-                                    </TextField>
-                                ) : null}
-                            </Box>
-                            <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={values.mark_read}
-                                            onChange={(_, v) => patch({ mark_read: v })}
-                                        />
+                                    label="메일함"
+                                    value={values.mail_folder_seq || ""}
+                                    onChange={(e) => patch({ mail_folder_seq: Number(e.target.value) || 0 })}
+                                    sx={{ ...INPUT_SX, width: { xs: "100%", sm: 200 } }}
+                                    helperText={
+                                        folders.length === 0 ? "먼저 메일함을 만드세요(메일 관리 > 메일함)." : undefined
                                     }
-                                    label="읽음으로 표시"
-                                />
-                                <FormControlLabel
-                                    control={<Switch checked={values.star} onChange={(_, v) => patch({ star: v })} />}
-                                    label="중요 표시"
-                                />
-                            </Stack>
+                                >
+                                    {folders.map((f) => (
+                                        <MenuItem key={f.seq} value={f.seq} sx={{ fontSize: 15 }}>
+                                            {f.name}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            ) : null}
+                            <FormControlLabel
+                                control={
+                                    <Switch checked={values.mark_read} onChange={(_, v) => patch({ mark_read: v })} />
+                                }
+                                label="읽음으로 표시"
+                                sx={{ ml: 0 }}
+                            />
+                            <FormControlLabel
+                                control={<Switch checked={values.star} onChange={(_, v) => patch({ star: v })} />}
+                                label="중요 표시"
+                                sx={{ ml: 0 }}
+                            />
                         </Box>
                     ),
                 },
@@ -390,6 +379,13 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
             actions={{
                 visible: true,
                 showCancelButton: false,
+                left: (
+                    <FormControlLabel
+                        control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
+                        label="받은편지함 기존 메일에도 적용"
+                        sx={{ ml: 0 }}
+                    />
+                ),
                 right: (
                     <Stack direction="row" spacing={1}>
                         <Button variant="outlined" onClick={onClose} disabled={busy}>

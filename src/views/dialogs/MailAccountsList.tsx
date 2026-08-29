@@ -1,26 +1,21 @@
 /**
- * 메일 계정 관리 다이얼로그 — 내가 쓸 수 있는 계정(개인 + 공용) 목록에서 추가/수정/삭제/지금 동기화.
+ * 메일 계정 목록(메일 관리 다이얼로그의 "계정" 탭) — 내가 쓸 수 있는 계정(개인 + 공용)을 수정/삭제/지금 동기화.
  * 수정·삭제는 can_manage(개인=소유자, 공용=관리자·등록자)인 계정만 가능하다.
  */
 
-import { Box, Button, Chip, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Chip, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
 import { Tooltip } from "../../internal/Tooltip";
-import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SyncIcon from "@mui/icons-material/Sync";
 import { MailProviderIcon } from "../components/MailProviderIcon";
 import { TrashIcon } from "../../internal/icons";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailAccount } from "../../models/types";
 import { formatMailFullDate } from "../../utils/format";
 
-interface MailAccountsManageDialogProps {
-    open: boolean; // 열림
+interface MailAccountsListProps {
     accounts: MailAccount[]; // 계정 목록
     syncingSeqs: number[]; // 동기화 중인 계정 seq 목록
-    onClose: () => void; // 닫기
-    onAdd: () => void; // 계정 추가
     onEdit: (account: MailAccount) => void; // 수정
     onDelete: (account: MailAccount) => void; // 삭제
     onSync: (account: MailAccount) => void; // 지금 동기화
@@ -137,97 +132,26 @@ function AccountRow({
     );
 }
 
-/** 계정 관리 다이얼로그 컴포넌트 */
-export function MailAccountsManageDialog({
-    open,
-    accounts,
-    syncingSeqs,
-    onClose,
-    onAdd,
-    onEdit,
-    onDelete,
-    onSync,
-}: MailAccountsManageDialogProps) {
-    // 모바일은 풀스크린 우→좌 슬라이드(서브페이지 위에 한 겹 더 뜬다).
-    const isMobile = useIsMobile();
-    const FormDialog = useMuaFormDialog();
+/** 계정 목록 */
+export function MailAccountsList({ accounts, syncingSeqs, onEdit, onDelete, onSync }: MailAccountsListProps) {
     return (
-        <FormDialog
-            fontScaleKey="MailAccountsManageDialog"
-            fullScreen={isMobile}
-            mobilePresentation={isMobile ? "slide" : "dialog"}
-            open={open}
-            onClose={onClose}
-            title={{ text: "메일 계정 관리" }}
-            titleIcons={{ delete: { visible: false } }}
-            tabs={{ visible: false }}
-            locale="ko"
-            maxWidth="sm"
-            scrollPastLastSection={false}
-            contentBottomPadding={24}
-            sections={[
-                {
-                    id: "mail-accounts-list",
-                    showTitle: false,
-                    children: (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
-                            {accounts.length === 0 ? (
-                                <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                                    등록된 메일 계정이 없습니다. 아래 [계정 추가]로 등록하세요.
-                                </Typography>
-                            ) : (
-                                accounts.map((account) => (
-                                    <AccountRow
-                                        key={account.seq}
-                                        account={account}
-                                        syncing={syncingSeqs.includes(account.seq)}
-                                        onEdit={() => onEdit(account)}
-                                        onDelete={() => onDelete(account)}
-                                        onSync={() => onSync(account)}
-                                    />
-                                ))
-                            )}
-                        </Box>
-                    ),
-                },
-            ]}
-            actions={{
-                visible: true,
-                showCancelButton: false,
-                // 모바일은 [계정 추가][닫기] 50/50 균등 배치
-                ...(isMobile
-                    ? {
-                          left: (
-                              <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
-                                  <Button
-                                      variant="contained"
-                                      color="primary"
-                                      startIcon={<AddIcon />}
-                                      onClick={onAdd}
-                                      fullWidth
-                                      sx={{ minHeight: 48 }}
-                                  >
-                                      계정 추가
-                                  </Button>
-                                  <Button variant="outlined" onClick={onClose} fullWidth sx={{ minHeight: 48 }}>
-                                      닫기
-                                  </Button>
-                              </Stack>
-                          ),
-                      }
-                    : {
-                          left: (
-                              <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={onAdd}>
-                                  계정 추가
-                              </Button>
-                          ),
-                          right: (
-                              <Button variant="outlined" onClick={onClose} sx={{ minWidth: 80 }}>
-                                  닫기
-                              </Button>
-                          ),
-                      }),
-            }}
-        />
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
+            {accounts.length === 0 ? (
+                <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
+                    등록된 메일 계정이 없습니다. 아래 [계정 추가]로 등록하세요.
+                </Typography>
+            ) : (
+                accounts.map((account) => (
+                    <AccountRow
+                        key={account.seq}
+                        account={account}
+                        syncing={syncingSeqs.includes(account.seq)}
+                        onEdit={() => onEdit(account)}
+                        onDelete={() => onDelete(account)}
+                        onSync={() => onSync(account)}
+                    />
+                ))
+            )}
+        </Box>
     );
 }
