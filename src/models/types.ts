@@ -360,3 +360,11 @@ export type MailRuleFormPrefill = Partial<MailRuleForm> & {
 
 /** 이동 대상 */
 export type MailMoveTarget = { folder: "inbox" | "spam" | "trash" } | { folder: "custom"; mail_folder_seq: number };
+
+/** 이동 메뉴 선택지 1건(우클릭 "이동 ▸"·상세 ⋮ "이동 ▸" 공용) */
+export interface MailMoveTargetOption {
+    key: string; // 고유 키
+    label: string; // 표시 이름("(공용)" 표기 포함)
+    target: MailMoveTarget; // 이동 대상
+    folder?: MailUserFolder; // 사용자 메일함이면 그 메일함(아이콘/색)
+}

@@ -22,6 +22,11 @@ import { Tooltip } from "../../internal/Tooltip";
 import CloseIcon from "@mui/icons-material/Close";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import TranslateIcon from "@mui/icons-material/Translate";
+import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
+import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
+import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
+import ArrowRightIcon from "@mui/icons-material/ArrowRight";
+import { FolderIcon } from "../../internal/FolderIcon";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
@@ -35,7 +40,13 @@ import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerro
 import { ErrorAlert } from "@ehfuse/alerts";
 import { useMuaSaveBlob } from "../../MuaProvider";
 import { mailApi } from "../../apis/mailApi";
-import type { MailAttachment, MailMessageDetail, MailTranslation } from "../../models/types";
+import type {
+    MailAttachment,
+    MailMessageDetail,
+    MailMoveTarget,
+    MailMoveTargetOption,
+    MailTranslation,
+} from "../../models/types";
 import { formatAddressList, formatBytes, formatMailFullDate } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
 
@@ -54,6 +65,9 @@ interface MessageDetailPanelProps {
     onSpam: () => void; // 스팸함으로
     onRestore: () => void; // 복원(휴지통/스팸함 → 이전 폴더)
     onDeleteForever: () => void; // 영구 삭제
+    moveTargets?: MailMoveTargetOption[]; // ⋮ "이동 ▸" 대상(메일함/받은편지함/스팸함/휴지통 — 우클릭 메뉴와 같다)
+    onMove?: (target: MailMoveTarget) => void; // 이동 실행
+    onCreateRule?: () => void; // 이 메일을 힌트로 규칙 만들기
     /**
      * 모바일 mfd 상세 다이얼로그 본문으로 쓰일 때 true — 닫기 X 를 숨기고(제목바 ← 가 닫는다),
      * 자체 세로 스크롤러 대신 내용 높이만큼 늘어나 다이얼로그 스크롤에 맡긴다.
@@ -119,6 +133,9 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         onSpam,
         onRestore,
         onDeleteForever,
+        moveTargets = [],
+        onMove,
+        onCreateRule,
         embedded = false,
     } = props;
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
@@ -138,6 +155,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     };
     // ⋮ 더보기 메뉴
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+    // "이동 ▸" 서브메뉴 앵커(⋮ 메뉴 항목 오른쪽에 붙는다)
+    const [moveAnchor, setMoveAnchor] = useState<HTMLElement | null>(null);
     // AI 번역 — 결과(캐시 적재)·진행 중·번역본 표시 여부. 다른 메일로 바뀌면 원문 표시로 돌아간다.
     const [translation, setTranslation] = useState<MailTranslation | null>(null);
     const [translating, setTranslating] = useState(false);
@@ -370,6 +389,33 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             <ListItemText primary="읽지 않음으로 표시" />
                         </MenuItem>
                     ) : null}
+                    {/* 이동 ▸ / 규칙 만들기 — 우클릭 메뉴와 같은 항목(임시보관은 제외) */}
+                    {!isDraft && (moveTargets.length > 0 || onCreateRule)
+                        ? [
+                              <Divider key="d-move" />,
+                              ...(moveTargets.length > 0 && onMove
+                                  ? [
+                                        <MenuItem key="move" onClick={(e) => setMoveAnchor(e.currentTarget)}>
+                                            <ListItemIcon>
+                                                <DriveFileMoveOutlinedIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText primary="이동" />
+                                            <ArrowRightIcon fontSize="small" sx={{ color: "#64748b", ml: 1 }} />
+                                        </MenuItem>,
+                                    ]
+                                  : []),
+                              ...(onCreateRule
+                                  ? [
+                                        <MenuItem key="rule" onClick={() => (closeMenu(), onCreateRule())}>
+                                            <ListItemIcon>
+                                                <RuleOutlinedIcon fontSize="small" />
+                                            </ListItemIcon>
+                                            <ListItemText primary="규칙 만들기" />
+                                        </MenuItem>,
+                                    ]
+                                  : []),
+                          ]
+                        : null}
                     {isSpam || detail.folder === "inbox" ? <Divider /> : null}
                     {isSpam ? (
                         <MenuItem onClick={() => (closeMenu(), onRestore())}>
@@ -386,6 +432,44 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             <ListItemText primary="스팸 신고" />
                         </MenuItem>
                     ) : null}
+                </Menu>
+                {/* 이동 ▸ 서브메뉴 — 항목 오른쪽에 붙여 연다. 고르면 두 메뉴를 모두 닫고 이동한다. */}
+                <Menu
+                    anchorEl={moveAnchor}
+                    open={Boolean(moveAnchor)}
+                    onClose={() => setMoveAnchor(null)}
+                    anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                    transformOrigin={{ vertical: "top", horizontal: "left" }}
+                    slotProps={{ paper: { sx: { minWidth: 200 } }, transition: { timeout: 0 } }}
+                >
+                    {moveTargets.map((t) => (
+                        <MenuItem
+                            key={t.key}
+                            onClick={() => {
+                                setMoveAnchor(null);
+                                closeMenu();
+                                onMove?.(t.target);
+                            }}
+                        >
+                            <ListItemIcon>
+                                {t.target.folder === "custom" ? (
+                                    <FolderIcon
+                                        icon={t.folder?.icon}
+                                        color={t.folder?.color}
+                                        shared={t.folder?.scope === "shared"}
+                                        fontSize={20}
+                                    />
+                                ) : t.target.folder === "spam" ? (
+                                    <ReportGmailerrorredOutlinedIcon fontSize="small" />
+                                ) : t.target.folder === "trash" ? (
+                                    <TrashIcon fontSize="small" />
+                                ) : (
+                                    <InboxOutlinedIcon fontSize="small" />
+                                )}
+                            </ListItemIcon>
+                            <ListItemText primary={t.label} />
+                        </MenuItem>
+                    ))}
                 </Menu>
                 <Box sx={{ flex: 1 }} />
                 {embedded ? null : (

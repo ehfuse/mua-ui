@@ -34,6 +34,7 @@ import type {
     MailMessageDetail,
     MailMessageListItem,
     MailMoveTarget,
+    MailMoveTargetOption,
     MailRule,
     MailRuleForm,
     MailRuleFormPrefill,
@@ -520,10 +521,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         return subscribeMailFoldersManage(check);
     }, [openManage]);
     /** 이동 대상 목록(우클릭 "이동 ▸" / 툴바 이동) — 사용자 메일함 + 받은편지함/스팸함/휴지통(현재 폴더 제외) */
-    const moveTargets = useMemo<
-        { key: string; label: string; target: MailMoveTarget; folder?: MailUserFolder }[]
-    >(() => {
-        const items: { key: string; label: string; target: MailMoveTarget; folder?: MailUserFolder }[] = folders
+    const moveTargets = useMemo<MailMoveTargetOption[]>(() => {
+        const items: MailMoveTargetOption[] = folders
             .filter((f) => !(filters.folder === "custom" && f.seq === filters.mailFolderSeq))
             .map((f) => ({
                 key: `f${f.seq}`,
@@ -536,6 +535,27 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         if (filters.folder !== "trash") items.push({ key: "trash", label: "휴지통", target: { folder: "trash" } });
         return items;
     }, [folders, filters.folder, filters.mailFolderSeq]);
+    /** 이 메일을 힌트로 규칙 폼을 연다(우클릭 "규칙 만들기"·상세 ⋮ "규칙 만들기" 공용). */
+    const openRuleFromMessage = useCallback((row: MailMessageListItem) => {
+        setRuleEditing({
+            rule: null,
+            prefill: {
+                // 조건은 비워 두고, [조건 추가]에서 보낸 사람/제목을 고르면 이 메일의 값이 채워진다
+                hints: {
+                    from_address: row.from_address ?? "",
+                    from_name: row.from_name ?? "",
+                    subject: row.subject ?? "",
+                    // 받는 사람 = 첫 수신자의 주소("이름 <주소>, …" 요약에서 추출)
+                    to: (() => {
+                        const first = (row.to_summary ?? "").split(",")[0]?.trim() ?? "";
+                        return /<([^>]+)>/.exec(first)?.[1]?.trim() ?? first;
+                    })(),
+                },
+                name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
+                conditions: [],
+            },
+        });
+    }, []);
     const contextMenuItems = useMemo<ContextMenuItem<MailMessageListItem>[]>(
         () => [
             {
@@ -606,26 +626,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 label: "규칙 만들기",
                 icon: <RuleOutlinedIcon fontSize="small" />,
                 hidden: isDraftFolder,
-                onClick: (row) => {
-                    setRuleEditing({
-                        rule: null,
-                        prefill: {
-                            // 조건은 비워 두고, [조건 추가]에서 보낸 사람/제목을 고르면 이 메일의 값이 채워진다
-                            hints: {
-                                from_address: row.from_address ?? "",
-                                from_name: row.from_name ?? "",
-                                subject: row.subject ?? "",
-                                // 받는 사람 = 첫 수신자의 주소("이름 <주소>, …" 요약에서 추출)
-                                to: (() => {
-                                    const first = (row.to_summary ?? "").split(",")[0]?.trim() ?? "";
-                                    return /<([^>]+)>/.exec(first)?.[1]?.trim() ?? first;
-                                })(),
-                            },
-                            name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
-                            conditions: [],
-                        },
-                    });
-                },
+                onClick: (row) => openRuleFromMessage(row),
             },
             {
                 label: "스팸 신고",
@@ -884,6 +885,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 })
             }
             onTrash={() => detail && handleTrash(detail.seq)}
+            // ⋮ 메뉴의 이동/규칙 만들기 — 우클릭 메뉴와 같은 대상·프리필을 쓴다.
+            moveTargets={moveTargets}
+            onMove={(target) => detail && rowAction(detail, "move", target)}
+            onCreateRule={() => detail && openRuleFromMessage(detail)}
             onSpam={() =>
                 detail &&
                 void state.actions.applyMessageAction([detail.seq], "spam").then(() => state.actions.loadCounts())
