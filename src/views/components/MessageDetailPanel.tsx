@@ -340,6 +340,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </IconButton>
                     </Tooltip>
                 )}
+                {/* 모바일(embedded)은 닫기 X 가 없어 ⋮ 를 오른쪽 끝으로 민다(데스크톱은 아이콘 줄 이어서, X 만 오른쪽). */}
+                {embedded ? <Box sx={{ flex: 1 }} /> : null}
                 {/* ⋮ 더보기 — 삭제/읽지않음/스팸 등 전체 메뉴 */}
                 <Tooltip title="더보기">
                     <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="더보기">
@@ -492,7 +494,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </MenuItem>
                     ))}
                 </Menu>
-                <Box sx={{ flex: 1 }} />
+                {embedded ? null : <Box sx={{ flex: 1 }} />}
                 {embedded ? null : (
                     <Tooltip title="닫기 (Esc)">
                         <IconButton size="small" onClick={onClose}>
