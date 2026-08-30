@@ -696,10 +696,11 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             borderRadius: 1,
                             display: "flex",
                             alignItems: "center",
-                            gap: 1.25,
+                            gap: 2,
                         }}
                     >
-                        <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0 }} />
+                        {/* 아이콘 좌우 여백은 같게(왼쪽 px 1.5 + mx 0.5 = 오른쪽 gap 2) */}
+                        <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0, mx: 0.5 }} />
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: 16, color: "#1e3a8a", fontWeight: 600 }}>
                                 AI 번역 (Gemini) · 원문과 다를 수 있습니다
@@ -719,13 +720,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 </Typography>
                             ) : null}
                         </Box>
-                        <Button
-                            size="small"
-                            onClick={() => setShowTranslation(false)}
-                            sx={{ fontSize: "13.5px", flexShrink: 0, alignSelf: "center" }}
-                        >
-                            원문 보기
-                        </Button>
                     </Box>
                 ) : null}
                 {/* 본문 — 번역본을 볼 때는 번역된 HTML/평문을 같은 뷰어(sanitize·iframe)로 그린다. */}
