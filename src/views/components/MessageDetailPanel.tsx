@@ -264,6 +264,16 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 spacing={1}
                 sx={{ px: 1.5, py: 1, borderBottom: "1px solid #e2e8f0", flexWrap: "wrap", rowGap: 0.5 }}
             >
+                {/* 본문 복사 — 액션 바 맨 왼쪽(내용 도구지만 한 번 누르는 조작이라 여기 둔다) */}
+                <Tooltip title="본문 복사">
+                    <IconButton size="small" onClick={copyBody} aria-label="본문 복사">
+                        {bodyCopied ? (
+                            <CheckIcon sx={{ fontSize: 20, color: "#2f9e5b" }} />
+                        ) : (
+                            <ContentCopyOutlinedIcon sx={{ fontSize: 20 }} />
+                        )}
+                    </IconButton>
+                </Tooltip>
                 {isDraft ? (
                     <Button size="small" variant="contained" onClick={onEditDraft} sx={{ fontSize: "13.5px" }}>
                         이어서 작성
@@ -671,15 +681,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     spacing={0.5}
                     sx={{ px: 2, pt: 1 }}
                 >
-                    <Tooltip title="본문 복사">
-                        <IconButton size="small" onClick={copyBody} aria-label="본문 복사">
-                            {bodyCopied ? (
-                                <CheckIcon sx={{ fontSize: 20, color: "#2f9e5b" }} />
-                            ) : (
-                                <ContentCopyOutlinedIcon sx={{ fontSize: 20 }} />
-                            )}
-                        </IconButton>
-                    </Tooltip>
                     {!isDraft ? (
                         <Button
                             size="small"
@@ -713,7 +714,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         }}
                     >
                         {/* 아이콘 좌우 여백은 같게(왼쪽 px 1.5 + mx 0.5 = 오른쪽 gap 2) */}
-                        <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0, mx: 1 }} />
+                        <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0, mx: 1.5 }} />
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: 16, color: "#1e3a8a", fontWeight: 600 }}>
                                 AI 번역 (Gemini) · 원문과 다를 수 있습니다
