@@ -13,7 +13,7 @@ import { ConfirmDialog } from "@ehfuse/alerts";
 import type { FormDialogSection } from "@ehfuse/mui-form-dialog";
 import { ClearTextField, NumberTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaFormDialog, useMuaIsAdmin } from "../../MuaProvider";
+import { useMuaConfig, useMuaFormDialog, useMuaIsAdmin } from "../../MuaProvider";
 import type { MailAccountFormController } from "../../controllers/mailAccountFormController";
 import type { ConnectionSecurity, IncomingProtocol } from "../../models/types";
 import { defaultIncomingPort, defaultSmtpPort, findMailPreset } from "../../utils/presets";
@@ -71,6 +71,8 @@ const SECURITY_OPTIONS = [
 export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps) {
     // 모바일은 풀스크린 우→좌 슬라이드(고정 높이 없음).
     const isMobile = useIsMobile();
+    // 안내 링크(앱 비밀번호 만드는 방법 등) — 앱 웹뷰는 새 탭이 없어 소비처 주입(외부 브라우저)으로 연다.
+    const { openExternalUrl } = useMuaConfig();
     const { form, modal, testing, testResult, testConnection, removeAccount, clearTestResult } = controller;
     const seq = Number(form.useFormValue("seq") ?? 0);
     const email = String(form.useFormValue("email") ?? "");
@@ -211,6 +213,11 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                             href={preset.note_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
+                                            onClick={(event) => {
+                                                if (!openExternalUrl || !preset.note_url) return;
+                                                event.preventDefault();
+                                                openExternalUrl(preset.note_url);
+                                            }}
                                             sx={{ fontSize: "15px", fontWeight: 600 }}
                                         >
                                             {preset.note_link_label ?? "설정 방법 보기"} ↗
