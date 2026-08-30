@@ -37,12 +37,32 @@ function AccountRow({
 }) {
     const isShared = account.scope === "shared";
     const isMobile = useIsMobile();
+    /** 개인/공용 사각 칩 */
+    const scopeChip = (
+        <Box
+            component="span"
+            sx={{
+                px: 1,
+                py: 0.4,
+                borderRadius: "4px",
+                fontSize: "13px",
+                fontWeight: 600,
+                lineHeight: 1.4,
+                whiteSpace: "nowrap",
+                color: isShared ? "#1d4ed8" : "#334155",
+                bgcolor: isShared ? "#eff6ff" : "#f1f5f9",
+            }}
+        >
+            {isShared ? "공용" : "개인"}
+        </Box>
+    );
     return (
         <Box
             sx={{
                 // [아이콘][이름·주소·칩 / 서버 / 마지막 동기화][개인·공용 칩 컬럼][액션] — 모바일은 액션을 아래 행에
                 display: "grid",
-                gridTemplateColumns: isMobile ? "28px minmax(0, 1fr) auto" : "28px minmax(0, 1fr) auto auto",
+                // 모바일은 개인/공용 칩을 하단 액션행으로 내리므로 칩 컬럼이 없다.
+                gridTemplateColumns: isMobile ? "28px minmax(0, 1fr)" : "28px minmax(0, 1fr) auto auto",
                 alignItems: "center",
                 gap: 2,
                 px: 2.25,
@@ -83,23 +103,8 @@ function AccountRow({
                           : "아직 동기화 전"}
                 </Typography>
             </Box>
-            {/* 개인/공용 — 사각 칩, 별도 컬럼 */}
-            <Box
-                component="span"
-                sx={{
-                    px: 1,
-                    py: 0.4,
-                    borderRadius: "4px",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    lineHeight: 1.4,
-                    whiteSpace: "nowrap",
-                    color: isShared ? "#1d4ed8" : "#334155",
-                    bgcolor: isShared ? "#eff6ff" : "#f1f5f9",
-                }}
-            >
-                {isShared ? "공용" : "개인"}
-            </Box>
+            {/* 개인/공용 — 사각 칩. 데스크톱은 별도 컬럼, 모바일은 하단 액션행 왼쪽 첫 번째. */}
+            {isMobile ? null : scopeChip}
             <Stack
                 direction="row"
                 spacing={isMobile ? 1 : 0.25}
@@ -107,7 +112,8 @@ function AccountRow({
                 justifyContent={isMobile ? "flex-end" : "flex-start"}
                 sx={isMobile ? { gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", pt: 1, mt: 0.5 } : undefined}
             >
-                {/* 모바일 — 기본 발신 칩을 액션행 왼쪽에, 아이콘들은 오른쪽으로 민다. */}
+                {/* 모바일 — [개인/공용][기본 발신] 칩을 액션행 왼쪽에, 아이콘들은 오른쪽으로 민다. */}
+                {isMobile ? scopeChip : null}
                 {isMobile && account.is_default ? (
                     <Chip size="small" label="기본 발신" color="primary" sx={{ fontSize: "13px" }} />
                 ) : null}
