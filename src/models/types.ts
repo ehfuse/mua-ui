@@ -87,6 +87,14 @@ export interface MailMessageListItem {
 }
 
 /** 상세(본문·첨부 포함) */
+/** AI 번역 결과(제목·본문) — 서버는 저장하지 않으며 화면이 메시지별로 세션 캐시한다. */
+export interface MailTranslation {
+    subject: string; // 번역된 제목
+    body_html: string; // 번역된 HTML 본문(mode=html — 원문 구조 보존)
+    body_text: string; // 번역된 평문(mode=text — 긴 HTML 은 평문으로 낮춰 번역)
+    mode: "html" | "text"; // 본문 번역 모드
+}
+
 export interface MailMessageDetail extends MailMessageListItem {
     from: MailAddress | null; // 발신자
     to: MailAddress[]; // 수신자

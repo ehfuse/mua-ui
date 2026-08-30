@@ -21,6 +21,7 @@ import {
 import { Tooltip } from "../../internal/Tooltip";
 import CloseIcon from "@mui/icons-material/Close";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import TranslateIcon from "@mui/icons-material/Translate";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
@@ -32,7 +33,7 @@ import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerro
 import { ErrorAlert } from "@ehfuse/alerts";
 import { useMuaSaveBlob } from "../../MuaProvider";
 import { mailApi } from "../../apis/mailApi";
-import type { MailAttachment, MailMessageDetail } from "../../models/types";
+import type { MailAttachment, MailMessageDetail, MailTranslation } from "../../models/types";
 import { formatAddressList, formatBytes, formatMailFullDate } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
 
@@ -96,6 +97,9 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
     );
 }
 
+/** 메시지별 AI 번역 캐시(세션 메모리) — 같은 메일을 다시 열어도 LLM 을 또 부르지 않는다. */
+const translationCache = new Map<number, MailTranslation>();
+
 /** 상세 패널 컴포넌트 */
 export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const {
@@ -132,10 +136,39 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     };
     // ⋮ 더보기 메뉴
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+    // AI 번역 — 결과(캐시 적재)·진행 중·번역본 표시 여부. 다른 메일로 바뀌면 원문 표시로 돌아간다.
+    const [translation, setTranslation] = useState<MailTranslation | null>(null);
+    const [translating, setTranslating] = useState(false);
+    const [showTranslation, setShowTranslation] = useState(false);
     const closeMenu = useCallback(() => setMenuAnchor(null), []);
     // 선택 메일이 바뀌면 상세 스크롤을 맨 위로
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const detailSeq = detail?.seq ?? 0;
+    useEffect(() => {
+        setTranslation(translationCache.get(detailSeq) ?? null);
+        setShowTranslation(false);
+        setTranslating(false);
+    }, [detailSeq]);
+    /** AI 번역 버튼 — 번역본이 있으면 원문/번역 토글, 없으면 서버(Gemini)에 요청한다. */
+    const handleTranslate = useCallback(async () => {
+        if (!detailSeq || translating) return;
+        if (translation) {
+            setShowTranslation((prev) => !prev);
+            return;
+        }
+        setTranslating(true);
+        try {
+            const res = await mailApi.translateMessage(detailSeq);
+            const next = res.data;
+            translationCache.set(detailSeq, next);
+            setTranslation(next);
+            setShowTranslation(true);
+        } catch (err) {
+            ErrorAlert(err instanceof Error ? err.message : "AI 번역에 실패했습니다.");
+        } finally {
+            setTranslating(false);
+        }
+    }, [detailSeq, translating, translation]);
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: 0 });
     }, [detailSeq]);
@@ -245,6 +278,22 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </IconButton>
                     </Tooltip>
                 )}
+                {/* AI 번역(한국어) — 번역본이 있으면 원문/번역 토글. 진행 중엔 스피너. */}
+                {!isDraft ? (
+                    <Tooltip title={translation ? (showTranslation ? "원문 보기" : "번역 보기") : "AI 번역 (한국어)"}>
+                        <span>
+                            <IconButton
+                                size="small"
+                                onClick={() => void handleTranslate()}
+                                disabled={translating}
+                                aria-label="AI 번역"
+                                sx={showTranslation ? { color: "#2563eb" } : undefined}
+                            >
+                                {translating ? <CircularProgress size={18} /> : <TranslateIcon />}
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : null}
                 {/* ⋮ 더보기 — 삭제/읽지않음/스팸 등 전체 메뉴 */}
                 <Tooltip title="더보기">
                     <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="더보기">
@@ -511,8 +560,56 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     ) : null}
                 </Box>
                 <Divider />
-                {/* 본문 */}
-                <MailBodyFrame html={detail.body_html} text={detail.body_text} allowRemoteImages={showRemoteImages} />
+                {/* AI 번역 배너 — 번역본을 보는 동안 제목 번역과 원문 복귀 버튼을 보여준다. */}
+                {showTranslation && translation ? (
+                    <Box
+                        sx={{
+                            mx: 2,
+                            mt: 1.5,
+                            px: 1.5,
+                            py: 1,
+                            bgcolor: "#eef4ff",
+                            border: "1px solid #c7d7fe",
+                            borderRadius: 1,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 1,
+                        }}
+                    >
+                        <TranslateIcon sx={{ fontSize: 18, color: "#2563eb", mt: "2px", flexShrink: 0 }} />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: 13.5, color: "#1e3a8a", fontWeight: 600 }}>
+                                AI 번역 (Gemini) · 원문과 다를 수 있습니다
+                            </Typography>
+                            {translation.subject ? (
+                                <Typography sx={{ fontSize: 15, color: "#111", mt: 0.25, wordBreak: "break-word" }}>
+                                    {translation.subject}
+                                </Typography>
+                            ) : null}
+                        </Box>
+                        <Button
+                            size="small"
+                            onClick={() => setShowTranslation(false)}
+                            sx={{ fontSize: "13.5px", flexShrink: 0 }}
+                        >
+                            원문 보기
+                        </Button>
+                    </Box>
+                ) : null}
+                {/* 본문 — 번역본을 볼 때는 번역된 HTML/평문을 같은 뷰어(sanitize·iframe)로 그린다. */}
+                {showTranslation && translation ? (
+                    <MailBodyFrame
+                        html={translation.body_html}
+                        text={translation.body_text}
+                        allowRemoteImages={showRemoteImages}
+                    />
+                ) : (
+                    <MailBodyFrame
+                        html={detail.body_html}
+                        text={detail.body_text}
+                        allowRemoteImages={showRemoteImages}
+                    />
+                )}
             </Box>
         </Box>
     );

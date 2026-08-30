@@ -14,6 +14,7 @@ import type {
     MailFolder,
     MailFolderCounts,
     MailListFolder,
+    MailTranslation,
     MailMessageDetail,
     MailMessageListItem,
     MailMoveTarget,
@@ -95,6 +96,9 @@ export const mailApi = {
     listMessages: (params: ListMessagesParams) =>
         entityAppServer.http.get<ApiOk<ListMessagesResponse>>(`/v1/mua/messages${toQuery(params)}`),
     /** 상세(+읽음 처리) */
+    /** 제목·본문 AI 번역(Gemini) — 저장 안 함, 실패는 throw(502/503). */
+    translateMessage: (seq: number, target = "ko") =>
+        entityAppServer.http.post<ApiOk<MailTranslation>>(`/v1/mua/messages/${seq}/translate`, { target }),
     getMessage: (seq: number, markRead: boolean) =>
         entityAppServer.http.get<ApiOk<MailMessageDetail>>(
             `/v1/mua/messages/${seq}${toQuery({ mark_read: markRead })}`
