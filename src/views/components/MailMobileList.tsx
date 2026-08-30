@@ -141,7 +141,7 @@ export function MailMobileList({
                                         textOverflow: "ellipsis",
                                     }}
                                 >
-                                    {row.subject || "(제목 없음)"}
+                                    {row.translated_subject || row.subject || "(제목 없음)"}
                                 </Typography>
                                 {row.has_attachment ? (
                                     <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0 }} />

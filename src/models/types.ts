@@ -84,6 +84,8 @@ export interface MailMessageListItem {
     has_cc: boolean; // 참조 있음(목록에서 전체 답장 노출 판단)
     mail_folder_seq: number; // 사용자 메일함(folder=custom)
     size: number; // 크기
+    // 번역본 보기 상태일 때의 번역 제목(목록 응답 — 서버가 translation_shown 일 때만 채운다). null/없음이면 원문 제목.
+    translated_subject?: string | null;
 }
 
 /** 상세(본문·첨부 포함) */

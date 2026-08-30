@@ -889,6 +889,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             moveTargets={moveTargets}
             onMove={(target) => detail && rowAction(detail, "move", target)}
             onCreateRule={() => detail && openRuleFromMessage(detail)}
+            // 번역본 보기/원문 보기 전환을 목록 행 제목에 반영한다.
+            onTranslationShownChange={(shown, subject) =>
+                detail && state.actions.setTranslatedSubject(detail.seq, shown ? subject : null)
+            }
             onSpam={() =>
                 detail &&
                 void state.actions.applyMessageAction([detail.seq], "spam").then(() => state.actions.loadCounts())

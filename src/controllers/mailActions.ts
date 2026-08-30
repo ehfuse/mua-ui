@@ -159,6 +159,13 @@ function patchLocalMessage(context: ActionContext<MailState>, seq: number, patch
     if (detail && detail.seq === seq) context.setValue("detail", { ...detail, ...patch });
 }
 
+/** 번역본 보기 상태 변경을 목록 행에 반영한다(번역 제목 표시/원문 제목 복귀 — 상세 패널이 호출). */
+export const setTranslatedSubject =
+    () =>
+    (context: ActionContext<MailState>, seq: number, translatedSubject: string | null): void => {
+        patchLocalMessage(context, seq, { translated_subject: translatedSubject });
+    };
+
 /** 목록에서 행들을 제거한다(선택 중이면 선택 해제). */
 function removeLocalMessages(context: ActionContext<MailState>, seqs: number[]): void {
     const remove = new Set(seqs);

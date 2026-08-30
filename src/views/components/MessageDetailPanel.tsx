@@ -68,6 +68,8 @@ interface MessageDetailPanelProps {
     moveTargets?: MailMoveTargetOption[]; // ⋮ "이동 ▸" 대상(메일함/받은편지함/스팸함/휴지통 — 우클릭 메뉴와 같다)
     onMove?: (target: MailMoveTarget) => void; // 이동 실행
     onCreateRule?: () => void; // 이 메일을 힌트로 규칙 만들기
+    // 번역본 보기 상태가 바뀔 때(번역 완료/원문 보기) — 목록 행 제목을 번역 제목으로 바꾸거나 되돌린다.
+    onTranslationShownChange?: (shown: boolean, translatedSubject: string | null) => void;
     /**
      * 모바일 mfd 상세 다이얼로그 본문으로 쓰일 때 true — 닫기 X 를 숨기고(제목바 ← 가 닫는다),
      * 자체 세로 스크롤러 대신 내용 높이만큼 늘어나 다이얼로그 스크롤에 맡긴다.
@@ -136,6 +138,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         moveTargets = [],
         onMove,
         onCreateRule,
+        onTranslationShownChange,
         embedded = false,
     } = props;
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
@@ -195,13 +198,16 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         // detail 객체 자체가 아니라 메일(seq)이 바뀔 때만 초기화한다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [detailSeq]);
-    /** 번역본/원문 보기 상태를 바꾸고 서버에도 저장한다(실패는 조용히 — 화면 상태가 우선). */
+    const onTranslationShownChangeRef = useRef(onTranslationShownChange);
+    onTranslationShownChangeRef.current = onTranslationShownChange;
+    /** 번역본/원문 보기 상태를 바꾸고 서버에도 저장한다(실패는 조용히 — 화면 상태가 우선). 목록 제목도 함께 바꾼다. */
     const toggleShowTranslation = useCallback(
         (next: boolean) => {
             setShowTranslation(next);
             if (detailSeq) void mailApi.patchMessage(detailSeq, { translation_shown: next }).catch(() => undefined);
+            onTranslationShownChangeRef.current?.(next, next ? (translation?.subject ?? null) : null);
         },
-        [detailSeq]
+        [detailSeq, translation]
     );
     /** AI 번역 버튼 — 번역본이 있으면 원문/번역 토글, 없으면 서버(Gemini)에 요청한다. */
     const handleTranslate = useCallback(async () => {
@@ -217,6 +223,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
             translationCache.set(detailSeq, next);
             setTranslation(next);
             setShowTranslation(true);
+            // 목록 제목도 번역 제목으로(서버는 translate 시 translation_shown=true 로 저장한다).
+            onTranslationShownChangeRef.current?.(true, next.subject ?? null);
         } catch (err) {
             ErrorAlert(err instanceof Error ? err.message : "AI 번역에 실패했습니다.");
         } finally {
@@ -543,7 +551,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 minWidth: 0,
                             }}
                         >
-                            {detail.subject || "(제목 없음)"}
+                            {/* 번역본 보기 상태면 제목도 번역 제목으로(원문 보기로 되돌리면 원문 제목). */}
+                            {(showTranslation && translation?.subject) || detail.subject || "(제목 없음)"}
                         </Typography>
                     </Stack>
                     <Box

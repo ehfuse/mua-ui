@@ -108,7 +108,8 @@ export function getMailColumns(
                             ...(showSnippet ? { flexShrink: 0, maxWidth: "60%" } : { minWidth: 0 }),
                         }}
                     >
-                        <HighlightText text={row.subject || "(제목 없음)"} query={search} />
+                        {/* 번역본 보기 상태인 메일은 번역 제목을 보인다("원문 보기"로 되돌리면 원문 제목). */}
+                        <HighlightText text={row.translated_subject || row.subject || "(제목 없음)"} query={search} />
                     </Typography>
                     {showSnippet ? (
                         <Typography noWrap sx={{ color: "#64748b", fontSize: "13.5px", minWidth: 0 }}>

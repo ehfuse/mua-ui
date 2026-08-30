@@ -24,6 +24,7 @@ export function useMailController() {
             selectMessage: Actions.selectMessage(),
             clearSelection: Actions.clearSelection(),
             applyMessageAction: Actions.applyMessageAction(),
+            setTranslatedSubject: Actions.setTranslatedSubject(),
             syncNow: Actions.syncNow(),
             loadFolders: Actions.loadFolders(),
             loadRules: Actions.loadRules(),
