@@ -22,6 +22,8 @@ import { Tooltip } from "../../internal/Tooltip";
 import CloseIcon from "@mui/icons-material/Close";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import TranslateIcon from "@mui/icons-material/Translate";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
+import CheckIcon from "@mui/icons-material/Check";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
@@ -140,6 +142,26 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const [translation, setTranslation] = useState<MailTranslation | null>(null);
     const [translating, setTranslating] = useState(false);
     const [showTranslation, setShowTranslation] = useState(false);
+    // 본문 복사 — 잠시 ✓ 로 복사됨을 알린다.
+    const [bodyCopied, setBodyCopied] = useState(false);
+    /** 본문(평문 우선, 없으면 HTML 태그 제거)을 클립보드에 복사한다. */
+    const copyBody = useCallback(() => {
+        if (!detail) return;
+        const text =
+            detail.body_text ||
+            detail.body_html
+                .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
+                .replace(/<br\s*\/?>/gi, "\n")
+                .replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, "\n")
+                .replace(/<[^>]+>/g, "")
+                .replace(/&nbsp;/g, " ")
+                .replace(/\n{3,}/g, "\n\n")
+                .trim();
+        void navigator.clipboard.writeText(text).then(() => {
+            setBodyCopied(true);
+            window.setTimeout(() => setBodyCopied(false), 1500);
+        });
+    }, [detail]);
     const closeMenu = useCallback(() => setMenuAnchor(null), []);
     // 선택 메일이 바뀌면 상세 스크롤을 맨 위로
     const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -278,22 +300,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </IconButton>
                     </Tooltip>
                 )}
-                {/* AI 번역(한국어) — 번역본이 있으면 원문/번역 토글. 진행 중엔 스피너. */}
-                {!isDraft ? (
-                    <Tooltip title={translation ? (showTranslation ? "원문 보기" : "번역 보기") : "AI 번역 (한국어)"}>
-                        <span>
-                            <IconButton
-                                size="small"
-                                onClick={() => void handleTranslate()}
-                                disabled={translating}
-                                aria-label="AI 번역"
-                                sx={showTranslation ? { color: "#2563eb" } : undefined}
-                            >
-                                {translating ? <CircularProgress size={18} /> : <TranslateIcon />}
-                            </IconButton>
-                        </span>
-                    </Tooltip>
-                ) : null}
                 {/* ⋮ 더보기 — 삭제/읽지않음/스팸 등 전체 메뉴 */}
                 <Tooltip title="더보기">
                     <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="더보기">
@@ -560,37 +566,79 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     ) : null}
                 </Box>
                 <Divider />
-                {/* AI 번역 배너 — 번역본을 보는 동안 제목 번역과 원문 복귀 버튼을 보여준다. */}
+                {/* 본문 도구 — 내용에 관한 도구(복사·번역)는 본문 바로 위에 둔다(헤더 액션 바는 메일 단위 조작 전용). */}
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="flex-end"
+                    spacing={0.5}
+                    sx={{ px: 2, pt: 1 }}
+                >
+                    <Tooltip title="본문 복사">
+                        <IconButton size="small" onClick={copyBody} aria-label="본문 복사">
+                            {bodyCopied ? (
+                                <CheckIcon sx={{ fontSize: 20, color: "#2f9e5b" }} />
+                            ) : (
+                                <ContentCopyOutlinedIcon sx={{ fontSize: 20 }} />
+                            )}
+                        </IconButton>
+                    </Tooltip>
+                    {!isDraft ? (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            color="inherit"
+                            disabled={translating}
+                            startIcon={
+                                translating ? <CircularProgress size={16} /> : <TranslateIcon sx={{ fontSize: 18 }} />
+                            }
+                            onClick={() => void handleTranslate()}
+                            sx={{ fontSize: "13.5px", color: "#334155", borderColor: "#cbd5e1" }}
+                        >
+                            {translation && showTranslation ? "원문 보기" : "번역하기"}
+                        </Button>
+                    ) : null}
+                </Stack>
+                {/* AI 번역 배너 — 번역본을 보는 동안 안내(16px)와 내용 요약(15px, 길면 개행)을 보여준다. */}
                 {showTranslation && translation ? (
                     <Box
                         sx={{
                             mx: 2,
-                            mt: 1.5,
+                            mt: 1,
                             px: 1.5,
-                            py: 1,
+                            py: 1.25,
                             bgcolor: "#eef4ff",
                             border: "1px solid #c7d7fe",
                             borderRadius: 1,
                             display: "flex",
-                            alignItems: "flex-start",
-                            gap: 1,
+                            alignItems: "center",
+                            gap: 1.25,
                         }}
                     >
-                        <TranslateIcon sx={{ fontSize: 18, color: "#2563eb", mt: "2px", flexShrink: 0 }} />
+                        <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0 }} />
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontSize: 13.5, color: "#1e3a8a", fontWeight: 600 }}>
+                            <Typography sx={{ fontSize: 16, color: "#1e3a8a", fontWeight: 600 }}>
                                 AI 번역 (Gemini) · 원문과 다를 수 있습니다
                             </Typography>
-                            {translation.subject ? (
-                                <Typography sx={{ fontSize: 15, color: "#111", mt: 0.25, wordBreak: "break-word" }}>
-                                    {translation.subject}
+                            {translation.summary ? (
+                                <Typography
+                                    sx={{
+                                        fontSize: 15,
+                                        color: "#111",
+                                        mt: 0.25,
+                                        lineHeight: 1.5,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                    }}
+                                >
+                                    {translation.summary}
                                 </Typography>
                             ) : null}
                         </Box>
                         <Button
                             size="small"
                             onClick={() => setShowTranslation(false)}
-                            sx={{ fontSize: "13.5px", flexShrink: 0 }}
+                            sx={{ fontSize: "13.5px", flexShrink: 0, alignSelf: "center" }}
                         >
                             원문 보기
                         </Button>

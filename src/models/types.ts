@@ -92,6 +92,7 @@ export interface MailTranslation {
     subject: string; // 번역된 제목
     body_html: string; // 번역된 HTML 본문(mode=html — 원문 구조 보존)
     body_text: string; // 번역된 평문(mode=text — 긴 HTML 은 평문으로 낮춰 번역)
+    summary: string; // 본문 요약(대상 언어, 1~3문장) — 배너에 보여준다
     mode: "html" | "text"; // 본문 번역 모드
 }
 
