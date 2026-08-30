@@ -50,7 +50,10 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const editorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: "내용을 입력하세요",
-            minHeight: 320,
+            // 모바일은 서식 편집이 사실상 어려워 툴바를 감추고 내용 높이에 맞춰 늘린다(업무함 내용 편집기와 같은 규칙).
+            minHeight: isMobile ? 240 : 320,
+            showToolbar: !isMobile,
+            autoHeight: isMobile,
             locale: "ko",
             onChange: (html: string) => {
                 lastSyncedHtmlRef.current = html;
@@ -58,7 +61,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             },
             styles: { borderWidth: 0 },
         }),
-        [form]
+        // isMobile 이 바뀌면(회전 등) 에디터 설정도 다시 만든다.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [form, isMobile]
     );
 
     // 폼 → 에디터 동기화(열기/모드 전환 시)
@@ -242,27 +247,64 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             ]}
             actions={{
                 visible: true,
-                left: (
-                    <Button
-                        variant="outlined"
-                        onClick={() => void saveDraft()}
-                        disabled={sending || savingDraft}
-                        sx={{ minWidth: 96 }}
-                    >
-                        {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
-                    </Button>
-                ),
-                right: (
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => void form.submit()}
-                        disabled={sending || savingDraft}
-                        sx={{ minWidth: 88 }}
-                    >
-                        {sending ? <CircularProgress size={20} color="inherit" /> : "보내기"}
-                    </Button>
-                ),
+                // 모바일은 mfd 기본 취소 대신 [임시저장][취소][보내기] 를 균등 3열로 직접 그린다.
+                showCancelButton: !isMobile,
+                ...(isMobile
+                    ? {
+                          left: (
+                              <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                                  <Button
+                                      variant="outlined"
+                                      onClick={() => void saveDraft()}
+                                      disabled={sending || savingDraft}
+                                      sx={{ flex: 1, minWidth: 0 }}
+                                  >
+                                      {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
+                                  </Button>
+                                  <Button
+                                      variant="outlined"
+                                      color="inherit"
+                                      onClick={modal.close}
+                                      disabled={sending || savingDraft}
+                                      sx={{ flex: 1, minWidth: 0 }}
+                                  >
+                                      취소
+                                  </Button>
+                                  <Button
+                                      variant="contained"
+                                      color="primary"
+                                      onClick={() => void form.submit()}
+                                      disabled={sending || savingDraft}
+                                      sx={{ flex: 1, minWidth: 0 }}
+                                  >
+                                      {sending ? <CircularProgress size={20} color="inherit" /> : "보내기"}
+                                  </Button>
+                              </Stack>
+                          ),
+                      }
+                    : {
+                          left: (
+                              <Button
+                                  variant="outlined"
+                                  onClick={() => void saveDraft()}
+                                  disabled={sending || savingDraft}
+                                  sx={{ minWidth: 96 }}
+                              >
+                                  {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
+                              </Button>
+                          ),
+                          right: (
+                              <Button
+                                  variant="contained"
+                                  color="primary"
+                                  onClick={() => void form.submit()}
+                                  disabled={sending || savingDraft}
+                                  sx={{ minWidth: 88 }}
+                              >
+                                  {sending ? <CircularProgress size={20} color="inherit" /> : "보내기"}
+                              </Button>
+                          ),
+                      }),
             }}
         />
     );
