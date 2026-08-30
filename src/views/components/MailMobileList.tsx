@@ -56,18 +56,21 @@ export function MailMobileList({
                         onClick={() => onSelect(row)}
                         sx={{
                             display: "flex",
-                            alignItems: "stretch",
+                            flexDirection: "column",
                             minWidth: 0,
                             width: "100%",
                             boxSizing: "border-box",
                             cursor: "pointer",
                             userSelect: "none",
+                            py: 1,
+                            pr: 1.75,
+                            pl: 0.5,
                             // 안 읽은 메일 — 왼쪽 파란 띠(목록 표의 굵은 글씨에 대응).
                             borderLeft: unread ? "4px solid #3b82f6" : "4px solid transparent",
                         }}
                     >
-                        {/* 체크박스(복수 선택) · 중요 토글 — 카드 클릭(상세 열기)과 분리한다. */}
-                        <Box sx={{ display: "flex", alignItems: "flex-start", pt: 1.25, pl: 0.5 }}>
+                        {/* 1행: 체크박스(복수 선택) · 중요 토글 · 상대 · 일시 — 체크/별은 카드 클릭(상세 열기)과 분리한다. */}
+                        <Box sx={{ display: "flex", alignItems: "center", minWidth: 0 }}>
                             <Checkbox
                                 size="medium"
                                 checked={checkedSeqs.has(row.seq)}
@@ -94,39 +97,27 @@ export function MailMobileList({
                                     }}
                                 />
                             </IconButton>
+                            <Typography
+                                sx={{
+                                    flex: 1,
+                                    width: 0,
+                                    ml: 0.5,
+                                    fontSize: mfs(16),
+                                    fontWeight: unread ? 700 : 500,
+                                    color: "#111827",
+                                    whiteSpace: "nowrap",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                }}
+                            >
+                                {formatCounterpart(row)}
+                            </Typography>
+                            <MobileChip tone={unread ? "blue" : "default"} bold={unread}>
+                                {formatMailListDate(row.date_time) || "-"}
+                            </MobileChip>
                         </Box>
-                        <Box
-                            sx={{
-                                flex: 1,
-                                minWidth: 0,
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 0.5,
-                                py: 1.5,
-                                pr: 1.75,
-                                pl: 0.5,
-                            }}
-                        >
-                            {/* 1줄: 상대 + 일시 */}
-                            <Box sx={{ display: "flex", alignItems: "center", columnGap: 0.75, minWidth: 0 }}>
-                                <Typography
-                                    sx={{
-                                        flex: 1,
-                                        width: 0,
-                                        fontSize: mfs(16),
-                                        fontWeight: unread ? 700 : 500,
-                                        color: "#111827",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                    }}
-                                >
-                                    {formatCounterpart(row)}
-                                </Typography>
-                                <MobileChip tone={unread ? "blue" : "default"} bold={unread}>
-                                    {formatMailListDate(row.date_time) || "-"}
-                                </MobileChip>
-                            </Box>
+                        {/* 2·3행: 제목(+첨부)·미리보기 — 별표 오른쪽이 아니라 아래 행에 전폭으로. */}
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0, pl: 1, pt: 0.25 }}>
                             {/* 2줄: 제목 + 첨부 */}
                             <Box sx={{ display: "flex", alignItems: "center", columnGap: 0.5, minWidth: 0 }}>
                                 <Typography

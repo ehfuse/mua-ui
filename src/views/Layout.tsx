@@ -56,6 +56,7 @@ import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import { ConfirmActionPopper } from "../internal/ConfirmActionPopper";
 import { consumeMailFoldersManageRequest, subscribeMailFoldersManage } from "../internal/foldersManageRequest";
+import { subscribeMailRefresh } from "../internal/refreshRequest";
 import { MailManageDialog, type MailManageTab } from "./dialogs/MailManageDialog";
 import { MailRuleFormDialog } from "./dialogs/MailRuleFormDialog";
 import { MailHeaderActions, type MailViewMode } from "./components/MailHeaderActions";
@@ -186,6 +187,14 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         void state.actions.loadMessages({ silent: true });
         void state.actions.loadCounts();
     }, [state.actions]);
+    // 당겨서-새로고침(모바일 서브페이지 다이얼로그가 requestMailRefresh 로 부른다) — 목록·건수를 다시 읽고 끝날 때까지 기다린다.
+    useEffect(
+        () =>
+            subscribeMailRefresh(async () => {
+                await Promise.all([state.actions.loadMessages({ silent: true }), state.actions.loadCounts()]);
+            }),
+        [state.actions]
+    );
 
     const accountForm = useMailAccountFormController({ onSaved: refreshAccounts });
     const compose = useComposeController({ onSent: refreshList, onDraftSaved: refreshList });
