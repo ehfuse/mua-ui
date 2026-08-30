@@ -262,7 +262,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                                 onChange={(_, v) => patch({ stop_processing: v })}
                                             />
                                         }
-                                        label="이 규칙이 적용되면 다음 규칙은 적용하지 않음"
+                                        label="적용 후 다음 규칙 건너뜀"
                                     />
                                 </Stack>
                             </Box>
