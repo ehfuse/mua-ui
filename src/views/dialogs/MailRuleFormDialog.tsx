@@ -24,6 +24,7 @@ import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/a
 import { mailApi, unwrap } from "../../apis/mailApi";
 import { OptionToggleGroup } from "../../internal/OptionToggleGroup";
 import { useIsMobile } from "../../internal/useIsMobile";
+import { useDialogBackClose } from "../../internal/useDialogBackClose";
 import { useMuaFormDialog } from "../../MuaProvider";
 import { defaultMailRuleForm } from "../../models/defaults";
 import type {
@@ -99,6 +100,8 @@ const INPUT_SX = { "& .MuiInputBase-input": { fontSize: 15 } };
 /** 규칙 폼 다이얼로그 */
 export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSaved }: MailRuleFormDialogProps) {
     const isMobile = useIsMobile();
+    // 기기 뒤로가기로 닫힌다 — 취소/← 도 같은 경로로 닫아 히스토리 칸을 소비한다.
+    const { requestClose } = useDialogBackClose({ open, onClose, modalId: "mail-rule-form-dialog" });
     const FormDialog = useMuaFormDialog();
     const [values, setValues] = useState<MailRuleForm>(defaultMailRuleForm);
     const [busy, setBusy] = useState(false);
@@ -212,7 +215,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                 fullScreen={isMobile}
                 mobilePresentation={isMobile ? "slide" : "dialog"}
                 open={open}
-                onClose={onClose}
+                onClose={requestClose}
                 title={{ text: values.seq > 0 ? "규칙 수정" : "규칙 만들기" }}
                 titleIcons={{ delete: { visible: values.seq > 0 } }}
                 onDelete={values.seq > 0 ? remove : undefined}
@@ -469,7 +472,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     ),
                     right: (
                         <Stack direction="row" spacing={1}>
-                            <Button variant="outlined" onClick={onClose} disabled={busy}>
+                            <Button variant="outlined" onClick={requestClose} disabled={busy}>
                                 취소
                             </Button>
                             <Button variant="contained" onClick={() => void save()} disabled={busy}>

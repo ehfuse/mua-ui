@@ -15,6 +15,7 @@ import { FolderIcon } from "../../internal/FolderIcon";
 import { TrashIcon } from "../../internal/icons";
 import { Tooltip } from "../../internal/Tooltip";
 import { useIsMobile } from "../../internal/useIsMobile";
+import { useDialogBackClose } from "../../internal/useDialogBackClose";
 import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailUserFolder } from "../../models/types";
 import { formatBytes } from "../../utils/format";
@@ -237,6 +238,8 @@ export function MailFolderFormDialog({
 }) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
+    // 기기 뒤로가기로 닫힌다(mfd 는 히스토리를 안 건드린다). 취소/← 도 같은 경로로 닫아 히스토리 칸을 소비한다.
+    const { requestClose } = useDialogBackClose({ open, onClose, modalId: "mail-folder-form-dialog" });
     const isEdit = Boolean(folder && folder.seq > 0);
     const [name, setName] = useState("");
     const [shared, setShared] = useState(false);
@@ -280,7 +283,7 @@ export function MailFolderFormDialog({
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
             open={open}
-            onClose={onClose}
+            onClose={requestClose}
             title={{ text: isEdit ? "메일함 수정" : "메일함 추가" }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
@@ -324,6 +327,14 @@ export function MailFolderFormDialog({
                                     slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
                                 />
                             </Box>
+                            {/* 모바일은 액션바가 좁아 공용 스위치를 본문(안내 위)에 둔다 — 액션바에는 버튼만 오른쪽으로. */}
+                            {isMobile ? (
+                                <FormControlLabel
+                                    control={<Switch checked={shared} onChange={(_, v) => setShared(v)} />}
+                                    label="공용 메일함"
+                                    sx={{ ml: 0 }}
+                                />
+                            ) : null}
                             <Typography
                                 sx={{
                                     fontSize: "15px",
@@ -345,7 +356,7 @@ export function MailFolderFormDialog({
             actions={{
                 visible: true,
                 showCancelButton: false,
-                left: (
+                left: isMobile ? undefined : (
                     <FormControlLabel
                         control={<Switch checked={shared} onChange={(_, v) => setShared(v)} />}
                         label="공용 메일함"
@@ -354,7 +365,7 @@ export function MailFolderFormDialog({
                 ),
                 right: (
                     <Stack direction="row" spacing={1}>
-                        <Button variant="outlined" onClick={onClose} disabled={busy}>
+                        <Button variant="outlined" onClick={requestClose} disabled={busy}>
                             취소
                         </Button>
                         <Button variant="contained" onClick={() => void save()} disabled={busy || !name.trim()}>
