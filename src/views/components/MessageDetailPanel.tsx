@@ -264,16 +264,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 spacing={1}
                 sx={{ px: 1.5, py: 1, borderBottom: "1px solid #e2e8f0", flexWrap: "wrap", rowGap: 0.5 }}
             >
-                {/* 본문 복사 — 액션 바 맨 왼쪽(내용 도구지만 한 번 누르는 조작이라 여기 둔다) */}
-                <Tooltip title="본문 복사">
-                    <IconButton size="small" onClick={copyBody} aria-label="본문 복사">
-                        {bodyCopied ? (
-                            <CheckIcon sx={{ fontSize: 20, color: "#2f9e5b" }} />
-                        ) : (
-                            <ContentCopyOutlinedIcon sx={{ fontSize: 20 }} />
-                        )}
-                    </IconButton>
-                </Tooltip>
                 {isDraft ? (
                     <Button size="small" variant="contained" onClick={onEditDraft} sx={{ fontSize: "13.5px" }}>
                         이어서 작성
@@ -679,8 +669,19 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     alignItems="center"
                     justifyContent="flex-start"
                     spacing={0.5}
-                    sx={{ px: 2, pt: 1 }}
+                    // 상단 여백은 좌우 여백(16px)과 같게
+                    sx={{ px: 2, pt: 2 }}
                 >
+                    {/* 본문 복사 — 번역하기 왼쪽 */}
+                    <Tooltip title="본문 복사">
+                        <IconButton size="small" onClick={copyBody} aria-label="본문 복사">
+                            {bodyCopied ? (
+                                <CheckIcon sx={{ fontSize: 20, color: "#2f9e5b" }} />
+                            ) : (
+                                <ContentCopyOutlinedIcon sx={{ fontSize: 20 }} />
+                            )}
+                        </IconButton>
+                    </Tooltip>
                     {!isDraft ? (
                         <Button
                             size="small"
