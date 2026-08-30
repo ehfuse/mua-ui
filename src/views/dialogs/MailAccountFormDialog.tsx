@@ -82,7 +82,10 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     const signatureEditorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: "서명을 입력하세요 (메일 본문 끝에 붙습니다)",
-            minHeight: 180,
+            // 모바일은 서식 편집이 어려워 툴바를 감추고 내용 높이에 맞춘다(새 메일·업무함과 같은 규칙).
+            minHeight: isMobile ? 140 : 180,
+            showToolbar: !isMobile,
+            autoHeight: isMobile,
             locale: "ko",
             onChange: (html: string) => {
                 lastSyncedSignatureRef.current = html;
@@ -90,7 +93,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             },
             styles: { borderWidth: 0 },
         }),
-        [form]
+        [form, isMobile]
     );
     useEffect(() => {
         if (!modal.isOpen) {
@@ -429,6 +432,18 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             maxContentHeight={isMobile ? undefined : 800}
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
+            // 모바일 액션바 — 왼쪽 슬롯·래퍼를 전폭으로 늘려 3열 버튼이 화면 폭을 균등하게 나눠 갖게 한다.
+            sx={
+                isMobile
+                    ? {
+                          DialogActions: {
+                              "& .left-actions": { flex: 1, minWidth: 0, width: "100%" },
+                              "& .left-actions > *": { flex: 1, minWidth: 0, width: "100%" },
+                              "& .right-actions": { display: "none" },
+                          },
+                      }
+                    : undefined
+            }
             locale="ko"
             maxWidth="sm"
             // 마지막 섹션 아래 자동 스크롤 여백은 끄고, 하단 패딩은 상단 패딩(mfd contentTopPadding 기본값)과 같게 둔다.
@@ -438,35 +453,80 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             onDelete={seq > 0 ? handleDelete : undefined}
             actions={{
                 visible: true,
-                left: (
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Button
-                            variant="outlined"
-                            onClick={() => void testConnection()}
-                            disabled={testing || isSubmitting}
-                            sx={{ minWidth: 110 }}
-                        >
-                            {testing ? <CircularProgress size={20} color="inherit" /> : "접속 테스트"}
-                        </Button>
-                        {testResult ? (
-                            <Typography sx={{ fontSize: "15px", color: "#111" }}>
-                                수신 {testResult.incoming.ok ? "✅" : `❌ ${testResult.incoming.error ?? ""}`} · 발신{" "}
-                                {testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}`}
-                            </Typography>
-                        ) : null}
-                    </Stack>
-                ),
-                right: (
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => void form.submit()}
-                        disabled={isSubmitting || testing}
-                        sx={{ minWidth: 80 }}
-                    >
-                        {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "저장"}
-                    </Button>
-                ),
+                // 모바일은 mfd 기본 취소 대신 [접속 테스트][취소][저장] 을 균등 3열로 직접 그린다(테스트 결과는 그 위 한 줄).
+                showCancelButton: !isMobile,
+                ...(isMobile
+                    ? {
+                          left: (
+                              <Stack spacing={1} sx={{ width: "100%" }}>
+                                  {testResult ? (
+                                      <Typography sx={{ fontSize: "14px", color: "#111", wordBreak: "break-word" }}>
+                                          수신 {testResult.incoming.ok ? "✅" : `❌ ${testResult.incoming.error ?? ""}`}{" "}
+                                          · 발신 {testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}`}
+                                      </Typography>
+                                  ) : null}
+                                  <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                                      <Button
+                                          variant="outlined"
+                                          onClick={() => void testConnection()}
+                                          disabled={testing || isSubmitting}
+                                          sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                      >
+                                          {testing ? <CircularProgress size={20} color="inherit" /> : "접속 테스트"}
+                                      </Button>
+                                      <Button
+                                          variant="outlined"
+                                          color="inherit"
+                                          onClick={modal.close}
+                                          disabled={isSubmitting || testing}
+                                          sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                      >
+                                          취소
+                                      </Button>
+                                      <Button
+                                          variant="contained"
+                                          color="primary"
+                                          onClick={() => void form.submit()}
+                                          disabled={isSubmitting || testing}
+                                          sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                      >
+                                          {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "저장"}
+                                      </Button>
+                                  </Stack>
+                              </Stack>
+                          ),
+                      }
+                    : {
+                          left: (
+                              <Stack direction="row" spacing={1.5} alignItems="center">
+                                  <Button
+                                      variant="outlined"
+                                      onClick={() => void testConnection()}
+                                      disabled={testing || isSubmitting}
+                                      sx={{ minWidth: 110 }}
+                                  >
+                                      {testing ? <CircularProgress size={20} color="inherit" /> : "접속 테스트"}
+                                  </Button>
+                                  {testResult ? (
+                                      <Typography sx={{ fontSize: "15px", color: "#111" }}>
+                                          수신 {testResult.incoming.ok ? "✅" : `❌ ${testResult.incoming.error ?? ""}`}{" "}
+                                          · 발신 {testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}`}
+                                      </Typography>
+                                  ) : null}
+                              </Stack>
+                          ),
+                          right: (
+                              <Button
+                                  variant="contained"
+                                  color="primary"
+                                  onClick={() => void form.submit()}
+                                  disabled={isSubmitting || testing}
+                                  sx={{ minWidth: 80 }}
+                              >
+                                  {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "저장"}
+                              </Button>
+                          ),
+                      }),
             }}
         />
     );
