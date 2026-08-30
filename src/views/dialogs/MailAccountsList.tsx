@@ -63,7 +63,8 @@ function AccountRow({
                             {account.email}
                         </Typography>
                     ) : null}
-                    {account.is_default ? (
+                    {/* 기본 발신 칩 — 데스크톱은 이름 옆, 모바일은 하단 액션행 왼쪽(이름 줄이 좁아 줄바꿈되던 것). */}
+                    {account.is_default && !isMobile ? (
                         <Chip size="small" label="기본 발신" color="primary" sx={{ fontSize: "13px" }} />
                     ) : null}
                 </Stack>
@@ -106,6 +107,11 @@ function AccountRow({
                 justifyContent={isMobile ? "flex-end" : "flex-start"}
                 sx={isMobile ? { gridColumn: "1 / -1", borderTop: "1px solid #e2e8f0", pt: 1, mt: 0.5 } : undefined}
             >
+                {/* 모바일 — 기본 발신 칩을 액션행 왼쪽에, 아이콘들은 오른쪽으로 민다. */}
+                {isMobile && account.is_default ? (
+                    <Chip size="small" label="기본 발신" color="primary" sx={{ fontSize: "13px" }} />
+                ) : null}
+                {isMobile ? <Box sx={{ flex: 1 }} /> : null}
                 <Tooltip title="지금 동기화">
                     <span>
                         <IconButton size="small" onClick={onSync} disabled={syncing} aria-label="지금 동기화">
