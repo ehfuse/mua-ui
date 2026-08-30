@@ -570,50 +570,67 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
                             보낸 사람
                         </Typography>
-                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
-                            {detail.from ? (
-                                <>
-                                    {detail.from.name ? `${detail.from.name} <` : ""}
-                                    {/* 주소 클릭 → 이 주소로 새 메일 작성 (noreply 류 발신 전용 주소는 링크 없이 표시) */}
-                                    {isNoReplyAddress(detail.from.address) ? (
-                                        <span style={{ wordBreak: "break-all" }}>{detail.from.address}</span>
-                                    ) : (
-                                        <Link
-                                            component="button"
-                                            type="button"
-                                            underline="hover"
-                                            onClick={() => onComposeTo(detail.from!.address)}
-                                            sx={{
-                                                fontSize: "15px",
-                                                lineHeight: "26px",
-                                                verticalAlign: "baseline",
-                                                wordBreak: "break-all",
-                                            }}
-                                        >
-                                            {detail.from.address}
-                                        </Link>
-                                    )}
-                                    {detail.from.name ? ">" : ""}
-                                    {/* 주소록 추가 — 버튼을 줄 높이(26px) 안에 맞춰 있고 없음이 줄 높이에 영향을 주지 않는다 */}
-                                    {onAddContact ? (
-                                        <Tooltip title="주소록에 추가">
-                                            <IconButton
-                                                size="small"
-                                                aria-label="주소록에 추가"
-                                                onClick={() =>
-                                                    onAddContact(detail.from!.address, detail.from!.name ?? "")
-                                                }
-                                                sx={{ ml: 0.5, p: 0, width: 26, height: 26, verticalAlign: "top" }}
+                        {/* 보낸 사람 — 텍스트(flex 1) + 주소록 추가 아이콘을 별도 칸으로 둔다.
+                            인라인으로 끼우면 긴 주소가 줄바꿈될 때 아이콘이 밀리거나 잘려 모바일에서 안 보였다(2026-08-30). */}
+                        <Box sx={{ display: "flex", alignItems: "flex-start", columnGap: 0.5, minWidth: 0 }}>
+                            <Typography
+                                sx={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    fontSize: "15px",
+                                    lineHeight: "26px",
+                                    wordBreak: "break-all",
+                                }}
+                            >
+                                {detail.from ? (
+                                    <>
+                                        {detail.from.name ? `${detail.from.name} <` : ""}
+                                        {/* 주소 클릭 → 이 주소로 새 메일 작성 (noreply 류 발신 전용 주소는 링크 없이 표시) */}
+                                        {isNoReplyAddress(detail.from.address) ? (
+                                            <span style={{ wordBreak: "break-all" }}>{detail.from.address}</span>
+                                        ) : (
+                                            <Link
+                                                component="button"
+                                                type="button"
+                                                underline="hover"
+                                                onClick={() => onComposeTo(detail.from!.address)}
+                                                sx={{
+                                                    fontSize: "15px",
+                                                    lineHeight: "26px",
+                                                    verticalAlign: "baseline",
+                                                    wordBreak: "break-all",
+                                                }}
                                             >
-                                                <PersonAddAlt1OutlinedIcon sx={{ fontSize: 18 }} />
-                                            </IconButton>
-                                        </Tooltip>
-                                    ) : null}
-                                </>
-                            ) : (
-                                "-"
-                            )}
-                        </Typography>
+                                                {detail.from.address}
+                                            </Link>
+                                        )}
+                                        {detail.from.name ? ">" : ""}
+                                    </>
+                                ) : (
+                                    "-"
+                                )}
+                            </Typography>
+                            {/* 주소록 추가 — 주소록에 없는 보낸 사람에게만. 줄 높이(26px)에 맞춘 버튼, 모바일은 터치 크기. */}
+                            {detail.from && onAddContact ? (
+                                <Tooltip title="주소록에 추가">
+                                    <IconButton
+                                        size="small"
+                                        aria-label="주소록에 추가"
+                                        onClick={() => onAddContact(detail.from!.address, detail.from!.name ?? "")}
+                                        sx={{
+                                            p: 0,
+                                            width: embedded ? 32 : 26,
+                                            height: embedded ? 32 : 26,
+                                            mt: embedded ? "-3px" : 0,
+                                            flexShrink: 0,
+                                            color: "#2563eb",
+                                        }}
+                                    >
+                                        <PersonAddAlt1OutlinedIcon sx={{ fontSize: embedded ? 22 : 18 }} />
+                                    </IconButton>
+                                </Tooltip>
+                            ) : null}
+                        </Box>
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
                             받는 사람
                         </Typography>
