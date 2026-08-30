@@ -183,10 +183,11 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                             />
                             <ClearTextField name="name" label="보내는 사람 이름" form={form} fullWidth />
                         </Box>
+                        {/* 스위치 — 모바일은 한 줄에 하나씩(세로), 데스크톱은 가로 나열 */}
                         <Stack
-                            direction="row"
-                            spacing={3}
-                            sx={{ flexWrap: "wrap", alignItems: "center", minHeight: 40 }}
+                            direction={isMobile ? "column" : "row"}
+                            spacing={isMobile ? 0.5 : 3}
+                            sx={{ flexWrap: "wrap", alignItems: isMobile ? "flex-start" : "center", minHeight: 40 }}
                         >
                             {isAdmin || isShared ? (
                                 <Switch form={form} name="is_shared" label="공용 계정" disabled={!isAdmin} />
@@ -432,6 +433,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             maxContentHeight={isMobile ? undefined : 800}
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
+            // 모바일은 섹션 탭(기본/수신/발신/서명)을 숨긴다 — 좁아서 잘리고, 어차피 한 화면을 스크롤한다.
+            tabs={{ visible: !isMobile }}
             // 모바일 액션바 — 왼쪽 슬롯·래퍼를 전폭으로 늘려 3열 버튼이 화면 폭을 균등하게 나눠 갖게 한다.
             sx={
                 isMobile

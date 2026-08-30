@@ -16,6 +16,7 @@ import { TrashIcon } from "../../internal/icons";
 import { Tooltip } from "../../internal/Tooltip";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
+import { MOBILE_FULL_WIDTH_ACTIONS_SX } from "../../internal/mobileActionsSx";
 import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailUserFolder } from "../../models/types";
 import { formatBytes } from "../../utils/format";
@@ -282,6 +283,7 @@ export function MailFolderFormDialog({
             fontScaleKey="MailFolderFormDialog"
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
+            sx={isMobile ? MOBILE_FULL_WIDTH_ACTIONS_SX : undefined}
             open={open}
             onClose={requestClose}
             title={{ text: isEdit ? "메일함 수정" : "메일함 추가" }}
@@ -356,23 +358,53 @@ export function MailFolderFormDialog({
             actions={{
                 visible: true,
                 showCancelButton: false,
-                left: isMobile ? undefined : (
-                    <FormControlLabel
-                        control={<Switch checked={shared} onChange={(_, v) => setShared(v)} />}
-                        label="공용 메일함"
-                        sx={{ ml: 0 }}
-                    />
-                ),
-                right: (
-                    <Stack direction="row" spacing={1}>
-                        <Button variant="outlined" onClick={requestClose} disabled={busy}>
-                            취소
-                        </Button>
-                        <Button variant="contained" onClick={() => void save()} disabled={busy || !name.trim()}>
-                            저장
-                        </Button>
-                    </Stack>
-                ),
+                // 모바일은 [취소][저장] 50/50 전폭(공용 스위치는 본문), 데스크톱은 스위치 왼쪽 + 버튼 오른쪽
+                ...(isMobile
+                    ? {
+                          left: (
+                              <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                                  <Button
+                                      variant="outlined"
+                                      onClick={requestClose}
+                                      disabled={busy}
+                                      sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                  >
+                                      취소
+                                  </Button>
+                                  <Button
+                                      variant="contained"
+                                      onClick={() => void save()}
+                                      disabled={busy || !name.trim()}
+                                      sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                  >
+                                      저장
+                                  </Button>
+                              </Stack>
+                          ),
+                      }
+                    : {
+                          left: (
+                              <FormControlLabel
+                                  control={<Switch checked={shared} onChange={(_, v) => setShared(v)} />}
+                                  label="공용 메일함"
+                                  sx={{ ml: 0 }}
+                              />
+                          ),
+                          right: (
+                              <Stack direction="row" spacing={1}>
+                                  <Button variant="outlined" onClick={requestClose} disabled={busy}>
+                                      취소
+                                  </Button>
+                                  <Button
+                                      variant="contained"
+                                      onClick={() => void save()}
+                                      disabled={busy || !name.trim()}
+                                  >
+                                      저장
+                                  </Button>
+                              </Stack>
+                          ),
+                      }),
             }}
         />
     );

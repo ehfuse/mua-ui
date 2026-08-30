@@ -25,6 +25,7 @@ import { mailApi, unwrap } from "../../apis/mailApi";
 import { OptionToggleGroup } from "../../internal/OptionToggleGroup";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
+import { MOBILE_FULL_WIDTH_ACTIONS_SX } from "../../internal/mobileActionsSx";
 import { useMuaFormDialog } from "../../MuaProvider";
 import { defaultMailRuleForm } from "../../models/defaults";
 import type {
@@ -214,6 +215,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                 draggable
                 fullScreen={isMobile}
                 mobilePresentation={isMobile ? "slide" : "dialog"}
+                sx={isMobile ? MOBILE_FULL_WIDTH_ACTIONS_SX : undefined}
                 open={open}
                 onClose={requestClose}
                 title={{ text: values.seq > 0 ? "규칙 수정" : "규칙 만들기" }}
@@ -239,7 +241,11 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     placeholder="예) 공고 메일은 공고함으로"
                                     sx={INPUT_SX}
                                 />
-                                <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+                                <Stack
+                                    direction={isMobile ? "column" : "row"}
+                                    spacing={isMobile ? 0.5 : 3}
+                                    sx={{ flexWrap: "wrap", alignItems: isMobile ? "flex-start" : "center" }}
+                                >
                                     <FormControlLabel
                                         control={
                                             <Switch
@@ -437,7 +443,11 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                         휴지통으로 이동
                                     </MenuItem>
                                 </TextField>
-                                <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
+                                <Stack
+                                    direction={isMobile ? "column" : "row"}
+                                    spacing={isMobile ? 0.5 : 3}
+                                    sx={{ flexWrap: "wrap", alignItems: isMobile ? "flex-start" : "center" }}
+                                >
                                     <FormControlLabel
                                         control={
                                             <Switch
@@ -455,6 +465,14 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                         label="중요 표시"
                                         sx={{ ml: 0 }}
                                     />
+                                    {/* 모바일은 액션바가 좁아 "기존 메일에도 적용" 스위치를 본문(동작 섹션 끝)에 둔다 */}
+                                    {isMobile ? (
+                                        <FormControlLabel
+                                            control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
+                                            label="받은편지함 기존 메일에도 적용"
+                                            sx={{ ml: 0 }}
+                                        />
+                                    ) : null}
                                 </Stack>
                             </Box>
                         ),
@@ -463,23 +481,49 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                 actions={{
                     visible: true,
                     showCancelButton: false,
-                    left: (
-                        <FormControlLabel
-                            control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
-                            label="받은편지함 기존 메일에도 적용"
-                            sx={{ ml: 0 }}
-                        />
-                    ),
-                    right: (
-                        <Stack direction="row" spacing={1}>
-                            <Button variant="outlined" onClick={requestClose} disabled={busy}>
-                                취소
-                            </Button>
-                            <Button variant="contained" onClick={() => void save()} disabled={busy}>
-                                저장
-                            </Button>
-                        </Stack>
-                    ),
+                    // 모바일은 [취소][저장] 50/50 전폭(스위치는 본문으로), 데스크톱은 스위치 왼쪽 + 버튼 오른쪽
+                    ...(isMobile
+                        ? {
+                              left: (
+                                  <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                                      <Button
+                                          variant="outlined"
+                                          onClick={requestClose}
+                                          disabled={busy}
+                                          sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                      >
+                                          취소
+                                      </Button>
+                                      <Button
+                                          variant="contained"
+                                          onClick={() => void save()}
+                                          disabled={busy}
+                                          sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                      >
+                                          저장
+                                      </Button>
+                                  </Stack>
+                              ),
+                          }
+                        : {
+                              left: (
+                                  <FormControlLabel
+                                      control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
+                                      label="받은편지함 기존 메일에도 적용"
+                                      sx={{ ml: 0 }}
+                                  />
+                              ),
+                              right: (
+                                  <Stack direction="row" spacing={1}>
+                                      <Button variant="outlined" onClick={requestClose} disabled={busy}>
+                                          취소
+                                      </Button>
+                                      <Button variant="contained" onClick={() => void save()} disabled={busy}>
+                                          저장
+                                      </Button>
+                                  </Stack>
+                              ),
+                          }),
                 }}
             />
             {/* 보낸 사람 후보 메뉴 — 주소/이름 중 하나를 골라 조건 값에 넣는다 */}
