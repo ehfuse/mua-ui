@@ -249,7 +249,10 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     variant="box"
                                     acceptedFileTypes={[]}
                                     maxFileSize={MAX_ATTACHMENT_MB}
-                                    dropzoneText="파일을 끌어놓거나 클릭하여 첨부하세요"
+                                    // 모바일은 끌어놓기가 없으니 탭 안내만(데스크톱은 드래그·클릭 둘 다).
+                                    dropzoneText={
+                                        isMobile ? "탭하여 파일을 첨부하세요" : "파일을 끌어놓거나 클릭하여 첨부하세요"
+                                    }
                                     onAttachedFilesChange={handleAttachedFilesChange}
                                 />
                                 <Typography sx={{ fontSize: "13.5px", color: "#111" }}>
