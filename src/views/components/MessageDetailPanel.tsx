@@ -185,16 +185,29 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     // 선택 메일이 바뀌면 상세 스크롤을 맨 위로
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const detailSeq = detail?.seq ?? 0;
+    // 저장된 번역(서버 blob)이 있으면 그것으로 복원하고, 보기 상태도 저장값을 따른다(새로고침해도 번역본 유지).
     useEffect(() => {
-        setTranslation(translationCache.get(detailSeq) ?? null);
-        setShowTranslation(false);
+        const stored = detail?.translation ?? null;
+        if (stored) translationCache.set(detailSeq, stored);
+        setTranslation(stored ?? translationCache.get(detailSeq) ?? null);
+        setShowTranslation(Boolean(stored && detail?.translation_shown));
         setTranslating(false);
+        // detail 객체 자체가 아니라 메일(seq)이 바뀔 때만 초기화한다.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [detailSeq]);
+    /** 번역본/원문 보기 상태를 바꾸고 서버에도 저장한다(실패는 조용히 — 화면 상태가 우선). */
+    const toggleShowTranslation = useCallback(
+        (next: boolean) => {
+            setShowTranslation(next);
+            if (detailSeq) void mailApi.patchMessage(detailSeq, { translation_shown: next }).catch(() => undefined);
+        },
+        [detailSeq]
+    );
     /** AI 번역 버튼 — 번역본이 있으면 원문/번역 토글, 없으면 서버(Gemini)에 요청한다. */
     const handleTranslate = useCallback(async () => {
         if (!detailSeq || translating) return;
         if (translation) {
-            setShowTranslation((prev) => !prev);
+            toggleShowTranslation(!showTranslation);
             return;
         }
         setTranslating(true);
@@ -209,7 +222,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         } finally {
             setTranslating(false);
         }
-    }, [detailSeq, translating, translation]);
+    }, [detailSeq, translating, translation, showTranslation, toggleShowTranslation]);
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: 0 });
     }, [detailSeq]);
@@ -654,7 +667,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 <Stack
                     direction="row"
                     alignItems="center"
-                    justifyContent="flex-end"
+                    justifyContent="flex-start"
                     spacing={0.5}
                     sx={{ px: 2, pt: 1 }}
                 >
@@ -700,7 +713,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         }}
                     >
                         {/* 아이콘 좌우 여백은 같게(왼쪽 px 1.5 + mx 0.5 = 오른쪽 gap 2) */}
-                        <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0, mx: 0.5 }} />
+                        <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0, mx: 1 }} />
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: 16, color: "#1e3a8a", fontWeight: 600 }}>
                                 AI 번역 (Gemini) · 원문과 다를 수 있습니다

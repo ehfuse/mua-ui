@@ -94,6 +94,8 @@ export interface MailTranslation {
     body_text: string; // 번역된 평문(mode=text — 긴 HTML 은 평문으로 낮춰 번역)
     summary: string; // 본문 요약(대상 언어, 1~3문장) — 배너에 보여준다
     mode: "html" | "text"; // 본문 번역 모드
+    target?: string; // 대상 언어(저장본)
+    time?: string; // 번역 일시(저장본, ISO)
 }
 
 export interface MailMessageDetail extends MailMessageListItem {
@@ -104,6 +106,8 @@ export interface MailMessageDetail extends MailMessageListItem {
     reply_to: MailAddress | null; // 회신
     body_html: string; // HTML 본문(원문 — 표시 전 sanitize)
     body_text: string; // 평문
+    translation?: MailTranslation | null; // 저장된 AI 번역(한 번 번역하면 서버가 보관)
+    translation_shown?: boolean; // 번역본 보기 상태(서버 저장 — 새로고침해도 유지)
     attachments: MailAttachment[]; // 첨부
     in_reply_to: string | null; // In-Reply-To
     references: string[]; // References

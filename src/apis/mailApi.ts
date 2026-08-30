@@ -104,8 +104,10 @@ export const mailApi = {
             `/v1/mua/messages/${seq}${toQuery({ mark_read: markRead })}`
         ),
     /** 읽음/중요/폴더 변경 */
-    patchMessage: (seq: number, body: { is_read?: boolean; is_starred?: boolean; folder?: MailFolder | "restore" }) =>
-        entityAppServer.http.patch<ApiOk<MailMessageDetail>>(`/v1/mua/messages/${seq}`, body),
+    patchMessage: (
+        seq: number,
+        body: { is_read?: boolean; is_starred?: boolean; folder?: MailFolder | "restore"; translation_shown?: boolean }
+    ) => entityAppServer.http.patch<ApiOk<MailMessageDetail>>(`/v1/mua/messages/${seq}`, body),
     /** 일괄 처리 */
     bulkMessages: (seqs: number[], action: BulkMessageAction, move?: MailMoveTarget) =>
         entityAppServer.http.post<ApiOk<{ affected: number }>>("/v1/mua/messages/bulk", {
