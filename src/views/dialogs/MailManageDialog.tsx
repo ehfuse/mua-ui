@@ -72,7 +72,7 @@ export function MailManageDialog({
             startIcon={<AddIcon />}
             onClick={handleAdd}
             fullWidth={isMobile}
-            sx={{ color: "#111", borderColor: "#cbd5e1", ...(isMobile ? { minHeight: 48 } : {}) }}
+            sx={{ color: "#111", borderColor: "#cbd5e1", whiteSpace: "nowrap", ...(isMobile ? { minHeight: 48 } : {}) }}
         >
             {ADD_LABEL[tab]}
         </Button>
@@ -82,7 +82,7 @@ export function MailManageDialog({
             variant="contained"
             onClick={onClose}
             fullWidth={isMobile}
-            sx={isMobile ? { minHeight: 48 } : { minWidth: 80 }}
+            sx={isMobile ? { minHeight: 48, whiteSpace: "nowrap" } : { minWidth: 80 }}
         >
             닫기
         </Button>
@@ -93,6 +93,18 @@ export function MailManageDialog({
                 fontScaleKey="MailManageDialog"
                 fullScreen={isMobile}
                 mobilePresentation={isMobile ? "slide" : "dialog"}
+                // 모바일 액션바 — 왼쪽 슬롯·래퍼를 전폭으로 늘려야 50/50 Stack 이 화면 폭을 받는다(새 메일과 같은 처리).
+                sx={
+                    isMobile
+                        ? {
+                              DialogActions: {
+                                  "& .left-actions": { flex: 1, minWidth: 0, width: "100%" },
+                                  "& .left-actions > *": { flex: 1, minWidth: 0, width: "100%" },
+                                  "& .right-actions": { display: "none" },
+                              },
+                          }
+                        : undefined
+                }
                 open={open}
                 onClose={onClose}
                 title={{ text: "메일 관리" }}

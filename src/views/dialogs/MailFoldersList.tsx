@@ -133,13 +133,16 @@ function FolderRow({
         });
     }, [folder, onChanged]);
 
+    // 모바일은 폭이 좁아 [아이콘][이름·칩][✎🗑] 1줄 + [건수 · 크기] 2줄로 나눈다(데스크톱은 한 줄 4열).
+    const isMobile = useIsMobile();
     return (
         <Box
             sx={{
                 display: "grid",
-                gridTemplateColumns: "40px minmax(0, 1fr) auto auto",
+                gridTemplateColumns: isMobile ? "40px minmax(0, 1fr) auto" : "40px minmax(0, 1fr) auto auto",
                 alignItems: "center",
-                gap: 1.5,
+                columnGap: 1.5,
+                rowGap: isMobile ? 0.25 : 1.5,
                 px: 2,
                 py: 1.25,
                 border: "1px solid #e2e8f0",
@@ -160,11 +163,24 @@ function FolderRow({
                 </Typography>
                 <ScopeChip shared={shared} />
             </Stack>
-            {/* 메일 수 · 스토리지 사용량 — 오른쪽 컬럼 */}
-            <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569", textAlign: "right" }}>
+            {/* 메일 수 · 스토리지 사용량 — 데스크톱은 오른쪽 컬럼, 모바일은 2줄째(이름 아래) */}
+            <Typography
+                noWrap
+                sx={{
+                    fontSize: "13.5px",
+                    color: "#475569",
+                    textAlign: isMobile ? "left" : "right",
+                    ...(isMobile ? { gridColumn: "2 / -1", gridRow: 2 } : {}),
+                }}
+            >
                 {folder.message_count ?? 0}통 · {formatBytes(folder.total_size ?? 0)}
             </Typography>
-            <Stack direction="row" spacing={0.25} alignItems="center">
+            <Stack
+                direction="row"
+                spacing={0.25}
+                alignItems="center"
+                sx={isMobile ? { gridColumn: 3, gridRow: 1 } : undefined}
+            >
                 <Tooltip title={canManage ? "수정" : "공용 메일함은 관리자 또는 만든 사람만 수정할 수 있습니다"}>
                     <span>
                         <IconButton size="small" onClick={onEdit} aria-label="수정" disabled={!canManage}>

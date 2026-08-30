@@ -8,6 +8,7 @@ import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type D
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import { useIsMobile } from "../../internal/useIsMobile";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -110,6 +111,8 @@ function RuleRow({
                 })(),
         });
     }, [rule, onChanged]);
+    // 모바일은 [핸들][스위치] … [▶✎🗑] 1줄 + 제목·조건·동작을 2줄째 전폭으로 내린다(데스크톱은 한 줄 4열).
+    const isMobile = useIsMobile();
     return (
         <Box
             ref={setNodeRef}
@@ -117,6 +120,7 @@ function RuleRow({
             sx={{
                 display: "grid",
                 gridTemplateColumns: "auto auto minmax(0, 1fr) auto",
+                ...(isMobile ? { rowGap: 0.5 } : {}),
                 position: "relative",
                 zIndex: isDragging ? 1 : undefined,
                 boxShadow: isDragging ? "0 6px 16px rgba(15,23,42,0.18)" : undefined,
@@ -152,7 +156,7 @@ function RuleRow({
             <Tooltip title={rule.enabled ? "사용 중 — 끄기" : "사용 안 함 — 켜기"}>
                 <Switch checked={rule.enabled} onChange={(_, v) => void toggle(v)} />
             </Tooltip>
-            <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ minWidth: 0, ...(isMobile ? { gridColumn: "1 / -1", gridRow: 2 } : {}) }}>
                 <Typography noWrap sx={{ fontSize: "16px", fontWeight: 700, color: "#111" }}>
                     {rule.name || "(이름 없음)"}
                 </Typography>
@@ -166,7 +170,12 @@ function RuleRow({
                     </Typography>
                 </Stack>
             </Box>
-            <Stack direction="row" spacing={0.25} alignItems="center">
+            <Stack
+                direction="row"
+                spacing={0.25}
+                alignItems="center"
+                sx={isMobile ? { gridColumn: 4, gridRow: 1 } : undefined}
+            >
                 <Tooltip title="지금 적용 (받은편지함의 기존 메일에)">
                     <span>
                         <IconButton
