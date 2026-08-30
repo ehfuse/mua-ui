@@ -15,6 +15,14 @@ export function MailInboxSubPage() {
     return <MailLayout embedded={{ folder: "inbox", accountSeq }} />;
 }
 
+/**
+ * 받은편지함 탭 페이지(모바일 하단 내비게이션) — 서브페이지 다이얼로그가 아니라 라우트 페이지 안에 인라인으로 그린다.
+ * 레이아웃 스크롤(당겨서-새로고침 포함)을 그대로 쓰고, 뒤로가기는 라우트 규칙을 따른다.
+ */
+export function MailInboxTabPage() {
+    return <MailLayout embedded={{ folder: "inbox", inline: true }} />;
+}
+
 /** 보낸편지함 */
 export function MailSentSubPage() {
     return <MailLayout embedded={{ folder: "sent" }} />;

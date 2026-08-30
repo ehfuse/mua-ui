@@ -28,6 +28,7 @@ export {
     MailContactsSubPage,
     MailFolderSubPage,
     MailInboxSubPage,
+    MailInboxTabPage,
     MailSentSubPage,
     MailSpamSubPage,
     MailStarredSubPage,

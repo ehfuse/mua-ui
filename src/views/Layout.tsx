@@ -80,6 +80,11 @@ interface MailLayoutProps {
         folder: MailListFolder; // 고정 폴더
         accountSeq?: number; // 받은편지함일 때 계정별(0/생략 = 전체 계정)
         folderSeq?: number; // 사용자 메일함(folder=custom)일 때 메일함 seq
+        /**
+         * 페이지 모드 — 폴더는 고정하되 서브페이지 다이얼로그 안이 아니라 라우트 페이지(모바일 하단 탭)로 그린다.
+         * 다이얼로그 제목 브리지(건수/제목)를 쓰지 않고, 카드 목록 래퍼도 페이지 여백을 갖는다(inDialog=false).
+         */
+        inline?: boolean;
     };
 }
 
@@ -94,6 +99,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // ⚠️ 아래 effect 의존성은 embedded 객체가 아니라 원시값으로 둔다 — 호출부(MailSubPages)가 렌더마다 새 객체를
     //    만들고, 서브페이지 제목/건수 스토어 갱신이 호스트를 다시 그리므로 객체 의존성이면 무한 갱신 루프가 된다.
     const isEmbedded = Boolean(embedded);
+    // 페이지 모드(하단 탭) — 다이얼로그 전용 처리(제목 브리지·inDialog)는 끈다.
+    const isInline = Boolean(embedded?.inline);
     const embeddedFolder = embedded?.folder;
     const embeddedAccountSeq = embedded?.accountSeq ?? 0;
     // 사용자 메일함(`mail/folder/:folderSeq` 또는 embedded custom)
@@ -154,10 +161,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
 
     // 서브페이지 제목바 — 건수 "(N)" 와, 계정별 받은편지함이면 폴더명 대신 계정 이름을 올린다.
     useEffect(() => {
-        if (!isEmbedded) return;
+        if (!isEmbedded || isInline) return;
         getMuaSubPageBridge()?.setCount?.(total);
         return () => getMuaSubPageBridge()?.setCount?.(null);
-    }, [isEmbedded, total]);
+    }, [isEmbedded, isInline, total]);
     const folders = state.useValue("folders") as MailUserFolder[];
     const rules = state.useValue("rules") as MailRule[];
     const currentUserFolder = useMemo(
@@ -172,10 +179,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         return account ? account.name || account.email : null;
     }, [isEmbedded, routeAccountSeq, routeUserFolderSeq, currentUserFolder, accounts]);
     useEffect(() => {
-        if (!isEmbedded) return;
+        if (!isEmbedded || isInline) return;
         getMuaSubPageBridge()?.setTitle?.(embeddedAccountLabel);
         return () => getMuaSubPageBridge()?.setTitle?.(null);
-    }, [isEmbedded, embeddedAccountLabel]);
+    }, [isEmbedded, isInline, embeddedAccountLabel]);
 
     /** 계정·건수를 다시 읽는다(계정 저장/삭제/동기화 후). */
     const refreshAccounts = useCallback(() => {
@@ -985,8 +992,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     header={headerConfig}
                     searchOverlayOpen={searchOverlayOpen}
                     storageKey="mail-mobile-list"
-                    // 서브페이지 다이얼로그 안에서는 좌우 여백·폭을 다이얼로그가 이미 준다(두 번 들어가지 않게).
-                    inDialog={isEmbedded}
+                    // 서브페이지 다이얼로그 안에서는 좌우 여백·폭을 다이얼로그가 이미 준다(두 번 들어가지 않게). 페이지 모드는 페이지 여백.
+                    inDialog={isEmbedded && !isInline}
                 >
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, minWidth: 0 }}>
                         {/* 툴바 — 현재 계정 범위(+받은편지함 미읽음) · 동기화 · 계정 관리 */}
