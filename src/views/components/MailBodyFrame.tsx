@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Box } from "@mui/material";
 import { sanitizeMailHtml, wrapMailDocument } from "../../utils/html";
+import { useMuaConfig } from "../../MuaProvider";
 
 interface MailBodyFrameProps {
     html: string; // 원문 HTML
@@ -23,6 +24,11 @@ function textToHtml(text: string): string {
 /** 본문 iframe 컴포넌트 — 내용 높이에 맞춰 자동으로 늘어난다. */
 export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFrameProps) {
     const frameRef = useRef<HTMLIFrameElement | null>(null);
+    // 링크 열기 — 소비처 주입(앱 웹뷰=외부 브라우저) 우선, 없으면 부모 창의 새 탭.
+    // iframe 의 <base target=_blank> 는 앱 웹뷰에서 새 창을 못 열어 링크가 먹통이었다(2026-08-31).
+    const { openExternalUrl } = useMuaConfig();
+    const openExternalRef = useRef(openExternalUrl);
+    openExternalRef.current = openExternalUrl;
     const srcDoc = useMemo(
         () => wrapMailDocument(html ? sanitizeMailHtml(html, allowRemoteImages) : textToHtml(text)),
         [html, text, allowRemoteImages]
@@ -39,13 +45,32 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
             if (height > 0) frame.style.height = `${height + 8}px`;
         };
+        /** 본문 링크 클릭 — http(s) 링크는 기본 동작(새 창)을 막고 부모에서 연다. mailto 등은 그대로 둔다. */
+        const onDocClick = (event: Event) => {
+            const target = event.target as Element | null;
+            const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+            if (!anchor) return;
+            const href = anchor.href;
+            if (!/^https?:\/\//i.test(href)) return;
+            event.preventDefault();
+            const open = openExternalRef.current;
+            if (open) open(href);
+            else window.open(href, "_blank", "noopener,noreferrer");
+        };
+        let listenedDoc: Document | null = null;
         const onLoad = () => {
             fit();
             timers = [200, 800, 2000].map((ms) => setTimeout(fit, ms));
+            const doc = frame.contentDocument;
+            if (doc) {
+                doc.addEventListener("click", onDocClick);
+                listenedDoc = doc;
+            }
         };
         frame.addEventListener("load", onLoad);
         return () => {
             frame.removeEventListener("load", onLoad);
+            listenedDoc?.removeEventListener("click", onDocClick);
             timers.forEach(clearTimeout);
         };
     }, [srcDoc]);

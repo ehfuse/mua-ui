@@ -82,4 +82,9 @@ export interface MuaConfig {
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)
     mobile?: MuaMobileConfig; // 모바일 셸 주입
+    /**
+     * 본문 안의 링크를 여는 방법. 미지정이면 window.open(새 탭).
+     * 앱 웹뷰(Flutter)처럼 새 탭이 없는 환경은 여기서 외부 브라우저 열기 메시지를 보낸다(업무함과 같은 주입).
+     */
+    openExternalUrl?: (url: string) => void;
 }
