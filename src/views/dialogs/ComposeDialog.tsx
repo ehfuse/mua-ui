@@ -146,7 +146,19 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             mobilePresentation={isMobile ? "slide" : "dialog"}
             // 모바일 액션바 — 왼쪽 슬롯(.left-actions)이 기본으로는 내용 폭만 차지해 3열 버튼이 좁게 뭉친다.
             // 슬롯을 전폭으로 늘려 [임시저장][취소][보내기] 가 화면 폭을 균등하게 나눠 갖게 한다.
-            sx={isMobile ? { DialogActions: { "& .left-actions": { flex: 1, width: "100%" } } } : undefined}
+            sx={
+                isMobile
+                    ? {
+                          DialogActions: {
+                              // 슬롯(.left-actions)과 mfd 가 left 를 감싸는 래퍼(> *)까지 모두 늘려야 Stack 이 전폭을 받는다.
+                              "& .left-actions": { flex: 1, minWidth: 0, width: "100%" },
+                              "& .left-actions > *": { flex: 1, minWidth: 0, width: "100%" },
+                              // 취소 버튼을 끄면 오른쪽 슬롯은 빈 flex 박스만 남는다 — 폭을 먹지 않게 숨긴다.
+                              "& .right-actions": { display: "none" },
+                          },
+                      }
+                    : undefined
+            }
             sections={[
                 {
                     id: "mail-compose-main",
@@ -260,7 +272,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                       variant="outlined"
                                       onClick={() => void saveDraft()}
                                       disabled={sending || savingDraft}
-                                      sx={{ flex: 1, minWidth: 0 }}
+                                      sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
                                       {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
                                   </Button>
@@ -269,7 +281,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                       color="inherit"
                                       onClick={modal.close}
                                       disabled={sending || savingDraft}
-                                      sx={{ flex: 1, minWidth: 0 }}
+                                      sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
                                       취소
                                   </Button>
@@ -278,7 +290,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                       color="primary"
                                       onClick={() => void form.submit()}
                                       disabled={sending || savingDraft}
-                                      sx={{ flex: 1, minWidth: 0 }}
+                                      sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
                                       {sending ? <CircularProgress size={20} color="inherit" /> : "보내기"}
                                   </Button>
