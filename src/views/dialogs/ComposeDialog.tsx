@@ -144,6 +144,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             maxWidth="md"
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
+            // 모바일 액션바 — 왼쪽 슬롯(.left-actions)이 기본으로는 내용 폭만 차지해 3열 버튼이 좁게 뭉친다.
+            // 슬롯을 전폭으로 늘려 [임시저장][취소][보내기] 가 화면 폭을 균등하게 나눠 갖게 한다.
+            sx={isMobile ? { DialogActions: { "& .left-actions": { flex: 1, width: "100%" } } } : undefined}
             sections={[
                 {
                     id: "mail-compose-main",
