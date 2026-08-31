@@ -41,7 +41,18 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
         let timers: ReturnType<typeof setTimeout>[] = [];
         const fit = () => {
             const doc = frame.contentDocument;
-            if (!doc) return;
+            if (!doc?.body) return;
+            // 가로 넘침 — 고정폭(테이블 width=600 등) 메일은 max-width 로도 최소 내용 폭 이하로 안 줄어
+            // 폰에서 가로 스크롤이 생긴다. 화면 폭에 맞게 문서를 축소(zoom)해 전체가 한 화면에 들어오게 한다.
+            const frameWidth = frame.clientWidth;
+            const contentWidth = Math.max(doc.documentElement?.scrollWidth ?? 0, doc.body?.scrollWidth ?? 0);
+            if (frameWidth > 0 && contentWidth > frameWidth + 1) {
+                const bodyStyle = doc.body.style as CSSStyleDeclaration & { zoom?: string };
+                const currentZoom = Number(bodyStyle.zoom || 1) || 1;
+                // 이미 축소된 상태에서 또 넘치면 그만큼 더 줄인다(중첩 고정폭). 과축소는 0.3 에서 멈춘다.
+                const nextZoom = Math.max(currentZoom * (frameWidth / contentWidth), 0.3);
+                if (Math.abs(nextZoom - currentZoom) > 0.01) bodyStyle.zoom = String(nextZoom);
+            }
             const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
             if (height > 0) frame.style.height = `${height + 8}px`;
         };
