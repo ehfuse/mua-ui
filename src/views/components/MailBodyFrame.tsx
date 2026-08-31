@@ -43,21 +43,12 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             const doc = frame.contentDocument;
             if (!doc?.body) return;
             // 가로 넘침 — 고정폭(테이블 width=600 등) 메일은 max-width 로도 최소 내용 폭 이하로 안 줄어
-            // 폰에서 가로 스크롤이 생긴다. 화면 폭에 맞게 문서를 축소(zoom)해 전체가 한 화면에 들어오게 한다.
+            // 가로 스크롤이 생긴다. 축소(zoom)는 글자까지 작아져 못 쓴다 — 넘칠 때만 mua-fit 클래스를 붙여
+            // 고정 width 를 무력화(html.ts 의 body.mua-fit 규칙)하고 글자 크기 그대로 화면 폭에 맞춰 개행시킨다.
             const frameWidth = frame.clientWidth;
             const contentWidth = Math.max(doc.documentElement?.scrollWidth ?? 0, doc.body?.scrollWidth ?? 0);
-            if (frameWidth > 0 && contentWidth > frameWidth + 1) {
-                const bodyStyle = doc.body.style as CSSStyleDeclaration & { zoom?: string };
-                const currentZoom = Number(bodyStyle.zoom || 1) || 1;
-                // 이미 축소된 상태에서 또 넘치면 그만큼 더 줄인다(중첩 고정폭).
-                const nextZoom = currentZoom * (frameWidth / contentWidth);
-                if (nextZoom >= 0.65) {
-                    // 적당한 축소(65% 이상)로 들어가면 줄여서 가로 스크롤을 없앤다.
-                    if (Math.abs(nextZoom - currentZoom) > 0.01) bodyStyle.zoom = String(nextZoom);
-                } else if (currentZoom !== 1) {
-                    // 그보다 더 줄여야 하는(아주 넓은) 메일은 글자가 못 읽게 작아진다 — 원본 크기로 두고 가로 스크롤을 허용한다.
-                    bodyStyle.zoom = "";
-                }
+            if (frameWidth > 0 && contentWidth > frameWidth + 1 && !doc.body.classList.contains("mua-fit")) {
+                doc.body.classList.add("mua-fit");
             }
             const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
             if (height > 0) frame.style.height = `${height + 8}px`;

@@ -34,6 +34,14 @@ img{max-width:100%;height:auto;}
 img[data-blocked-src]{display:inline-block;min-width:24px;min-height:24px;background:#f1f5f9;border:1px dashed #cbd5e1;}
 table{max-width:100%;}
 pre{white-space:pre-wrap;}
+/* mua-fit — 본문이 화면 폭보다 넓을 때만 붙는다(MailBodyFrame). 고정폭(width=600 테이블 등)을 무력화해
+   축소 없이 화면 폭에 맞춰 개행되게 한다. 이미지·비디오는 폭만 캡(비율 유지). */
+body.mua-fit table,body.mua-fit tbody,body.mua-fit tr,body.mua-fit td,body.mua-fit th,
+body.mua-fit div,body.mua-fit p,body.mua-fit section,body.mua-fit article,body.mua-fit center{
+    width:auto !important;min-width:0 !important;max-width:100% !important;
+}
+body.mua-fit img,body.mua-fit video{max-width:100% !important;height:auto !important;}
+body.mua-fit{overflow-wrap:break-word;}
 blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e1;color:#475569;}
 </style></head><body>${bodyHtml}</body></html>`;
 }
