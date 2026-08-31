@@ -49,9 +49,15 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             if (frameWidth > 0 && contentWidth > frameWidth + 1) {
                 const bodyStyle = doc.body.style as CSSStyleDeclaration & { zoom?: string };
                 const currentZoom = Number(bodyStyle.zoom || 1) || 1;
-                // 이미 축소된 상태에서 또 넘치면 그만큼 더 줄인다(중첩 고정폭). 과축소는 0.3 에서 멈춘다.
-                const nextZoom = Math.max(currentZoom * (frameWidth / contentWidth), 0.3);
-                if (Math.abs(nextZoom - currentZoom) > 0.01) bodyStyle.zoom = String(nextZoom);
+                // 이미 축소된 상태에서 또 넘치면 그만큼 더 줄인다(중첩 고정폭).
+                const nextZoom = currentZoom * (frameWidth / contentWidth);
+                if (nextZoom >= 0.65) {
+                    // 적당한 축소(65% 이상)로 들어가면 줄여서 가로 스크롤을 없앤다.
+                    if (Math.abs(nextZoom - currentZoom) > 0.01) bodyStyle.zoom = String(nextZoom);
+                } else if (currentZoom !== 1) {
+                    // 그보다 더 줄여야 하는(아주 넓은) 메일은 글자가 못 읽게 작아진다 — 원본 크기로 두고 가로 스크롤을 허용한다.
+                    bodyStyle.zoom = "";
+                }
             }
             const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
             if (height > 0) frame.style.height = `${height + 8}px`;
