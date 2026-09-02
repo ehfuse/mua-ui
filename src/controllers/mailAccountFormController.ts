@@ -21,6 +21,7 @@ function toForm(account: MailAccount): MailAccountForm {
         ...defaultMailAccountForm,
         seq: account.seq,
         is_shared: account.scope === "shared",
+        team_seq: Number(account.team_seq ?? 0) || 0,
         name: account.name ?? "",
         email: account.email ?? "",
         incoming_protocol: account.incoming_protocol,
@@ -52,6 +53,7 @@ export function toRequest(values: MailAccountForm): MailAccountRequest {
     const {
         seq,
         is_shared,
+        team_seq,
         has_incoming_password: _hasIncoming,
         has_smtp_password: _hasSmtp,
         incoming_port,
@@ -61,6 +63,8 @@ export function toRequest(values: MailAccountForm): MailAccountRequest {
     return {
         ...rest,
         scope: is_shared ? "shared" : "personal",
+        // 공용일 때만 팀을 싣는다(팀 선택 UI 는 팀 주입 앱에서만 그려진다 — 0 이면 서버가 현재 팀).
+        ...(is_shared && team_seq > 0 ? { team_seq } : {}),
         ...(seq > 0 ? { seq } : {}),
         ...(incoming_port ? { incoming_port: Number(incoming_port) } : {}),
         ...(smtp_port ? { smtp_port: Number(smtp_port) } : {}),

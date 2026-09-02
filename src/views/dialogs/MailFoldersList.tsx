@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Box, Button, FormControlLabel, IconButton, Stack, Switch, Typography } from "@mui/material";
+import { Box, Button, FormControlLabel, IconButton, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { ClearTextField } from "@ehfuse/mui-form-controls";
@@ -17,7 +17,7 @@ import { Tooltip } from "../../internal/Tooltip";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
 import { MOBILE_FULL_WIDTH_ACTIONS_SX } from "../../internal/mobileActionsSx";
-import { useMuaFormDialog } from "../../MuaProvider";
+import { useMuaCurrentTeamSeq, useMuaFormDialog, useMuaTeams } from "../../MuaProvider";
 import type { MailUserFolder } from "../../models/types";
 import { formatBytes } from "../../utils/format";
 
@@ -247,6 +247,10 @@ export function MailFolderFormDialog({
     const [icon, setIcon] = useState("");
     const [color, setColor] = useState("");
     const [busy, setBusy] = useState(false);
+    // 공용 소속 팀 — 팀 주입 앱에서 신규+공용일 때만 고른다(팀별로 공용 메일함이 다르다).
+    const teams = useMuaTeams();
+    const currentTeamSeq = useMuaCurrentTeamSeq();
+    const [teamSeq, setTeamSeq] = useState(0);
     // 열릴 때 대상 값으로 초기화(신규는 비움)
     useEffect(() => {
         if (!open) return;
@@ -254,6 +258,12 @@ export function MailFolderFormDialog({
         setShared(folder?.scope === "shared");
         setIcon(folder?.icon ?? "");
         setColor(folder?.color ?? "");
+        setTeamSeq(
+            Number(folder?.team_seq ?? 0) ||
+                (teams.some((t) => t.seq === currentTeamSeq) ? currentTeamSeq : (teams[0]?.seq ?? 0))
+        );
+        // teams/currentTeamSeq 는 열림 시점 초기값 재료일 뿐이다 — 의존성에 넣으면 열림 중 재초기화된다.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, folder]);
 
     const save = useCallback(async () => {
@@ -261,7 +271,14 @@ export function MailFolderFormDialog({
         if (!next) return;
         setBusy(true);
         try {
-            const body = { name: next, scope: shared ? ("shared" as const) : ("personal" as const), icon, color };
+            const body = {
+                name: next,
+                scope: shared ? ("shared" as const) : ("personal" as const),
+                icon,
+                color,
+                // 공용 + 팀 주입 앱일 때만 팀을 싣는다(0 이면 서버가 현재 팀으로 정한다).
+                ...(shared && teamSeq > 0 ? { team_seq: teamSeq } : {}),
+            };
             if (isEdit && folder) {
                 unwrap(await mailApi.updateFolder(folder.seq, body), "메일함을 저장하지 못했습니다.");
                 SuccessAlert("메일함을 저장했습니다.");
@@ -276,7 +293,7 @@ export function MailFolderFormDialog({
         } finally {
             setBusy(false);
         }
-    }, [name, shared, icon, color, isEdit, folder, onClose, onChanged]);
+    }, [name, shared, icon, color, teamSeq, isEdit, folder, onClose, onChanged]);
 
     return (
         <FormDialog
@@ -337,6 +354,23 @@ export function MailFolderFormDialog({
                                     sx={{ ml: 0 }}
                                 />
                             ) : null}
+                            {/* 어느 팀의 공용인지 — 팀 주입 앱에서 신규일 때만 고른다(만든 뒤에는 팀을 바꾸지 않는다). */}
+                            {shared && !isEdit && teams.length > 0 ? (
+                                <TextField
+                                    select
+                                    label="공용 팀"
+                                    value={teamSeq || ""}
+                                    onChange={(e) => setTeamSeq(Number(e.target.value) || 0)}
+                                    sx={{ width: 240 }}
+                                    slotProps={{ htmlInput: { style: { fontSize: 15 } } }}
+                                >
+                                    {teams.map((t) => (
+                                        <MenuItem key={t.seq} value={t.seq}>
+                                            {t.name}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            ) : null}
                             <Typography
                                 sx={{
                                     fontSize: "15px",
@@ -348,8 +382,10 @@ export function MailFolderFormDialog({
                                     lineHeight: 1.6,
                                 }}
                             >
-                                아이콘을 눌러 모양과 색을 고를 수 있습니다. 공용 메일함은 같은 회사 전원이 보고 메일을
-                                넣을 수 있으며, 수정·삭제는 관리자 또는 만든 사람만 할 수 있습니다.
+                                아이콘을 눌러 모양과 색을 고를 수 있습니다. 공용 메일함은{" "}
+                                {teams.length > 0 ? "그 팀의 팀원" : "같은 회사"} 전원이 보고 메일을 넣을 수 있으며,
+                                수정·삭제는 {teams.length > 0 ? "팀 소유자/관리자" : "관리자"} 또는 만든 사람만 할 수
+                                있습니다.
                             </Typography>
                         </Box>
                     ),

@@ -72,6 +72,13 @@ export interface MuaMobileConfig {
     subPage?: MuaSubPageBridge; // 서브페이지 브리지
 }
 
+/** 공용(shared) 범위 후보 팀 1건 — 앱(업무함)의 팀 개념을 주입받는다. */
+export interface MuaTeamOption {
+    seq: number; // 팀(account_group) seq
+    name: string; // 팀 이름
+    role?: string; // 이 팀에서의 내 역할(owner/manager/member) — 공용 계정 등록 가능 판정에 쓴다
+}
+
 /** 메일 UI 횡단 주입 설정이다(모두 선택 — 없으면 각 지점이 기본값으로 동작한다). */
 export interface MuaConfig {
     account?: MuaAccount | null; // 로그인 계정(소비처가 구독한 리액티브 값) — null/미지정이면 비로그인으로 본다
@@ -81,6 +88,13 @@ export interface MuaConfig {
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)
+    /**
+     * 내가 속한 팀 목록 — 지정하면 공용 계정/메일함 폼에 "어느 팀의 공용인지" 선택이 생기고,
+     * 서버도 팀 단위로 공용을 격리한다(팀별로 공용 메일이 다르다). 미지정이면 팀 UI 없음(단일 조직 앱).
+     */
+    teams?: MuaTeamOption[];
+    /** 현재 팀 seq — 팀 선택의 기본값(미지정/0 이면 첫 팀). */
+    currentTeamSeq?: number;
     /**
      * 모바일 판정 주입(소비처가 구독한 리액티브 값) — 미지정 시 뷰포트 < theme lg.
      * 앱의 모바일 기준(예: 업무함 768px)과 패키지 기본(lg=1200)이 다르면 데스크톱 창에서

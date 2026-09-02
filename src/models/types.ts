@@ -24,6 +24,7 @@ export interface MailAccount {
     seq: number; // 계정 seq
     account_seq: number; // 소유 사용자(개인=소유자, 공용=등록자)
     scope: MailAccountScope; // 계정 범위
+    team_seq?: number; // 공용 소속 팀(개인은 0) — 팀별 공용 격리(주입 앱 전용)
     name: string; // 표시 이름
     email: string; // 메일 주소
     incoming_protocol: IncomingProtocol; // 수신 프로토콜
@@ -177,6 +178,7 @@ export interface MailState {
 export interface MailAccountForm {
     seq: number; // 0 = 신규
     is_shared: boolean; // 공용 계정 여부(요청 시 scope 로 변환)
+    team_seq: number; // 공용일 때 소속 팀(팀 주입 앱 전용 — 0 이면 서버가 현재 팀)
     name: string; // 표시 이름
     email: string; // 메일 주소
     incoming_protocol: IncomingProtocol; // 수신 프로토콜
@@ -255,9 +257,10 @@ export interface ComposeRequest {
 /** 계정 저장 요청 본문(폼에서 변환) */
 export type MailAccountRequest = Omit<
     MailAccountForm,
-    "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared"
+    "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared" | "team_seq"
 > & {
     scope: MailAccountScope; // 개인/공용(폼 is_shared 에서 변환)
+    team_seq?: number; // 공용일 때 소속 팀(생략 시 서버가 현재 팀)
     seq?: number; // 테스트 시 저장값 참조용
     incoming_port?: number; // 포트(빈값이면 서버 기본)
     smtp_port?: number; // 포트
@@ -302,6 +305,7 @@ export interface MailUserFolder {
     seq: number; // seq
     account_seq: number; // 소유자(개인) / 등록자(공용)
     scope: "personal" | "shared"; // 개인/공용
+    team_seq?: number; // 공용 소속 팀(개인은 0) — 팀별 공용 격리(주입 앱 전용)
     name: string; // 이름
     sort_order: number; // 정렬
     icon: string; // 아이콘 키(@ehfuse/taskbox PROJECT_ICON_OPTIONS, 빈 값=기본 폴더)

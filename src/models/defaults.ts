@@ -57,6 +57,7 @@ export const defaultMailState: MailState = {
 export const defaultMailAccountForm: MailAccountForm = {
     seq: 0,
     is_shared: false,
+    team_seq: 0,
     name: "",
     email: "",
     incoming_protocol: "imap",

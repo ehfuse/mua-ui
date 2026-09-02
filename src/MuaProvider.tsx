@@ -11,7 +11,7 @@ import { DefaultFileUploadBox } from "./internal/DefaultFileUploadBox";
 import { setMuaSubPageBridge } from "./internal/subPageBridge";
 import { setMuaPaths } from "./internal/pathsRegistry";
 import { anchorSaveBlob } from "./internal/saveBlob";
-import type { MuaAccount, MuaConfig, MuaFileUploadBoxProps } from "./types/config";
+import type { MuaAccount, MuaConfig, MuaFileUploadBoxProps, MuaTeamOption } from "./types/config";
 
 /** 설정 컨텍스트다(기본값 = 빈 설정 — 각 소비 지점이 폴백을 가진다). */
 const MuaConfigContext = createContext<MuaConfig>({});
@@ -54,6 +54,17 @@ export function useMuaAccount(): MuaAccount | null {
 /** 로그인 여부(계정이 주입돼 있으면 로그인으로 본다). */
 export function useMuaLogined(): boolean {
     return Boolean(useMuaConfig().account);
+}
+
+/** 내가 속한 팀 목록(공용 범위 후보 — 미주입이면 빈 배열 = 팀 UI 없음). */
+export function useMuaTeams(): MuaTeamOption[] {
+    return useMuaConfig().teams ?? EMPTY_TEAMS;
+}
+const EMPTY_TEAMS: MuaTeamOption[] = [];
+
+/** 현재 팀 seq(팀 선택 기본값 — 미주입이면 0). */
+export function useMuaCurrentTeamSeq(): number {
+    return Number(useMuaConfig().currentTeamSeq ?? 0) || 0;
 }
 
 /** 라이선스 관리자 여부 — 명시 주입값이 우선, 없으면 rbac_role === "admin". */

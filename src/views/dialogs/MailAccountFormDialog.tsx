@@ -13,7 +13,7 @@ import { ConfirmDialog } from "@ehfuse/alerts";
 import type { FormDialogSection } from "@ehfuse/mui-form-dialog";
 import { ClearTextField, NumberTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaConfig, useMuaFormDialog, useMuaIsAdmin } from "../../MuaProvider";
+import { useMuaConfig, useMuaCurrentTeamSeq, useMuaFormDialog, useMuaIsAdmin, useMuaTeams } from "../../MuaProvider";
 import type { MailAccountFormController } from "../../controllers/mailAccountFormController";
 import type { ConnectionSecurity, IncomingProtocol } from "../../models/types";
 import { defaultIncomingPort, defaultSmtpPort, findMailPreset } from "../../utils/presets";
@@ -106,8 +106,16 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
         lastSyncedSignatureRef.current = signature;
         signatureEditorRef.current?.setHtml(signature);
     }, [signature, modal.isOpen]);
-    // 공용 계정 등록/전환은 라이선스 관리자만(AS 도 같은 규칙으로 403).
+    // 공용 계정 등록/전환 — 팀 주입 앱은 팀 owner/manager, 그 외(단일 조직)는 라이선스 관리자만(AS 도 같은 규칙으로 403).
     const isAdmin = useMuaIsAdmin();
+    const teams = useMuaTeams();
+    const currentTeamSeq = useMuaCurrentTeamSeq();
+    // 공용으로 만들 수 있는 팀 — owner/manager 인 팀(운영사 admin 은 전 팀).
+    const shareableTeams = useMemo(
+        () => (isAdmin ? teams : teams.filter((t) => t.role === "owner" || t.role === "manager")),
+        [teams, isAdmin]
+    );
+    const canShare = teams.length > 0 ? shareableTeams.length > 0 : isAdmin;
     const FormDialog = useMuaFormDialog();
     const protocol = String(form.useFormValue("incoming_protocol") ?? "imap") as IncomingProtocol;
     const incomingSecurity = String(form.useFormValue("incoming_security") ?? "ssl") as ConnectionSecurity;
@@ -123,6 +131,14 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     useEffect(() => {
         if (isShared && form.getFormValue("is_default")) form.setFormValue("is_default", false);
     }, [isShared, form]);
+
+    // 공용을 켰는데 팀이 비어 있으면 기본 팀(현재 팀, 없으면 첫 후보)을 채운다 — 신규 등록에서만.
+    useEffect(() => {
+        if (!isShared || seq > 0 || shareableTeams.length === 0) return;
+        if (Number(form.getFormValue("team_seq") ?? 0) > 0) return;
+        const fallback = shareableTeams.some((t) => t.seq === currentTeamSeq) ? currentTeamSeq : shareableTeams[0].seq;
+        form.setFormValue("team_seq", fallback);
+    }, [isShared, seq, shareableTeams, currentTeamSeq, form]);
 
     const preset = useMemo(() => findMailPreset(email), [email]);
 
@@ -191,16 +207,29 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                             spacing={isMobile ? 0.5 : 3}
                             sx={{ flexWrap: "wrap", alignItems: isMobile ? "flex-start" : "center", minHeight: 40 }}
                         >
-                            {isAdmin || isShared ? (
-                                <Switch form={form} name="is_shared" label="공용 계정" disabled={!isAdmin} />
+                            {canShare || isShared ? (
+                                <Switch form={form} name="is_shared" label="공용 계정" disabled={!canShare} />
                             ) : null}
                             {!isShared ? <Switch form={form} name="is_default" label="기본 발신 계정" /> : null}
                         </Stack>
+                        {/* 어느 팀의 공용인지 — 팀 주입 앱에서 신규 등록일 때만 고른다(팀은 등록 후 바꾸지 않는다). */}
+                        {isShared && seq === 0 && shareableTeams.length > 0 ? (
+                            <Select
+                                form={form}
+                                name="team_seq"
+                                label="공용 팀"
+                                options={shareableTeams.map((t) => ({ value: t.seq, label: t.name }))}
+                                showEmptyOption={false}
+                                fullWidth={false}
+                                formControlProps={{ sx: { width: 240 } }}
+                            />
+                        ) : null}
                         {isShared ? (
                             <Typography sx={NOTE_SX}>
-                                공용 계정의 받은편지함·보낸편지함은 같은 회사 전원이 보고 보낼 수 있습니다. 읽음/중요
-                                표시는 함께 공유되고, 임시보관은 작성자 본인만 봅니다. 수정·삭제는 관리자 또는 등록자만
-                                할 수 있습니다.
+                                공용 계정의 받은편지함·보낸편지함은 {teams.length > 0 ? "그 팀의 팀원" : "같은 회사"}{" "}
+                                전원이 보고 보낼 수 있습니다. 읽음/중요 표시는 함께 공유되고, 임시보관은 작성자 본인만
+                                봅니다. 수정·삭제는 {teams.length > 0 ? "팀 소유자/관리자" : "관리자"} 또는 등록자만 할
+                                수 있습니다.
                             </Typography>
                         ) : null}
                         {preset?.note ? (
