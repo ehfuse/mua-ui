@@ -18,6 +18,10 @@ export {
     type MuaProviderProps,
 } from "./MuaProvider";
 export { setMuaSubPageBridge } from "./internal/subPageBridge";
+// 경로 등록 — 사이드바 메뉴(mailAccountInboxPath 등)는 MuaProvider 바깥(대시보드 레이아웃)에서
+// 만들어지므로, 메일 화면을 열기 전에도 경로가 맞으려면 앱이 모듈 스코프에서 직접 등록해야 한다.
+// (Provider 만 믿으면 새로고침 뒤 메일 화면을 열기 전까지 기본 경로(/codemarket/mail)로 만들어진다)
+export { setMuaPaths } from "./internal/pathsRegistry";
 
 // 화면 — 라우트 진입점 / 레이아웃 / 모바일 서브페이지 본문
 export { default as MailRouteEntry } from "./views/MailRouteEntry";
