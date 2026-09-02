@@ -21,6 +21,15 @@ interface MailAccountsListProps {
     onSync: (account: MailAccount) => void; // 지금 동기화
 }
 
+/**
+ * "기본 발신" 칩 — 한글 폰트의 디센더 때문에 flex 로 가운데 정렬해도 글자가 살짝 아래로 처져 보인다.
+ * line-height 를 1 로 죄고 1px 끌어올려 눈에 맞춘다(2026-09-02).
+ */
+const DEFAULT_CHIP_SX = {
+    fontSize: "13px",
+    "& .MuiChip-label": { lineHeight: 1, position: "relative", top: "-1px" },
+} as const;
+
 /** 계정 한 줄 */
 function AccountRow({
     account,
@@ -85,7 +94,7 @@ function AccountRow({
                     ) : null}
                     {/* 기본 발신 칩 — 데스크톱은 이름 옆, 모바일은 하단 액션행 왼쪽(이름 줄이 좁아 줄바꿈되던 것). */}
                     {account.is_default && !isMobile ? (
-                        <Chip size="small" label="기본 발신" color="primary" sx={{ fontSize: "13px" }} />
+                        <Chip size="small" label="기본 발신" color="primary" sx={DEFAULT_CHIP_SX} />
                     ) : null}
                 </Stack>
                 <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569", mt: 0.5 }}>
@@ -115,7 +124,7 @@ function AccountRow({
                 {/* 모바일 — [개인/공용][기본 발신] 칩을 액션행 왼쪽에, 아이콘들은 오른쪽으로 민다. */}
                 {isMobile ? scopeChip : null}
                 {isMobile && account.is_default ? (
-                    <Chip size="small" label="기본 발신" color="primary" sx={{ fontSize: "13px" }} />
+                    <Chip size="small" label="기본 발신" color="primary" sx={DEFAULT_CHIP_SX} />
                 ) : null}
                 {isMobile ? <Box sx={{ flex: 1 }} /> : null}
                 <Tooltip title="지금 동기화">
