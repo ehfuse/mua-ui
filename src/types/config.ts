@@ -81,6 +81,12 @@ export interface MuaConfig {
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)
+    /**
+     * 모바일 판정 주입(소비처가 구독한 리액티브 값) — 미지정 시 뷰포트 < theme lg.
+     * 앱의 모바일 기준(예: 업무함 768px)과 패키지 기본(lg=1200)이 다르면 데스크톱 창에서
+     * 메일만 모바일 서브페이지로 열리는 어긋남이 생긴다 — 앱 판정을 그대로 넘겨 맞춘다.
+     */
+    isMobile?: boolean;
     mobile?: MuaMobileConfig; // 모바일 셸 주입
     /**
      * 본문 안의 링크를 여는 방법. 미지정이면 window.open(새 탭).

@@ -32,9 +32,11 @@ export function MuaProvider({ config, children }: MuaProviderProps) {
     useEffect(() => {
         if (value.mobile?.subPage) setMuaSubPageBridge(value.mobile.subPage);
     }, [value.mobile?.subPage]);
-    useEffect(() => {
-        setMuaPaths({ inboxPath: value.inboxPath, homePath: value.homePath });
-    }, [value.inboxPath, value.homePath]);
+    // ⚠️ 경로 등록은 effect 가 아니라 렌더 중에 한다 — 자식(MailRouteEntry)이 **첫 렌더**에서
+    // getMailHomePath() 를 읽는데 부모 effect 는 자식 렌더 뒤에 돌아서, 새로고침 직후 첫 메일 진입이
+    // 기본 경로(/codemarket)로 Navigate 해 앱의 catch-all(홈페이지)로 새는 버그가 있었다(2026-09-02).
+    // 모듈 등록소에 같은 값을 다시 쓰는 멱등 호출이라 렌더 중이어도 안전하다(StrictMode 이중 렌더 포함).
+    setMuaPaths({ inboxPath: value.inboxPath, homePath: value.homePath });
 
     return <MuaConfigContext.Provider value={value}>{children}</MuaConfigContext.Provider>;
 }
