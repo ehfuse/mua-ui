@@ -5,7 +5,18 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Box, Button, FormControlLabel, IconButton, MenuItem, Stack, Switch, TextField, Typography } from "@mui/material";
+import {
+    Box,
+    Button,
+    FormControlLabel,
+    IconButton,
+    InputAdornment,
+    MenuItem,
+    Stack,
+    Switch,
+    TextField,
+    Typography,
+} from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { ClearTextField } from "@ehfuse/mui-form-controls";
@@ -316,36 +327,36 @@ export function MailFolderFormDialog({
                     showTitle: false,
                     children: (
                         <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
-                            <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
-                                <Box
-                                    sx={{
-                                        "& .MuiIconButton-root": { width: 56, height: 56 },
-                                        "& .MuiSvgIcon-root": { fontSize: 30 },
-                                    }}
-                                >
-                                    <FolderIconButton
-                                        icon={icon}
-                                        color={color}
-                                        shared={shared}
-                                        onChange={(next) => {
-                                            if (next.icon !== undefined) setIcon(next.icon);
-                                            if (next.color !== undefined) setColor(next.color);
-                                        }}
-                                    />
-                                </Box>
-                                <ClearTextField
-                                    label="메일함 이름"
-                                    size="medium"
-                                    fullWidth
-                                    autoFocus
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") void save();
-                                    }}
-                                    slotProps={{ htmlInput: { maxLength: 100, style: { fontSize: 15 } } }}
-                                />
-                            </Box>
+                            {/* 아이콘 버튼은 이름 입력칸 안(왼쪽)에 둔다 — 별도 칸으로 두면 폼이 두 덩이로 보인다. */}
+                            <ClearTextField
+                                label="메일함 이름"
+                                size="medium"
+                                fullWidth
+                                autoFocus
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") void save();
+                                }}
+                                slotProps={{
+                                    htmlInput: { maxLength: 100, style: { fontSize: 15 } },
+                                    input: {
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <FolderIconButton
+                                                    icon={icon}
+                                                    color={color}
+                                                    shared={shared}
+                                                    onChange={(next) => {
+                                                        if (next.icon !== undefined) setIcon(next.icon);
+                                                        if (next.color !== undefined) setColor(next.color);
+                                                    }}
+                                                />
+                                            </InputAdornment>
+                                        ),
+                                    },
+                                }}
+                            />
                             {/* 모바일은 액션바가 좁아 공용 스위치를 본문(안내 위)에 둔다 — 액션바에는 버튼만 오른쪽으로. */}
                             {isMobile ? (
                                 <FormControlLabel
@@ -361,7 +372,7 @@ export function MailFolderFormDialog({
                                     label="공용 팀"
                                     value={teamSeq || ""}
                                     onChange={(e) => setTeamSeq(Number(e.target.value) || 0)}
-                                    sx={{ width: 240 }}
+                                    fullWidth
                                     slotProps={{ htmlInput: { style: { fontSize: 15 } } }}
                                 >
                                     {teams.map((t) => (
