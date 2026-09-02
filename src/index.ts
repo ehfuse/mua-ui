@@ -42,6 +42,7 @@ export {
 // 셸(사이드바) 연동 — 계정 목록/배지, 서비스 아이콘, 경로, 서브페이지 열기
 export { useMailSidebarAccounts } from "./hooks/useMailSidebarAccounts";
 export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
+export { notifyMailTeamContextChanged } from "./internal/teamContext";
 export { requestMailFoldersManage } from "./internal/foldersManageRequest";
 export { requestMailRefresh } from "./internal/refreshRequest";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";

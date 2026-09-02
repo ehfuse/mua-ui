@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useGlobalFormaState } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime } from "../apis/useMailRealtime";
+import { subscribeMailTeamContext } from "../internal/teamContext";
 import { MAIL_STATE_ID } from "../controllers/mailController";
 import { defaultMailState } from "../models/defaults";
 import type { MailAccount, MailState } from "../models/types";
@@ -47,6 +48,11 @@ export function useMailSidebarAccounts(enabled: boolean): MailAccount[] {
     }, [enabled, load]);
 
     useMailRealtime({ enabled, onEvent: () => void load() });
+    // 팀 전환/전체 보기 토글 — in_sidebar 가 조회 시점 기준이라 다시 읽어야 목록이 맞는다(2026-09-03).
+    useEffect(() => {
+        if (!enabled) return;
+        return subscribeMailTeamContext(() => void load());
+    }, [enabled, load]);
 
     return accounts;
 }
