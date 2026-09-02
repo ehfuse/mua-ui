@@ -146,7 +146,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const MobileCardListLayout = mobileConfig?.CardListLayout ?? DefaultMobileCardListLayout;
     const MobileDetailDialog = mobileConfig?.DetailDialog ?? DefaultMobileDetailDialog;
 
-    const accounts = state.useValue("accounts") as MailAccount[];
+    // 서버 목록은 관리 다이얼로그용으로 **내 모든 팀** 공용을 담는다(in_sidebar=보기 범위 여부, 2026-09-03).
+    // 셸(계정 필터·작성·이동 등)은 보기 범위 것만 쓴다 — 범위 밖 계정의 메일은 서버가 어차피 안 준다.
+    const allAccounts = state.useValue("accounts") as MailAccount[];
+    const accounts = useMemo(() => allAccounts.filter((a) => a.in_sidebar !== false), [allAccounts]);
     const messages = state.useValue("messages") as MailMessageListItem[];
     const total = state.useValue("total") as number;
     const loadingList = state.useValue("loadingList") as boolean;
@@ -165,7 +168,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         getMuaSubPageBridge()?.setCount?.(total);
         return () => getMuaSubPageBridge()?.setCount?.(null);
     }, [isEmbedded, isInline, total]);
-    const folders = state.useValue("folders") as MailUserFolder[];
+    const allFolders = state.useValue("folders") as MailUserFolder[];
+    const folders = useMemo(() => allFolders.filter((f) => f.in_sidebar !== false), [allFolders]);
     const rules = state.useValue("rules") as MailRule[];
     const currentUserFolder = useMemo(
         () => (filters.folder === "custom" ? folders.find((f) => f.seq === filters.mailFolderSeq) : undefined),
@@ -939,9 +943,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 tab={manageTab}
                 onTabChange={setManageTab}
                 onClose={manageModal.close}
-                accounts={accounts}
+                // 관리 다이얼로그는 현재 팀과 무관하게 내 모든 팀 공용을 보여준다(팀명 칩으로 구분).
+                accounts={allAccounts}
                 syncingSeqs={syncingSeqs}
-                folders={folders}
+                folders={allFolders}
                 rules={rules}
                 onAddAccount={() => accountForm.form.actions.openDialog(null)}
                 onEditAccount={(account) => accountForm.form.actions.openDialog(account)}

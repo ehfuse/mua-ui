@@ -32,8 +32,8 @@ import { useMuaCurrentTeamSeq, useMuaFormDialog, useMuaTeams } from "../../MuaPr
 import type { MailUserFolder } from "../../models/types";
 import { formatBytes } from "../../utils/format";
 
-/** 개인/공용 사각 칩 */
-function ScopeChip({ shared }: { shared: boolean }) {
+/** 개인/공용 사각 칩 — 공용은 어느 팀 것인지 팀명으로 보여준다(이름을 못 받으면 "공용" 폴백). */
+function ScopeChip({ shared, teamName }: { shared: boolean; teamName?: string }) {
     return (
         <Box
             component="span"
@@ -48,7 +48,7 @@ function ScopeChip({ shared }: { shared: boolean }) {
                 bgcolor: shared ? "#eff6ff" : "#f1f5f9",
             }}
         >
-            {shared ? "공용" : "개인"}
+            {shared ? teamName || "공용" : "개인"}
         </Box>
     );
 }
@@ -174,7 +174,7 @@ function FolderRow({
                 <Typography noWrap sx={{ fontSize: "15px", fontWeight: 600, color: "#111" }}>
                     {folder.name}
                 </Typography>
-                <ScopeChip shared={shared} />
+                <ScopeChip shared={shared} teamName={folder.team_name} />
             </Stack>
             {/* 메일 수 · 스토리지 사용량 — 데스크톱은 오른쪽 컬럼, 모바일은 2줄째(이름 아래) */}
             <Typography

@@ -18,7 +18,9 @@ export function useMailSidebarFolders(enabled: boolean): MailUserFolder[] {
         initialValues: defaultMailState,
         autoCleanup: false,
     });
-    const folders = (state.useValue("folders") as MailUserFolder[] | undefined) ?? [];
+    const rows = (state.useValue("folders") as MailUserFolder[] | undefined) ?? [];
+    // 보기 범위(현재 팀, 전체 보기면 내 모든 팀) 것만 — 관리 다이얼로그용 전체 목록에서 거른다(2026-09-03).
+    const folders = rows.filter((f) => f.in_sidebar !== false);
     const loadedRef = useRef(false);
     const load = useCallback(async () => {
         try {

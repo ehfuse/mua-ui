@@ -25,6 +25,8 @@ export interface MailAccount {
     account_seq: number; // 소유 사용자(개인=소유자, 공용=등록자)
     scope: MailAccountScope; // 계정 범위
     team_seq?: number; // 공용 소속 팀(개인은 0) — 팀별 공용 격리(주입 앱 전용)
+    team_name?: string; // 공용 소속 팀 이름(칩 표시용 — 서버가 채운다)
+    in_sidebar?: boolean; // 보기 범위(사이드바/셸) 표시 여부 — 관리 다이얼로그는 무시하고 전부 보여준다
     name: string; // 표시 이름
     email: string; // 메일 주소
     incoming_protocol: IncomingProtocol; // 수신 프로토콜
@@ -306,6 +308,8 @@ export interface MailUserFolder {
     account_seq: number; // 소유자(개인) / 등록자(공용)
     scope: "personal" | "shared"; // 개인/공용
     team_seq?: number; // 공용 소속 팀(개인은 0) — 팀별 공용 격리(주입 앱 전용)
+    team_name?: string; // 공용 소속 팀 이름(칩 표시용 — 서버가 채운다)
+    in_sidebar?: boolean; // 보기 범위(사이드바/셸) 표시 여부 — 관리 다이얼로그는 무시하고 전부 보여준다
     name: string; // 이름
     sort_order: number; // 정렬
     icon: string; // 아이콘 키(@ehfuse/taskbox PROJECT_ICON_OPTIONS, 빈 값=기본 폴더)

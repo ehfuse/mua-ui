@@ -21,7 +21,9 @@ export function useMailSidebarAccounts(enabled: boolean): MailAccount[] {
         initialValues: defaultMailState,
         autoCleanup: false,
     });
-    const accounts = (state.useValue("accounts") as MailAccount[] | undefined) ?? [];
+    const rows = (state.useValue("accounts") as MailAccount[] | undefined) ?? [];
+    // 보기 범위(현재 팀, 전체 보기면 내 모든 팀) 것만 — 관리 다이얼로그용 전체 목록에서 거른다(2026-09-03).
+    const accounts = rows.filter((a) => a.in_sidebar !== false);
     const loadedRef = useRef(false);
 
     /** 계정 목록을 읽어 전역 상태에 넣는다(실패는 조용히 — 배지는 보조 정보). */

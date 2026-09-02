@@ -46,7 +46,7 @@ function AccountRow({
 }) {
     const isShared = account.scope === "shared";
     const isMobile = useIsMobile();
-    /** 개인/공용 사각 칩 */
+    /** 개인/공용 사각 칩 — 공용은 어느 팀 것인지 팀명으로 보여준다(이름을 못 받으면 "공용" 폴백). */
     const scopeChip = (
         <Box
             component="span"
@@ -62,7 +62,7 @@ function AccountRow({
                 bgcolor: isShared ? "#eff6ff" : "#f1f5f9",
             }}
         >
-            {isShared ? "공용" : "개인"}
+            {isShared ? account.team_name || "공용" : "개인"}
         </Box>
     );
     return (
