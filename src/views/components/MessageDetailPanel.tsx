@@ -673,7 +673,9 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 borderRadius: 1,
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 2, // 차단 문구 바로 옆에 버튼(오른쪽 끝 정렬 아님)
+                                gap: 2, // 데스크탑은 차단 문구 바로 옆에 버튼
+                                // 모바일(md 미만)은 폭이 좁아 버튼을 오른쪽 끝으로 보낸다(2026-09-03 사용자 요청).
+                                justifyContent: { xs: "space-between", md: "flex-start" },
                             }}
                         >
                             <Typography sx={{ fontSize: "13.5px", color: "#991b1b" }}>
