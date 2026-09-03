@@ -24,6 +24,7 @@ const baseConfig = {
         "@ehfuse/alerts",
         "@ehfuse/editor",
         "@ehfuse/editor/*",
+        "@ehfuse/mui-confirm-action",
         "@ehfuse/mui-form-controls",
         "@ehfuse/mui-form-dialog",
         "@ehfuse/mui-dashboard-layout",
