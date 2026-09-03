@@ -25,9 +25,14 @@ export function sanitizeMailHtml(html: string, allowRemoteImages: boolean): stri
     return allowRemoteImages ? clean : blockRemoteImages(clean);
 }
 
-/** 정제된 본문을 iframe srcDoc 용 문서로 감싼다(링크는 새 창, 폭 넘침 방지). */
+/**
+ * 정제된 본문을 iframe srcDoc 용 문서로 감싼다(링크는 새 창, 폭 넘침 방지).
+ * `upgrade-insecure-requests` — 메일 본문의 `http://` 이미지는 https 앱(특히 앱 웹뷰)에서 혼합 콘텐츠로
+ * 조용히 차단돼 깨진 아이콘만 남는다(2026-09-03 국세청 홈택스 발급 메일: 이미지 11개 전부 http://srtk.hometax.go.kr).
+ * 이 지시로 브라우저가 이미지·링크 요청을 https 로 올려 보낸다(https 가 없는 서버는 어차피 차단되던 것이라 손해 없음).
+ */
 export function wrapMailDocument(bodyHtml: string): string {
-    return `<!doctype html><html><head><meta charset="utf-8"><base target="_blank">
+    return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><base target="_blank">
 <style>
 body{margin:0;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:14px;line-height:1.6;color:#111;word-break:break-word;}
 img{max-width:100%;height:auto;}
