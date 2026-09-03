@@ -146,6 +146,10 @@ export function ConfirmActionPopper({
             <Dialog
                 open={open}
                 onClose={onCancel}
+                // portal 로 그려져도 React 이벤트는 트리를 따라 올라간다 — 확인/취소/배경 클릭이
+                // 앵커를 품은 카드·행의 onClick 까지 닿으면 안 된다(데스크톱 팝퍼도 Paper 에서 끊는다).
+                onClick={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.stopPropagation()}
                 sx={{ zIndex }}
                 slotProps={{
                     paper: {
