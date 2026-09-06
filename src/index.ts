@@ -43,7 +43,7 @@ export {
 export { useMailSidebarAccounts } from "./hooks/useMailSidebarAccounts";
 export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
 export { notifyMailTeamContextChanged } from "./internal/teamContext";
-export { seedMailSidebar } from "./internal/sidebarSeed";
+export { seedMailSidebar, setMailSeedPending } from "./internal/sidebarSeed";
 export { requestMailFoldersManage } from "./internal/foldersManageRequest";
 export { requestMailRefresh } from "./internal/refreshRequest";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";

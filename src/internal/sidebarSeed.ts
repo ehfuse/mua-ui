@@ -5,11 +5,16 @@
  * 로그인 직후 요청 수를 줄이려는 것이다(2026-09-05, 업무함). 씨앗은 한 번 소비되면 지운다 — 이후 갱신은
  * realtime·팀 컨텍스트 알림·메일 화면 경로 그대로다.
  *
- * 채움 표시(markMailSidebarFilled)는 사이드바 훅이 전역 mail-state 에 계정·메일함을 넣었다는 뜻이다.
- * 메일 화면이 뒤에 마운트될 때 그 목록을 다시 읽지 않기 위한 것 — 사이드바 훅이 realtime·팀 전환으로
- * 계속 맞춰 두므로 화면이 이어받아도 어긋나지 않는다(0.3.79).
+ * 채움 표시(markMailSidebarFilled)는 누군가(사이드바 훅 또는 메일 화면) 전역 mail-state 에 계정·메일함을 넣었다는 뜻이다.
+ * 뒤에 마운트되는 쪽은 그 목록을 다시 읽지 않는다 — 사이드바 훅이 realtime·팀 전환으로 계속 맞춰 두므로
+ * 이어받아도 어긋나지 않는다(0.3.79).
+ *
+ * 보류(setMailSeedPending)는 앱이 "bootstrap 응답이 오면 씨앗을 줄 테니 그때까지 첫 조회를 미뤄라" 는 뜻이다.
+ * 메일 경로에서 새로고침하면 메일 화면(자식 라우트)의 effect 가 셸의 사이드바 훅보다 먼저 돌아,
+ * 씨앗도 채움 표시도 없는 상태로 서버를 세 번 읽던 것을 막는다(실측 2026-09-06).
  */
 
+import { useSyncExternalStore } from "react";
 import type { MailAccount, MailRule, MailUserFolder } from "../models/types";
 
 interface SidebarSeed {
@@ -44,4 +49,26 @@ export function markMailSidebarFilled(key: "accounts" | "folders", value: boolea
 /** 사이드바 훅이 그 목록을 채워 두었는지 — 메일 화면 첫 로드가 서버 대신 전역 상태를 이어받을지 판단한다. */
 export function isMailSidebarFilled(key: "accounts" | "folders"): boolean {
     return filled.has(key);
+}
+
+let pending = false;
+const pendingListeners = new Set<() => void>();
+
+/** 앱이 씨앗을 줄 때까지 메일 화면의 첫 조회를 보류/해제한다(bootstrap 시작 때 true, 씨앗을 둔 뒤·실패 뒤 false). */
+export function setMailSeedPending(value: boolean): void {
+    if (pending === value) return;
+    pending = value;
+    pendingListeners.forEach((listener) => listener());
+}
+
+/** 보류 상태 구독 — 메일 화면 첫 로드 effect 가 해제 순간 다시 돈다. */
+export function useMailSeedPending(): boolean {
+    return useSyncExternalStore(
+        (listener) => {
+            pendingListeners.add(listener);
+            return () => pendingListeners.delete(listener);
+        },
+        () => pending,
+        () => pending
+    );
 }

@@ -17,7 +17,7 @@ import { useIsMobile } from "../internal/useIsMobile";
 import { mfs } from "../internal/mobileFontScale";
 import { useMobileSearchOverlay } from "../internal/mobileSearchOverlay";
 import { getMuaSubPageBridge } from "../internal/subPageBridge";
-import { isMailSidebarFilled, takeMailSidebarSeed } from "../internal/sidebarSeed";
+import { isMailSidebarFilled, markMailSidebarFilled, takeMailSidebarSeed, useMailSeedPending } from "../internal/sidebarSeed";
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
 import { MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
@@ -211,20 +211,34 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const accountForm = useMailAccountFormController({ onSaved: refreshAccounts });
     const compose = useComposeController({ onSent: refreshList, onDraftSaved: refreshList });
 
-    // 최초 1회: 계정 → 건수. 사이드바 훅이 이미 계정·메일함을 전역 상태에 채워 두었으면(bootstrap 씨앗 포함)
-    // 그 목록은 이어받고 건수만 읽는다 — 셸이 항상 마운트돼 realtime·팀 전환을 따라가므로 다시 읽을 이유가 없다(0.3.79).
-    // 규칙은 메일 화면만 쓰므로 앱이 씨앗으로 넘겼으면 그것을, 아니면 서버를 읽는다.
+    // 최초 1회: 계정 → 건수. 앱이 bootstrap 씨앗을 준비 중이면(setMailSeedPending) 올 때까지 미룬다 —
+    // 메일 경로 새로고침은 이 화면(자식)의 effect 가 셸 사이드바 훅보다 먼저 돌아 씨앗을 못 보던 자리다.
+    // 계정·메일함은 씨앗이 있으면 여기서 소비하고(뒤에 켜지는 사이드바 훅은 채움 표시를 보고 건너뛴다),
+    // 이미 사이드바가 채웠으면 이어받아 건수만 읽는다 — 셸이 realtime·팀 전환을 따라가므로 다시 읽을 이유가 없다(0.3.79).
+    // 규칙은 메일 화면만 쓰므로 씨앗이 있으면 그것을, 아니면 서버를 읽는다.
+    const seedPending = useMailSeedPending();
     const initialLoadRef = useRef(false);
     useEffect(() => {
-        if (initialLoadRef.current) return;
+        if (seedPending || initialLoadRef.current) return;
         initialLoadRef.current = true;
-        if (isMailSidebarFilled("accounts")) void state.actions.loadCounts();
+        const seededAccounts = takeMailSidebarSeed("accounts");
+        if (seededAccounts) {
+            state.setValue("accounts", seededAccounts);
+            markMailSidebarFilled("accounts", true);
+        }
+        if (seededAccounts || isMailSidebarFilled("accounts")) void state.actions.loadCounts();
         else refreshAccounts();
-        if (!isMailSidebarFilled("folders")) void state.actions.loadFolders();
+        const seededFolders = takeMailSidebarSeed("folders");
+        if (seededFolders) {
+            state.setValue("folders", seededFolders);
+            markMailSidebarFilled("folders", true);
+        } else if (!isMailSidebarFilled("folders")) {
+            void state.actions.loadFolders();
+        }
         const seededRules = takeMailSidebarSeed("rules");
         if (seededRules) state.setValue("rules", seededRules);
         else void state.actions.loadRules();
-    }, [refreshAccounts, state, state.actions]);
+    }, [seedPending, refreshAccounts, state, state.actions]);
 
     // 라우트 → 필터(사이드바 메뉴 클릭/직접 진입). 필터 변화가 아래 effect 로 목록을 다시 읽는다.
     //  - 계정별 받은편지함: 폴더=받은편지함 + 그 계정
