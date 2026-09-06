@@ -11,6 +11,7 @@ import { useGlobalFormaState } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime } from "../apis/useMailRealtime";
 import { subscribeMailTeamContext } from "../internal/teamContext";
+import { takeMailSidebarSeed } from "../internal/sidebarSeed";
 import { MAIL_STATE_ID } from "../controllers/mailController";
 import { defaultMailState } from "../models/defaults";
 import type { MailAccount, MailState } from "../models/types";
@@ -44,8 +45,14 @@ export function useMailSidebarAccounts(enabled: boolean): MailAccount[] {
         }
         if (loadedRef.current) return;
         loadedRef.current = true;
+        // 앱이 bootstrap 으로 씨앗을 넘겨 뒀으면 서버를 부르지 않는다(로그인 직후 요청 수 절감).
+        const seeded = takeMailSidebarSeed("accounts");
+        if (seeded) {
+            state.setValue("accounts", seeded);
+            return;
+        }
         void load();
-    }, [enabled, load]);
+    }, [enabled, load, state]);
 
     useMailRealtime({ enabled, onEvent: () => void load() });
     // 팀 전환/전체 보기 토글 — in_sidebar 가 조회 시점 기준이라 다시 읽어야 목록이 맞는다(2026-09-03).
