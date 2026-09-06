@@ -11,7 +11,7 @@ import { useGlobalFormaState } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime } from "../apis/useMailRealtime";
 import { subscribeMailTeamContext } from "../internal/teamContext";
-import { takeMailSidebarSeed } from "../internal/sidebarSeed";
+import { markMailSidebarFilled, takeMailSidebarSeed } from "../internal/sidebarSeed";
 import { MAIL_STATE_ID } from "../controllers/mailController";
 import { defaultMailState } from "../models/defaults";
 import type { MailAccount, MailState } from "../models/types";
@@ -41,6 +41,7 @@ export function useMailSidebarAccounts(enabled: boolean): MailAccount[] {
     useEffect(() => {
         if (!enabled) {
             loadedRef.current = false;
+            markMailSidebarFilled("accounts", false);
             return;
         }
         if (loadedRef.current) return;
@@ -49,9 +50,10 @@ export function useMailSidebarAccounts(enabled: boolean): MailAccount[] {
         const seeded = takeMailSidebarSeed("accounts");
         if (seeded) {
             state.setValue("accounts", seeded);
+            markMailSidebarFilled("accounts", true);
             return;
         }
-        void load();
+        void load().then(() => markMailSidebarFilled("accounts", true));
     }, [enabled, load, state]);
 
     useMailRealtime({ enabled, onEvent: () => void load() });

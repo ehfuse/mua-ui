@@ -39,7 +39,7 @@ const config: MuaConfig = {
 ```
 
 라우트: `mail`(받은편지함) · `mail/account/:accountSeq`(계정별 받은편지함) · `mail/:folder`(sent/starred/draft/spam/trash).
-모바일 서브페이지 본문: `MailInboxSubPage` 등 6종. 사이드바 연동: `useMailSidebarAccounts(enabled)`, `MailProviderIcon`, `mailAccountInboxPath`, `openMailSubPage`. 앱 bootstrap 이 계정·메일함 목록을 이미 받았으면 훅을 켜기 전에 `seedMailSidebar({ accounts, folders })` 로 넘겨 첫 조회를 건너뛸 수 있다(0.3.77).
+모바일 서브페이지 본문: `MailInboxSubPage` 등 6종. 사이드바 연동: `useMailSidebarAccounts(enabled)`, `MailProviderIcon`, `mailAccountInboxPath`, `openMailSubPage`. 앱 bootstrap 이 계정·메일함 목록을 이미 받았으면 훅을 켜기 전에 `seedMailSidebar({ accounts, folders, rules })` 로 넘겨 첫 조회를 건너뛸 수 있다(0.3.77, rules 는 0.3.79). 메일 화면(Layout)도 사이드바 훅이 채운 계정·메일함을 이어받아 첫 로드에 건수만 읽는다(0.3.79).
 
 ## 라이선스
 

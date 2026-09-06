@@ -17,6 +17,7 @@ import { useIsMobile } from "../internal/useIsMobile";
 import { mfs } from "../internal/mobileFontScale";
 import { useMobileSearchOverlay } from "../internal/mobileSearchOverlay";
 import { getMuaSubPageBridge } from "../internal/subPageBridge";
+import { isMailSidebarFilled, takeMailSidebarSeed } from "../internal/sidebarSeed";
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
 import { MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
@@ -210,15 +211,20 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const accountForm = useMailAccountFormController({ onSaved: refreshAccounts });
     const compose = useComposeController({ onSent: refreshList, onDraftSaved: refreshList });
 
-    // 최초 1회: 계정 → 건수
+    // 최초 1회: 계정 → 건수. 사이드바 훅이 이미 계정·메일함을 전역 상태에 채워 두었으면(bootstrap 씨앗 포함)
+    // 그 목록은 이어받고 건수만 읽는다 — 셸이 항상 마운트돼 realtime·팀 전환을 따라가므로 다시 읽을 이유가 없다(0.3.79).
+    // 규칙은 메일 화면만 쓰므로 앱이 씨앗으로 넘겼으면 그것을, 아니면 서버를 읽는다.
     const initialLoadRef = useRef(false);
     useEffect(() => {
         if (initialLoadRef.current) return;
         initialLoadRef.current = true;
-        refreshAccounts();
-        void state.actions.loadFolders();
-        void state.actions.loadRules();
-    }, [refreshAccounts, state.actions]);
+        if (isMailSidebarFilled("accounts")) void state.actions.loadCounts();
+        else refreshAccounts();
+        if (!isMailSidebarFilled("folders")) void state.actions.loadFolders();
+        const seededRules = takeMailSidebarSeed("rules");
+        if (seededRules) state.setValue("rules", seededRules);
+        else void state.actions.loadRules();
+    }, [refreshAccounts, state, state.actions]);
 
     // 라우트 → 필터(사이드바 메뉴 클릭/직접 진입). 필터 변화가 아래 effect 로 목록을 다시 읽는다.
     //  - 계정별 받은편지함: 폴더=받은편지함 + 그 계정

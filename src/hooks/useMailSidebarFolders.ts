@@ -8,7 +8,7 @@ import { useGlobalFormaState } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime } from "../apis/useMailRealtime";
 import { subscribeMailTeamContext } from "../internal/teamContext";
-import { takeMailSidebarSeed } from "../internal/sidebarSeed";
+import { markMailSidebarFilled, takeMailSidebarSeed } from "../internal/sidebarSeed";
 import { MAIL_STATE_ID } from "../controllers/mailController";
 import { defaultMailState } from "../models/defaults";
 import type { MailState, MailUserFolder } from "../models/types";
@@ -35,6 +35,7 @@ export function useMailSidebarFolders(enabled: boolean): MailUserFolder[] {
     useEffect(() => {
         if (!enabled) {
             loadedRef.current = false;
+            markMailSidebarFilled("folders", false);
             return;
         }
         if (loadedRef.current) return;
@@ -43,9 +44,10 @@ export function useMailSidebarFolders(enabled: boolean): MailUserFolder[] {
         const seeded = takeMailSidebarSeed("folders");
         if (seeded) {
             state.setValue("folders", seeded);
+            markMailSidebarFilled("folders", true);
             return;
         }
-        void load();
+        void load().then(() => markMailSidebarFilled("folders", true));
     }, [enabled, load, state]);
     useMailRealtime({ enabled, onEvent: () => void load() });
     // 팀 전환/전체 보기 토글 — in_sidebar 가 조회 시점 기준이라 다시 읽어야 목록이 맞는다(2026-09-03).
