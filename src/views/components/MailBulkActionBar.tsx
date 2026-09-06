@@ -14,7 +14,7 @@ import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOu
 import type { BulkMessageAction } from "../../apis/mailApi";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { TrashIcon } from "../../internal/icons";
-import { ConfirmActionPopper } from "../../internal/ConfirmActionPopper";
+import { ConfirmActionPopper } from "@ehfuse/mui-confirm-action";
 import type { MailListFolder } from "../../models/types";
 
 interface MailBulkActionBarProps {

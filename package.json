@@ -57,7 +57,7 @@
         "@ehfuse/editor": ">=1.2.1",
         "@ehfuse/file-viewer": ">=0.2.0",
         "@ehfuse/forma": ">=3.4.0",
-        "@ehfuse/mui-confirm-action": ">=0.1.2",
+        "@ehfuse/mui-confirm-action": "^0.1.5",
         "@ehfuse/mui-dashboard-layout": ">=3.3.46",
         "@ehfuse/mui-form-controls": ">=3.2.7",
         "@ehfuse/mui-form-dialog": ">=1.8.1",

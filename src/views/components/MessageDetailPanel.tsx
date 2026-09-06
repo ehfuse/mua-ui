@@ -32,7 +32,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
-import { ConfirmActionPopper } from "../../internal/ConfirmActionPopper";
+import { ConfirmActionPopper } from "@ehfuse/mui-confirm-action";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import { StarRoundedIcon, TrashIcon } from "../../internal/icons";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";

@@ -6,7 +6,9 @@
  */
 
 import { createContext, useContext, useEffect, useMemo, type ComponentType, type ReactNode } from "react";
+import { useMediaQuery, useTheme } from "@mui/material";
 import { FormDialog as BaseFormDialog } from "@ehfuse/mui-form-dialog";
+import { ConfirmActionProvider } from "@ehfuse/mui-confirm-action";
 import { DefaultFileUploadBox } from "./internal/DefaultFileUploadBox";
 import { setMuaSubPageBridge } from "./internal/subPageBridge";
 import { setMuaPaths } from "./internal/pathsRegistry";
@@ -38,7 +40,19 @@ export function MuaProvider({ config, children }: MuaProviderProps) {
     // 모듈 등록소에 같은 값을 다시 쓰는 멱등 호출이라 렌더 중이어도 안전하다(StrictMode 이중 렌더 포함).
     setMuaPaths({ inboxPath: value.inboxPath, homePath: value.homePath });
 
-    return <MuaConfigContext.Provider value={value}>{children}</MuaConfigContext.Provider>;
+    // 메일 UI 의 모바일 판정(config.isMobile 우선, 없으면 MUI lg 미만 — internal/useIsMobile 과 같은 규칙)을
+    // 확인 UI 패키지에도 한 번 내려준다. 예전엔 internal/ConfirmActionPopper 래퍼가 이 일을 했는데, 같은 이름의
+    // 사본이 여러 패키지에 흩어져 있었다. useIsMobile 훅을 여기서 못 쓰는 이유: 그 훅은 컨텍스트를 읽는데
+    // 이 컴포넌트 안에서는 아직 자기 Provider 값이 아니라 바깥 값이 읽힌다.
+    const theme = useTheme();
+    const lgUp = useMediaQuery(theme.breakpoints.up("lg"));
+    const isMobile = value.isMobile ?? !lgUp;
+
+    return (
+        <MuaConfigContext.Provider value={value}>
+            <ConfirmActionProvider isMobile={isMobile}>{children}</ConfirmActionProvider>
+        </MuaConfigContext.Provider>
+    );
 }
 
 /** 현재 주입 설정을 읽는다(Provider 없으면 빈 설정). */

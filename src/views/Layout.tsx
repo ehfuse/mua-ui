@@ -54,7 +54,7 @@ import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined
 import { FolderIcon } from "../internal/FolderIcon";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
-import { ConfirmActionPopper } from "../internal/ConfirmActionPopper";
+import { ConfirmActionPopper } from "@ehfuse/mui-confirm-action";
 import { consumeMailFoldersManageRequest, subscribeMailFoldersManage } from "../internal/foldersManageRequest";
 import { subscribeMailRefresh } from "../internal/refreshRequest";
 import { MailManageDialog, type MailManageTab } from "./dialogs/MailManageDialog";
