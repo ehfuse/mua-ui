@@ -8,7 +8,7 @@ import { useGlobalFormaState } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime } from "../apis/useMailRealtime";
 import { subscribeMailTeamContext } from "../internal/teamContext";
-import { isMailSidebarFilled, markMailSidebarFilled, takeMailSidebarSeed } from "../internal/sidebarSeed";
+import { isMailSidebarFilled, markMailSidebarFilled, takeMailEntry } from "../internal/entryBootstrap";
 import { MAIL_STATE_ID } from "../controllers/mailController";
 import { defaultMailState } from "../models/defaults";
 import type { MailState, MailUserFolder } from "../models/types";
@@ -39,15 +39,14 @@ export function useMailSidebarFolders(enabled: boolean): MailUserFolder[] {
         }
         if (loadedRef.current) return;
         loadedRef.current = true;
-        // 먼저 마운트된 메일 화면이 씨앗으로 이미 채웠으면 그대로 이어받는다(메일 경로 새로고침 — 자식 effect 가 먼저 돈다).
+        // 먼저 마운트된 메일 화면이 이미 채웠으면 그대로 이어받는다(메일 경로 새로고침 — 자식 effect 가 먼저 돈다).
         if (!isMailSidebarFilled("folders")) {
-            // 앱이 bootstrap 으로 씨앗을 넘겨 뒀으면 서버를 부르지 않는다(로그인 직후 요청 수 절감).
-            const seeded = takeMailSidebarSeed("folders");
-            if (seeded) {
-                state.setValue("folders", seeded);
-                markMailSidebarFilled("folders", true);
-            } else {
-                void load().then(() => markMailSidebarFilled("folders", true));
+            // 진입 부트스트랩 1건에서 메일함을 받는다(메일 화면이 먼저 찜했으면 null — 그쪽이 채운다).
+            const entry = takeMailEntry("folders");
+            if (entry) {
+                void entry
+                    .then((rows) => (rows ? state.setValue("folders", rows) : load()))
+                    .then(() => markMailSidebarFilled("folders", true));
             }
         }
         // 켜져 있던 훅이 꺼질 때(로그아웃)만 채움 표시를 지운다 — 처음 꺼진 상태로 도는 effect 에서 지우면

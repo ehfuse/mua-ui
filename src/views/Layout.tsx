@@ -17,7 +17,7 @@ import { useIsMobile } from "../internal/useIsMobile";
 import { mfs } from "../internal/mobileFontScale";
 import { useMobileSearchOverlay } from "../internal/mobileSearchOverlay";
 import { getMuaSubPageBridge } from "../internal/subPageBridge";
-import { isMailSidebarFilled, markMailSidebarFilled, takeMailSidebarSeed, useMailSeedPending } from "../internal/sidebarSeed";
+import { isMailSidebarFilled, markMailSidebarFilled, takeMailEntry } from "../internal/entryBootstrap";
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
 import { MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
@@ -211,34 +211,40 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const accountForm = useMailAccountFormController({ onSaved: refreshAccounts });
     const compose = useComposeController({ onSent: refreshList, onDraftSaved: refreshList });
 
-    // 최초 1회: 계정 → 건수. 앱이 bootstrap 씨앗을 준비 중이면(setMailSeedPending) 올 때까지 미룬다 —
-    // 메일 경로 새로고침은 이 화면(자식)의 effect 가 셸 사이드바 훅보다 먼저 돌아 씨앗을 못 보던 자리다.
-    // 계정·메일함은 씨앗이 있으면 여기서 소비하고(뒤에 켜지는 사이드바 훅은 채움 표시를 보고 건너뛴다),
-    // 이미 사이드바가 채웠으면 이어받아 건수만 읽는다 — 셸이 realtime·팀 전환을 따라가므로 다시 읽을 이유가 없다(0.3.79).
-    // 규칙은 메일 화면만 쓰므로 씨앗이 있으면 그것을, 아니면 서버를 읽는다.
-    const seedPending = useMailSeedPending();
+    // 최초 1회: 계정·메일함·규칙은 진입 부트스트랩 1건(takeMailEntry)에서 받고 건수만 따로 읽는다.
+    // 메일 경로 새로고침이면 이 화면(자식)의 effect 가 셸 사이드바 훅보다 먼저 돌아 여기가 먼저 찜하고,
+    // 사이드바 훅이 먼저 돌았으면 null 이 와서 그쪽이 채우는 것을 기다린다(요청은 어느 쪽이든 1건).
+    // 이미 사이드바가 채워 둔 뒤(메일 화면 재진입)면 그대로 이어받아 건수만 읽는다 — 셸이 realtime·팀 전환을
+    // 따라가므로 다시 읽을 이유가 없다(0.3.79). 규칙은 메일 화면만 쓰므로 못 받으면 개별 라우트로 읽는다.
     const initialLoadRef = useRef(false);
     useEffect(() => {
-        if (seedPending || initialLoadRef.current) return;
+        if (initialLoadRef.current) return;
         initialLoadRef.current = true;
-        const seededAccounts = takeMailSidebarSeed("accounts");
-        if (seededAccounts) {
-            state.setValue("accounts", seededAccounts);
-            markMailSidebarFilled("accounts", true);
+        const accountEntry = isMailSidebarFilled("accounts") ? null : takeMailEntry("accounts");
+        if (accountEntry) {
+            void accountEntry.then((rows) => {
+                // 줄 것이 없으면(요청 실패·재진입) 계정부터 개별 라우트로 읽는다 — refreshAccounts 가 건수까지 본다.
+                if (!rows) return refreshAccounts();
+                state.setValue("accounts", rows);
+                markMailSidebarFilled("accounts", true);
+                void state.actions.loadCounts();
+            });
+        } else {
+            void state.actions.loadCounts();
         }
-        if (seededAccounts || isMailSidebarFilled("accounts")) void state.actions.loadCounts();
-        else refreshAccounts();
-        const seededFolders = takeMailSidebarSeed("folders");
-        if (seededFolders) {
-            state.setValue("folders", seededFolders);
-            markMailSidebarFilled("folders", true);
-        } else if (!isMailSidebarFilled("folders")) {
-            void state.actions.loadFolders();
+        const folderEntry = isMailSidebarFilled("folders") ? null : takeMailEntry("folders");
+        if (folderEntry) {
+            void folderEntry.then((rows) => {
+                if (!rows) return void state.actions.loadFolders();
+                state.setValue("folders", rows);
+                markMailSidebarFilled("folders", true);
+            });
         }
-        const seededRules = takeMailSidebarSeed("rules");
-        if (seededRules) state.setValue("rules", seededRules);
-        else void state.actions.loadRules();
-    }, [seedPending, refreshAccounts, state, state.actions]);
+        const ruleEntry = takeMailEntry("rules");
+        if (ruleEntry) {
+            void ruleEntry.then((rows) => (rows ? state.setValue("rules", rows) : void state.actions.loadRules()));
+        }
+    }, [refreshAccounts, state, state.actions]);
 
     // 라우트 → 필터(사이드바 메뉴 클릭/직접 진입). 필터 변화가 아래 effect 로 목록을 다시 읽는다.
     //  - 계정별 받은편지함: 폴더=받은편지함 + 그 계정

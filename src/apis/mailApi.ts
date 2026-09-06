@@ -66,8 +66,17 @@ function toQuery(params: object): string {
     return text ? `?${text}` : "";
 }
 
+/** 진입 부트스트랩 응답 — 각 목록은 GET /accounts · /folders · /rules 의 items 와 같다. */
+export interface MailBootstrapData {
+    accounts: MailAccount[]; // 내 메일 계정(+미읽음)
+    folders: MailUserFolder[]; // 사용자 메일함
+    rules: MailRule[]; // 규칙
+}
+
 /** 메일 API */
 export const mailApi = {
+    /** 진입 1회 — 계정·메일함·규칙을 한 번에(사이드바+메일 화면이 나눠 쓴다) */
+    bootstrap: () => entityAppServer.http.get<ApiOk<MailBootstrapData>>("/v1/mua/bootstrap"),
     /** 내 메일 계정 목록 */
     listAccounts: () => entityAppServer.http.get<ApiOk<{ items: MailAccount[] }>>("/v1/mua/accounts"),
     /** 계정 등록 */

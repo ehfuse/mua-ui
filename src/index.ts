@@ -43,7 +43,8 @@ export {
 export { useMailSidebarAccounts } from "./hooks/useMailSidebarAccounts";
 export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
 export { notifyMailTeamContextChanged } from "./internal/teamContext";
-export { seedMailSidebar, setMailSeedPending } from "./internal/sidebarSeed";
+// 앱 bootstrap 이 재로그인 때 부른다 — 다음 진입에서 /v1/mua/bootstrap 을 다시 읽게 한다.
+export { resetMailEntry } from "./internal/entryBootstrap";
 export { requestMailFoldersManage } from "./internal/foldersManageRequest";
 export { requestMailRefresh } from "./internal/refreshRequest";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";
