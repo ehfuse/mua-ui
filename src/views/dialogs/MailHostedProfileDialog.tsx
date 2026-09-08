@@ -126,17 +126,6 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                             fullWidth
                             autoComplete="off"
                         />
-                        <Box sx={{ display: "flex", alignItems: "center", minHeight: 40 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={isDefault}
-                                        onChange={(e) => setIsDefault(e.target.checked)}
-                                    />
-                                }
-                                label="기본 발신 계정"
-                            />
-                        </Box>
                         <Box
                             sx={{
                                 border: "1px solid",
@@ -166,7 +155,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                 ),
             },
         ],
-        [account?.email, name, isDefault, signature, editorConfig]
+        [account?.email, name, signature, editorConfig]
     );
 
     return (
@@ -187,6 +176,14 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
             actions={{
                 visible: true,
                 showCancelButton: true,
+                // 기본 발신은 본문 입력이 아니라 이 사서함에 대한 결정이라 저장 버튼 곁(액션바 왼쪽)에 둔다.
+                left: (
+                    <FormControlLabel
+                        control={<Switch checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />}
+                        label="기본 발신 계정"
+                        sx={{ ml: 0 }}
+                    />
+                ),
                 right: (
                     <Button
                         variant="contained"
