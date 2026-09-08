@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as R
 import { useParams } from "react-router-dom";
 import { Box, Button, Drawer, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import EditIcon from "@mui/icons-material/Edit";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
 import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import type { BulkMessageAction } from "../apis/mailApi";
@@ -1010,7 +1011,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         zIndex: 40,
                     }}
                 >
-                    <EditOutlinedIcon />
+                    <EditIcon />
                 </Fab>
                 {/* 상세 — 서브페이지 위에 한 겹 더 뜨는 mfd 슬라이드(뒤로가기 한 번에 상세만 닫힌다). */}
                 <MobileDetailDialog
