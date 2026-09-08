@@ -97,6 +97,8 @@ export function useHeaderConfig({
         showSearch: true,
         searchPlaceholder: "제목, 보낸 사람 검색",
         searchWidth: isMobile ? mobileSearchWidth : undefined,
+        // 모바일은 medium(56px) — 게시판·내 문서의 제목줄 검색칸과 같은 높이라야 탭을 오가도 같은 판으로 읽힌다(mdl 3.3.68).
+        searchSize: isMobile ? "medium" : undefined,
         onSearchChange: handleSearchChange,
         onSearch: handleSearch,
         searchMinLength: 1,
