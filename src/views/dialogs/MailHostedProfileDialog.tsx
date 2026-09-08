@@ -44,10 +44,20 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
     const [saving, setSaving] = useState(false);
     const signatureEditorRef = useRef<EhfuseEditorRef>(null);
 
+    // 지금 입력값이 어느 사서함의 것인지 — 같은 사서함을 닫았다 다시 열면 서버 값으로 되돌리지 않는다.
+    const draftSeq = useRef<number | null>(null);
+
     const seq = account?.seq ?? 0;
     // 열 때 한 번만 값을 넣는다 — 목록이 새로 그려질 때마다 되돌리면 입력 중인 글자가 사라진다.
     useEffect(() => {
         if (!open || !account) return;
+        if (draftSeq.current === account.seq) {
+            // 취소로 닫았다 다시 연 경우: 입력 중이던 값을 그대로 둔다(저장 전까지는 사용자의 것).
+            // 에디터는 닫힐 때 내용을 잃을 수 있어 초안을 다시 밀어 넣는다.
+            signatureEditorRef.current?.setHtml(signature);
+            return;
+        }
+        draftSeq.current = account.seq;
         setName(account.name ?? "");
         setIsDefault(Boolean(account.is_default));
         setSignature(account.signature ?? "");
@@ -82,6 +92,8 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                 "저장하지 못했습니다."
             );
             SuccessAlert("저장했습니다.");
+            // 저장했으니 초안은 끝났다 — 다음에 열면 서버(목록) 값으로 다시 채운다.
+            draftSeq.current = null;
             onClose();
             onSaved();
         } catch (error) {

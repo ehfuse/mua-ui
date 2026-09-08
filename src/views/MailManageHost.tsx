@@ -70,12 +70,17 @@ export function MailManageHost() {
 
     const accountForm = useMailAccountFormController({ onSaved: refreshAccounts });
     // 기업메일 사서함은 외부 계정 폼이 아니라 프로필(이름·서명·기본 발신) 창으로 연다 — 고칠 수 있는 것이 다르다.
+    // 닫아도 계정은 비우지 않는다 — 다이얼로그가 입력 중이던 값을 지키고, 닫히는 동안 주소 칸이 비지 않게.
     const [hostedEditing, setHostedEditing] = useState<MailAccount | null>(null);
+    const [hostedOpen, setHostedOpen] = useState(false);
 
     /** 계정 목록의 연필 — 기업메일 사서함이면 프로필 창, 그 외에는 외부 계정 폼. */
     const handleEditAccount = useCallback(
         (account: MailAccount) => {
-            if (account.kind === "hosted") setHostedEditing(account);
+            if (account.kind === "hosted") {
+                setHostedEditing(account);
+                setHostedOpen(true);
+            }
             else accountForm.form.actions.openDialog(account);
         },
         [accountForm.form.actions]
@@ -178,9 +183,9 @@ export function MailManageHost() {
             />
             <MailAccountFormDialog controller={accountForm} />
             <MailHostedProfileDialog
-                open={Boolean(hostedEditing)}
+                open={hostedOpen}
                 account={hostedEditing}
-                onClose={() => setHostedEditing(null)}
+                onClose={() => setHostedOpen(false)}
                 onSaved={refreshAccounts}
             />
             <MailRuleFormDialog
