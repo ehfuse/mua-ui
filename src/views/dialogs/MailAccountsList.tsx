@@ -159,18 +159,32 @@ function AccountRow({
                         : `${account.incoming_protocol.toUpperCase()} · ${account.incoming_host}`}
                 </Typography>
                 {/* 마지막 동기화(또는 오류)는 아래 줄에 따로 — 가져오지 않는 사서함에는 동기화 개념이 없다. */}
-                <Typography
-                    noWrap
-                    sx={{ fontSize: "15px", color: account.last_error ? "#b91c1c" : "#475569", mt: 0.25 }}
-                >
-                    {account.last_error
-                        ? `오류: ${account.last_error}`
-                        : isHosted
-                          ? "받는 즉시 들어옵니다"
-                          : account.last_sync_time
-                            ? `마지막 동기화 ${formatMailFullDate(account.last_sync_time)}`
-                            : "아직 동기화 전"}
-                </Typography>
+                {account.last_error ? (
+                    // 오류는 줄임표 없이 끝까지 편다 — 폰에서 "connect ECONNREFUSED 22…" 로 잘리면 무엇이 문제인지
+                    // 알 수 없다(2026-09-09). 호스트·포트 같은 긴 토큰은 break-all 로 접는다. 데스크톱은 툴팁으로도 보인다.
+                    <Tooltip title={account.last_error}>
+                        <Typography
+                            sx={{
+                                fontSize: "15px",
+                                color: "#b91c1c",
+                                mt: 0.25,
+                                whiteSpace: "normal",
+                                wordBreak: "break-all",
+                                lineHeight: 1.4,
+                            }}
+                        >
+                            {`오류: ${account.last_error}`}
+                        </Typography>
+                    </Tooltip>
+                ) : (
+                    <Typography noWrap sx={{ fontSize: "15px", color: "#475569", mt: 0.25 }}>
+                        {isHosted
+                            ? "받는 즉시 들어옵니다"
+                            : account.last_sync_time
+                              ? `마지막 동기화 ${formatMailFullDate(account.last_sync_time)}`
+                              : "아직 동기화 전"}
+                    </Typography>
+                )}
             </Box>
             {/* 개인/공용 — 사각 칩. 데스크톱은 별도 컬럼, 모바일은 하단 액션행 왼쪽 첫 번째. */}
             {isMobile ? null : scopeChip}
