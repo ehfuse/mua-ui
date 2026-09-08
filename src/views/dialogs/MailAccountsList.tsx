@@ -202,8 +202,16 @@ function AccountRow({
                     <Chip size="small" label="기본 발신" color="primary" sx={DEFAULT_CHIP_SX} />
                 ) : null}
                 {isMobile ? <Box sx={{ flex: 1 }} /> : null}
-                {/* 기업메일 사서함에는 가져올 서버가 없다 — 눌러도 할 일이 없는 버튼은 두지 않는다. */}
-                {isHosted ? null : (
+                {/* 기업메일 사서함에는 가져올 서버가 없다 — 눌러도 할 일이 없는 버튼은 두지 않는다.
+                    모바일은 그 자리를 같은 크기로 비워 둔다 — 버튼 하나가 빠지면 왼쪽 칩 칸이 그만큼 넓어져
+                    카드마다 칩 폭이 달라 보였다(2026-09-09). 데스크톱은 오른쪽 정렬이라 비워 둘 필요가 없다. */}
+                {isHosted ? (
+                    isMobile ? (
+                        <IconButton size="small" disabled aria-hidden sx={{ visibility: "hidden" }}>
+                            <SyncIcon fontSize="small" />
+                        </IconButton>
+                    ) : null
+                ) : (
                     <Tooltip title="지금 동기화">
                         <span>
                             <IconButton size="small" onClick={onSync} disabled={syncing} aria-label="지금 동기화">
