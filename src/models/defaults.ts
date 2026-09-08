@@ -50,6 +50,7 @@ export const defaultMailState: MailState = {
     loadingDetail: false,
     counts: defaultMailFolderCounts,
     syncingSeqs: [],
+    lastAccountSeq: 0,
     error: "",
 };
 

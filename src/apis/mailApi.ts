@@ -7,6 +7,7 @@ import type {
     ComposeRequest,
     MailAccount,
     MailAccountRequest,
+    MailHostedProfileRequest,
     MailAccountSecrets,
     MailConnectionTestResult,
     MailContact,
@@ -79,11 +80,20 @@ export const mailApi = {
     bootstrap: () => entityAppServer.http.get<ApiOk<MailBootstrapData>>("/v1/mua/bootstrap"),
     /** 내 메일 계정 목록 */
     listAccounts: () => entityAppServer.http.get<ApiOk<{ items: MailAccount[] }>>("/v1/mua/accounts"),
+    /** 계정 표시 순서 저장 — 새 목록을 그대로 돌려받아 다시 조회하지 않는다. */
+    reorderAccounts: (seqs: number[]) =>
+        entityAppServer.http.post<ApiOk<{ items: MailAccount[] }>>("/v1/mua/accounts/reorder", { seqs }),
     /** 계정 등록 */
     createAccount: (body: MailAccountRequest) =>
         entityAppServer.http.post<ApiOk<MailAccount>>("/v1/mua/accounts", body),
     /** 계정 수정 */
     updateAccount: (seq: number, body: MailAccountRequest) =>
+        entityAppServer.http.patch<ApiOk<MailAccount>>(`/v1/mua/accounts/${seq}`, body),
+    /**
+     * 기업메일 사서함 프로필 수정 — 표시 이름·서명·기본 발신만. 같은 PATCH 를 쓰지만 본문이 이 셋뿐이라
+     * 서버가 hosted 전용 경로로 받는다(수신/발신 서버 값은 아예 보내지 않는다).
+     */
+    updateHostedProfile: (seq: number, body: MailHostedProfileRequest) =>
         entityAppServer.http.patch<ApiOk<MailAccount>>(`/v1/mua/accounts/${seq}`, body),
     /** 계정 삭제 */
     deleteAccount: (seq: number) =>
@@ -127,10 +137,16 @@ export const mailApi = {
                 : {}),
         }),
     /** 사용자 화면 설정(보기 타입) */
-    getPreferences: () => entityAppServer.http.get<ApiOk<{ view_mode: "list" | "split" }>>("/v1/mua/preferences"),
+    getPreferences: () =>
+        entityAppServer.http.get<ApiOk<{ view_mode: "list" | "split"; last_account_seq: number }>>(
+            "/v1/mua/preferences"
+        ),
     /** 사용자 화면 설정 저장 */
-    updatePreferences: (body: { view_mode?: "list" | "split" }) =>
-        entityAppServer.http.patch<ApiOk<{ view_mode: "list" | "split" }>>("/v1/mua/preferences", body),
+    updatePreferences: (body: { view_mode?: "list" | "split"; last_account_seq?: number }) =>
+        entityAppServer.http.patch<ApiOk<{ view_mode: "list" | "split"; last_account_seq: number }>>(
+            "/v1/mua/preferences",
+            body
+        ),
     /** 사용자 메일함 목록 */
     listFolders: () => entityAppServer.http.get<ApiOk<{ items: MailUserFolder[] }>>("/v1/mua/folders"),
     /** 메일함 추가 */

@@ -12,7 +12,6 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
 import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import type { BulkMessageAction } from "../apis/mailApi";
-import { useModal } from "@ehfuse/forma";
 import { useIsMobile } from "../internal/useIsMobile";
 import { mfs } from "../internal/mobileFontScale";
 import { useMobileSearchOverlay } from "../internal/mobileSearchOverlay";
@@ -25,7 +24,6 @@ import { MAIL_FOLDER_LABELS } from "../models/subPage";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime, type MailChangedData } from "../apis/useMailRealtime";
 import { useComposeController } from "../controllers/composeController";
-import { useMailAccountFormController } from "../controllers/mailAccountFormController";
 import { useMailController } from "../controllers/mailController";
 import type {
     MailAccount,
@@ -36,9 +34,6 @@ import type {
     MailMessageListItem,
     MailMoveTarget,
     MailMoveTargetOption,
-    MailRule,
-    MailRuleForm,
-    MailRuleFormPrefill,
     MailUserFolder,
 } from "../models/types";
 import { useHeaderConfig } from "./Header";
@@ -56,16 +51,14 @@ import { FolderIcon } from "../internal/FolderIcon";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
 import { ConfirmActionPopper } from "@ehfuse/mui-confirm-action";
-import { consumeMailFoldersManageRequest, subscribeMailFoldersManage } from "../internal/foldersManageRequest";
+import { requestMailAccountForm, requestMailManage, requestMailRuleForm } from "../internal/manageRequest";
 import { subscribeMailRefresh } from "../internal/refreshRequest";
-import { MailManageDialog, type MailManageTab } from "./dialogs/MailManageDialog";
-import { MailRuleFormDialog } from "./dialogs/MailRuleFormDialog";
+import { MailManageHost } from "./MailManageHost";
 import { MailHeaderActions, type MailViewMode } from "./components/MailHeaderActions";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
 import { ComposeDialog } from "./dialogs/ComposeDialog";
-import { MailAccountFormDialog } from "./dialogs/MailAccountFormDialog";
 import { toRouteFolder } from "../utils/routeFolder";
 
 /** 보기 타입 저장 키 */
@@ -143,7 +136,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [isMobile, searchOverlay]);
     const logined = useMuaLogined();
     // 모바일 셸(카드 목록 래퍼·상세 다이얼로그)은 앱이 주입하면 그것을, 없으면 패키지 기본을 쓴다.
-    const mobileConfig = useMuaConfig().mobile;
+    const { mobile: mobileConfig, appHostsMailManage } = useMuaConfig();
     const MobileCardListLayout = mobileConfig?.CardListLayout ?? DefaultMobileCardListLayout;
     const MobileDetailDialog = mobileConfig?.DetailDialog ?? DefaultMobileDetailDialog;
 
@@ -171,7 +164,6 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [isEmbedded, isInline, total]);
     const allFolders = state.useValue("folders") as MailUserFolder[];
     const folders = useMemo(() => allFolders.filter((f) => f.in_sidebar !== false), [allFolders]);
-    const rules = state.useValue("rules") as MailRule[];
     const currentUserFolder = useMemo(
         () => (filters.folder === "custom" ? folders.find((f) => f.seq === filters.mailFolderSeq) : undefined),
         [filters.folder, filters.mailFolderSeq, folders]
@@ -208,7 +200,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [state.actions]
     );
 
-    const accountForm = useMailAccountFormController({ onSaved: refreshAccounts });
+    // 계정 폼·관리 다이얼로그·규칙 폼은 MailManageHost 가 그린다 — 여기서는 요청(manageRequest)만 보낸다.
     const compose = useComposeController({ onSent: refreshList, onDraftSaved: refreshList });
 
     // 최초 1회: 계정·메일함·규칙은 진입 부트스트랩 1건(takeMailEntry)에서 받고 건수만 따로 읽는다.
@@ -286,11 +278,22 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     );
     useMailRealtime({ enabled: logined, onEvent: handleRealtime });
 
-    /** 기본 발신 계정 — 현재 보고 있는 계정 > 기본 발신 개인 계정 > 첫 계정 */
+    // 마지막에 고른 보내는 계정(mail_preference.last_account_seq) — 아래 설정 로딩 이펙트가 채운다.
+    // 전역 상태에 둔다: 새 메일 창을 그리는 곳이 이 화면이 아니라 MailManageHost 라 둘이 같은 값을 봐야 한다.
+    const lastAccountSeq = state.useValue("lastAccountSeq") as number;
+    /**
+     * 새 메일의 보내는 계정 — 마지막에 고른 계정 > 현재 보고 있는 계정 > 기본 발신 개인 계정 > 첫 계정.
+     * "마지막에 고른 것" 을 앞에 두는 이유: 받은편지함을 이리저리 보다가 메일을 쓰는 경우가 많은데,
+     * 그때 보고 있던 계정으로 발신자가 바뀌면 매번 다시 고르게 된다(2026-09-06).
+     * 그 기억은 계정에 저장돼(mail_preference.last_account_seq) 다른 기기에서도 같다.
+     */
     const defaultAccount = useMemo(
         () =>
-            accounts.find((a) => a.seq === filters.mailAccountSeq) ?? accounts.find((a) => a.is_default) ?? accounts[0],
-        [accounts, filters.mailAccountSeq]
+            accounts.find((a) => a.seq === lastAccountSeq) ??
+            accounts.find((a) => a.seq === filters.mailAccountSeq) ??
+            accounts.find((a) => a.is_default) ??
+            accounts[0],
+        [accounts, filters.mailAccountSeq, lastAccountSeq]
     );
     /** 상세 메시지의 계정 */
     const detailAccount = useMemo(
@@ -300,22 +303,22 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
 
     const handleCompose = useCallback(() => {
         if (!defaultAccount) {
-            accountForm.form.actions.openDialog(null);
+            requestMailAccountForm(null); // 계정이 없으면 등록부터
             return;
         }
         compose.form.actions.openNew(defaultAccount);
-    }, [defaultAccount, compose.form.actions, accountForm.form.actions]);
+    }, [defaultAccount, compose.form.actions]);
 
     /** 상세의 주소 클릭 → 그 주소를 받는 사람으로 새 메일(발신 계정 = 상세 메시지의 계정). */
     const handleComposeTo = useCallback(
         (address: string) => {
             if (!detailAccount) {
-                accountForm.form.actions.openDialog(null);
+                requestMailAccountForm(null);
                 return;
             }
             compose.form.actions.openNew(detailAccount, address);
         },
-        [detailAccount, compose.form.actions, accountForm.form.actions]
+        [detailAccount, compose.form.actions]
     );
 
     // 주소록에 있는 메일 주소 집합 — 상세의 "주소록 추가" 아이콘은 없는 주소에만 보인다(추가하면 즉시 사라진다).
@@ -360,29 +363,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [detailAccount]
     );
 
-    // 메일 관리 다이얼로그(계정/메일함/규칙 탭). ⚙ = 계정 탭. 계정 등록·수정 창은 그 위에 겹쳐 연다.
-    const manageModal = useModal({ modalId: "mail-manage-dialog" });
-    const [manageTab, setManageTab] = useState<MailManageTab>("accounts");
-    const openManage = useCallback(
-        (tab: MailManageTab) => {
-            setManageTab(tab);
-            manageModal.open();
-        },
-        [manageModal]
-    );
-    const handleManageAccounts = useCallback(() => openManage("accounts"), [openManage]);
-
-    /** 관리 목록에서 계정 삭제(확인 후) — 삭제 성공 시 폼 컨트롤러가 목록을 재조회한다. */
-    const handleDeleteAccount = useCallback(
-        (account: MailAccount) => {
-            ConfirmDialog({
-                title: "메일 계정 삭제",
-                message: `"${account.name || account.email}" 계정과 받은/보낸 메일이 모두 삭제됩니다. 삭제하시겠습니까?`,
-                onConfirm: () => void accountForm.removeAccount(account.seq),
-            });
-        },
-        [accountForm]
-    );
+    // 헤더 ⚙ = 관리 다이얼로그의 계정 탭 — 다이얼로그 자체는 MailManageHost 가 그린다.
+    const handleManageAccounts = useCallback(() => requestMailManage("accounts"), []);
 
     const handleToggleStar = useCallback(
         (row: MailMessageListItem) => {
@@ -545,27 +527,6 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 : null,
         [rowConfirm]
     );
-    // 규칙 폼(관리 다이얼로그의 [규칙 추가]/수정, 우클릭 "규칙 만들기")
-    const [ruleEditing, setRuleEditing] = useState<{
-        rule: MailRule | null;
-        prefill: MailRuleFormPrefill | null;
-    } | null>(null);
-    const refreshRulesAndList = useCallback(() => {
-        void state.actions.loadRules();
-        refreshList();
-    }, [state.actions, refreshList]);
-    const refreshFolders = useCallback(() => {
-        void state.actions.loadFolders().then(() => state.actions.loadCounts());
-        refreshList();
-    }, [state.actions, refreshList]);
-    // 사이드바 메일 그룹의 ⚙ 로 요청된 "메일함 관리" 열기 → 관리 다이얼로그의 메일함 탭
-    useEffect(() => {
-        const check = () => {
-            if (consumeMailFoldersManageRequest()) openManage("folders");
-        };
-        check();
-        return subscribeMailFoldersManage(check);
-    }, [openManage]);
     /** 이동 대상 목록(우클릭 "이동 ▸" / 툴바 이동) — 사용자 메일함 + 받은편지함/스팸함/휴지통(현재 폴더 제외) */
     const moveTargets = useMemo<MailMoveTargetOption[]>(() => {
         const items: MailMoveTargetOption[] = folders
@@ -583,9 +544,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [folders, filters.folder, filters.mailFolderSeq]);
     /** 이 메일을 힌트로 규칙 폼을 연다(우클릭 "규칙 만들기"·상세 ⋮ "규칙 만들기" 공용). */
     const openRuleFromMessage = useCallback((row: MailMessageListItem) => {
-        setRuleEditing({
-            rule: null,
-            prefill: {
+        requestMailRuleForm(null, {
                 // 조건은 비워 두고, [조건 추가]에서 보낸 사람/제목을 고르면 이 메일의 값이 채워진다
                 hints: {
                     from_address: row.from_address ?? "",
@@ -599,7 +558,6 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 },
                 name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
                 conditions: [],
-            },
         });
     }, []);
     const contextMenuItems = useMemo<ContextMenuItem<MailMessageListItem>[]>(
@@ -768,6 +726,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 if (cancelled || !res || res.ok === false) return;
                 const mode = res.data?.view_mode === "split" ? "split" : "list";
                 setViewMode(mode);
+                state.setValue("lastAccountSeq", Number(res.data?.last_account_seq ?? 0) || 0);
                 try {
                     window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
                 } catch {
@@ -961,38 +920,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
           ? "등록된 메일 계정이 없습니다. 오른쪽 위 계정 관리에서 계정을 등록하세요."
           : "메일이 없습니다.";
 
-    // 공용 다이얼로그(계정 관리/등록·작성) — 데스크탑·모바일 공통.
+    // 공용 다이얼로그(작성 + 관리 UI) — 데스크탑·모바일 공통.
+    // 관리 UI(관리 다이얼로그·계정 폼·규칙 폼)는 앱이 자기 레이아웃에 호스트를 뒀으면(appHostsMailManage) 여기서
+    // 그리지 않는다 — 둘 다 그리면 열기 요청을 양쪽이 소비해 두 개가 뜬다.
     const dialogs = (
         <>
-            <MailManageDialog
-                open={manageModal.isOpen}
-                tab={manageTab}
-                onTabChange={setManageTab}
-                onClose={manageModal.close}
-                // 관리 다이얼로그는 현재 팀과 무관하게 내 모든 팀 공용을 보여준다(팀명 칩으로 구분).
-                accounts={allAccounts}
-                syncingSeqs={syncingSeqs}
-                folders={allFolders}
-                rules={rules}
-                onAddAccount={() => accountForm.form.actions.openDialog(null)}
-                onEditAccount={(account) => accountForm.form.actions.openDialog(account)}
-                onDeleteAccount={handleDeleteAccount}
-                onSyncAccount={(account) => void state.actions.syncNow(account.seq).then(() => refreshList())}
-                onFoldersChanged={refreshFolders}
-                onAddRule={() => setRuleEditing({ rule: null, prefill: null })}
-                onEditRule={(rule) => setRuleEditing({ rule, prefill: null })}
-                onRulesChanged={refreshRulesAndList}
-            />
-            <MailAccountFormDialog controller={accountForm} />
-            <ComposeDialog controller={compose} accounts={accounts} />
-            <MailRuleFormDialog
-                open={Boolean(ruleEditing)}
-                rule={ruleEditing?.rule ?? null}
-                prefill={ruleEditing?.prefill ?? null}
-                folders={folders}
-                onClose={() => setRuleEditing(null)}
-                onSaved={refreshRulesAndList}
-            />
+            {!appHostsMailManage && <MailManageHost />}
             <ConfirmActionPopper
                 open={Boolean(rowConfirm)}
                 anchorEl={rowConfirmAnchor}

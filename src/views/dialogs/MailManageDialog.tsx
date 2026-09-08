@@ -32,6 +32,7 @@ interface MailManageDialogProps {
     onEditAccount: (account: MailAccount) => void; // 계정 수정
     onDeleteAccount: (account: MailAccount) => void; // 계정 삭제
     onSyncAccount: (account: MailAccount) => void; // 지금 동기화
+    onReorderAccounts?: (seqs: number[]) => void; // 계정 표시 순서 저장(드래그)
     onFoldersChanged: () => void; // 메일함 변경 후
     onAddRule: () => void; // 규칙 추가
     onEditRule: (rule: MailRule) => void; // 규칙 수정
@@ -52,6 +53,7 @@ export function MailManageDialog({
     onEditAccount,
     onDeleteAccount,
     onSyncAccount,
+    onReorderAccounts,
     onFoldersChanged,
     onAddRule,
     onEditRule,
@@ -114,7 +116,11 @@ export function MailManageDialog({
                 activeTabValue={TAB_ORDER.indexOf(tab)}
                 onTabChange={(index: number) => onTabChange(TAB_ORDER[index] ?? "accounts")}
                 locale="ko"
-                maxWidth="sm"
+                // 계정 줄이 [아이콘][이름·주소·서버][칩][액션] 네 칸이라 sm(600)에서는 주소가 눌리고
+                // md(900)는 남는 자리가 커 헐거워 보인다 — mfd 의 width 로 그 사이를 직접 잡는다(2026-09-07).
+                // sx 로는 안 된다 — mfd 의 sx 는 DialogTitle/Content/Actions 세 칸짜리 설정 객체라 조용히 무시된다.
+                width={isMobile ? undefined : 750}
+                maxWidth="md"
                 scrollPastLastSection={false}
                 contentBottomPadding={24}
                 sections={[
@@ -129,6 +135,7 @@ export function MailManageDialog({
                                 onEdit={onEditAccount}
                                 onDelete={onDeleteAccount}
                                 onSync={onSyncAccount}
+                                onReorder={onReorderAccounts}
                             />
                         ),
                     },

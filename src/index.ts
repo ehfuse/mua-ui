@@ -45,7 +45,16 @@ export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
 export { notifyMailTeamContextChanged } from "./internal/teamContext";
 // 앱 bootstrap 이 재로그인 때 부른다 — 다음 진입에서 /v1/mua/bootstrap 을 다시 읽게 한다.
 export { resetMailEntry } from "./internal/entryBootstrap";
-export { requestMailFoldersManage } from "./internal/foldersManageRequest";
+export { MailManageHost } from "./views/MailManageHost";
+export {
+    requestMailAccountForm,
+    requestMailFoldersManage,
+    requestMailCompose,
+    requestMailManage,
+    requestMailRuleForm,
+    type MailManageRequest,
+    type MailManageTab,
+} from "./internal/manageRequest";
 export { requestMailRefresh } from "./internal/refreshRequest";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";
 export { FolderIcon as MailFolderIcon } from "./internal/FolderIcon";

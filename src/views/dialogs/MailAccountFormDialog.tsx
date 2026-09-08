@@ -425,6 +425,14 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                 borderColor: "rgba(0,0,0,0.23)",
                                 borderRadius: 1,
                                 overflow: "hidden",
+                                // 높이는 **이 상자**가 정한다. 에디터는 autoHeight 가 아니면 내용 영역에
+                                // `.fixed-height { flex:1; height:0; min-height:0 }` 를 걸고 높이를 부모에서 받으므로,
+                                // 부모에 높이가 없으면 config.minHeight 를 아무리 키워도 한 줄로 눌린다(2026-09-07).
+                                height: { xs: 180, sm: 220 },
+                                display: "flex",
+                                flexDirection: "column",
+                                "& > div": { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
+                                "& .ehfuse-editor-container": { flex: 1, minHeight: 0 },
                             }}
                         >
                             <EhfuseEditor
@@ -461,7 +469,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             backdropClick={false}
             open={modal.isOpen}
             onClose={modal.close}
-            title={{ text: `${isShared ? "공용 " : ""}메일 계정 ${seq > 0 ? "수정" : "등록"}` }}
+            // "외부" 를 붙인다 — 이 앱에는 기업메일(우리 도메인 사서함)이 따로 있어 그냥 "메일 계정" 이면 갈리지 않는다.
+            title={{ text: `${isShared ? "공용 " : ""}외부 메일 계정 ${seq > 0 ? "수정" : "등록"}` }}
             titleIcons={{ delete: { visible: false } }}
             // 섹션 탭(기본 정보/수신/발신/서명)을 보여 주고, 콘텐츠 높이는 800px 로 고정한다(탭 전환 시 크기 점프 방지).
             // 모바일은 풀스크린 슬라이드라 고정 높이를 두지 않는다(화면 높이를 그대로 쓴다).

@@ -26,7 +26,7 @@ export interface MailAccount {
     scope: MailAccountScope; // 계정 범위
     team_seq?: number; // 소속 팀(공용 계정과 기업메일 사서함; 개인 외부 계정은 0) — 팀별 격리(주입 앱 전용)
     team_name?: string; // 소속 팀 이름(칩 표시용 — 서버가 채운다)
-    kind?: string; // "external"(외부 계정) | "hosted"(기업메일 사서함 — 여기서는 읽기 전용)
+    kind?: string; // "external"(외부 계정) | "hosted"(기업메일 사서함 — 서버 설정은 읽기 전용, 이름·서명만 고친다)
     in_sidebar?: boolean; // 보기 범위(사이드바/셸) 표시 여부 — 관리 다이얼로그는 무시하고 전부 보여준다
     name: string; // 표시 이름
     email: string; // 메일 주소
@@ -42,6 +42,7 @@ export interface MailAccount {
     smtp_username: string; // SMTP 아이디
     enabled: boolean; // 자동 동기화
     is_default: boolean; // 기본 발신 계정
+    sort_order: number; // 표시 순서(관리 다이얼로그에서 드래그로 정한다 — 0=먼저)
     pop3_delete_after_fetch: boolean; // POP3 수신 후 서버 삭제
     imap_mailbox: string; // IMAP 메일함
     sync_interval_min: number; // 동기화 간격(분)
@@ -51,6 +52,12 @@ export interface MailAccount {
     has_incoming_password: boolean; // 수신 비밀번호 저장됨
     has_smtp_password: boolean; // SMTP 비밀번호 저장됨
     can_manage: boolean; // 수정/삭제 가능(개인=소유자, 공용=관리자 또는 등록자)
+    /**
+     * 표시 이름·서명·기본 발신만 고칠 수 있는지 — 기업메일 사서함(kind=hosted)의 담당자.
+     * 사서함 자체(주소·서버)는 팀 관리 › 기업메일 소관이라 can_manage 는 false 지만,
+     * 보내는 사람 이름과 서명은 쓰는 사람의 것이라 여기서 고친다(2026-09-07).
+     */
+    can_edit_profile?: boolean;
     unread_count?: number; // 받은편지함 미읽음
 }
 
@@ -174,6 +181,7 @@ export interface MailState {
     loadingDetail: boolean; // 상세 로딩
     counts: MailFolderCounts; // 폴더 건수(현재 계정 범위)
     syncingSeqs: number[]; // 동기화 중인 메일 계정 seq 목록(계정별 표시)
+    lastAccountSeq: number; // 마지막으로 고른 보내는 계정(mail_preference.last_account_seq 사본 — 새 메일 기본값)
     error: string; // 목록 오류
 }
 
@@ -258,6 +266,13 @@ export interface ComposeRequest {
 }
 
 /** 계정 저장 요청 본문(폼에서 변환) */
+/** 기업메일 사서함 프로필 수정 요청 — 서버가 이 세 필드만 받는다(주소·서버 설정은 팀 관리 › 기업메일). */
+export interface MailHostedProfileRequest {
+    name: string; // 보내는 사람 이름
+    signature: string; // 서명(HTML)
+    is_default: boolean; // 기본 발신 계정
+}
+
 export type MailAccountRequest = Omit<
     MailAccountForm,
     "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared" | "team_seq"
@@ -310,7 +325,7 @@ export interface MailUserFolder {
     scope: "personal" | "shared"; // 개인/공용
     team_seq?: number; // 소속 팀(공용 계정과 기업메일 사서함; 개인 외부 계정은 0) — 팀별 격리(주입 앱 전용)
     team_name?: string; // 소속 팀 이름(칩 표시용 — 서버가 채운다)
-    kind?: string; // "external"(외부 계정) | "hosted"(기업메일 사서함 — 여기서는 읽기 전용)
+    kind?: string; // "external"(외부 계정) | "hosted"(기업메일 사서함 — 서버 설정은 읽기 전용, 이름·서명만 고친다)
     in_sidebar?: boolean; // 보기 범위(사이드바/셸) 표시 여부 — 관리 다이얼로그는 무시하고 전부 보여준다
     name: string; // 이름
     sort_order: number; // 정렬
