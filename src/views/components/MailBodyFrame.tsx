@@ -34,7 +34,10 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
         [html, text, allowRemoteImages]
     );
 
-    // 로드 후 문서 높이에 맞춰 iframe 높이를 맞춘다(이미지 로딩 등으로 늦게 커지는 경우까지 몇 번 재측정).
+    // 로드 후 문서 높이에 맞춰 iframe 높이를 맞춘다.
+    // 몇 번 재기(200·800·2000ms)만으로는 부족했다(2026-09-11): 이미지가 많은 광고성 메일은 폰에서 2초 뒤에도
+    // 계속 커져 본문이 중간에서 잘렸다(NICE지키미 메일이 "케어십알림" 아래에서 끊김). 문서 크기 변화를
+    // ResizeObserver 로 따라가고, 이미지 하나하나의 load 도 듣는다 — srcDoc 은 같은 출처라 안쪽 문서를 만질 수 있다.
     useEffect(() => {
         const frame = frameRef.current;
         if (!frame) return;
@@ -66,19 +69,41 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             else window.open(href, "_blank", "noopener,noreferrer");
         };
         let listenedDoc: Document | null = null;
+        let observer: ResizeObserver | null = null;
+        const imageListeners: Array<{ img: HTMLImageElement; handler: () => void }> = [];
         const onLoad = () => {
             fit();
+            // 초기 몇 번은 그대로 둔다 — 관찰자가 붙기 전 폰트 적용·mua-fit 개행으로 바뀌는 높이를 잡는다.
             timers = [200, 800, 2000].map((ms) => setTimeout(fit, ms));
             const doc = frame.contentDocument;
             if (doc) {
                 doc.addEventListener("click", onDocClick);
                 listenedDoc = doc;
+                // 문서가 커지거나 줄어들 때마다 — 이미지 지연 로드·mua-fit 개행 모두 여기서 잡힌다.
+                if (typeof ResizeObserver !== "undefined") {
+                    observer = new ResizeObserver(() => fit());
+                    if (doc.documentElement) observer.observe(doc.documentElement);
+                    if (doc.body) observer.observe(doc.body);
+                }
+                // 이미지 load 도 직접 듣는다 — 크기 변화가 없는 경우(같은 크기 자리표시자)에도 한 번 더 재 준다.
+                doc.querySelectorAll("img").forEach((img) => {
+                    if (img.complete) return;
+                    const handler = () => fit();
+                    img.addEventListener("load", handler);
+                    img.addEventListener("error", handler);
+                    imageListeners.push({ img, handler });
+                });
             }
         };
         frame.addEventListener("load", onLoad);
         return () => {
             frame.removeEventListener("load", onLoad);
             listenedDoc?.removeEventListener("click", onDocClick);
+            observer?.disconnect();
+            imageListeners.forEach(({ img, handler }) => {
+                img.removeEventListener("load", handler);
+                img.removeEventListener("error", handler);
+            });
             timers.forEach(clearTimeout);
         };
     }, [srcDoc]);
