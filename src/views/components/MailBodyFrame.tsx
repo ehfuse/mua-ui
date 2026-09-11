@@ -35,9 +35,14 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
     );
 
     // 로드 후 문서 높이에 맞춰 iframe 높이를 맞춘다.
-    // 몇 번 재기(200·800·2000ms)만으로는 부족했다(2026-09-11): 이미지가 많은 광고성 메일은 폰에서 2초 뒤에도
-    // 계속 커져 본문이 중간에서 잘렸다(NICE지키미 메일이 "케어십알림" 아래에서 끊김). 문서 크기 변화를
-    // ResizeObserver 로 따라가고, 이미지 하나하나의 load 도 듣는다 — srcDoc 은 같은 출처라 안쪽 문서를 만질 수 있다.
+    //
+    // 몇 번 재기(200·800·2000ms)만으로는 부족했다(2026-09-11): 이미지가 많은 메일은 폰에서 2초 뒤에도 계속 커졌다.
+    // 그래서 안쪽 문서를 ResizeObserver 로 따라가고 이미지 load 도 듣는다(srcDoc 은 같은 출처라 안쪽을 만질 수 있다).
+    //
+    // ⚠️ **바깥 iframe 도 함께 관찰해야 한다**(2026-09-11). 상세는 오른쪽에서 미끄러져 들어오는 창이라, 로드 시점에는
+    // iframe 폭이 아직 0~좁은 값이다. 그 폭으로 잰 높이가 그대로 굳어 본문이 중간에서 잘렸다 —
+    // 앱을 전환했다 돌아오면 멀쩡했던 이유가 이것이다(그때 리플로가 한 번 더 돌아 제 폭으로 다시 쟀다).
+    // 안쪽 문서만 보면 바깥이 넓어져도 알 수 없다(내용은 그대로고 레이아웃만 바뀐다).
     useEffect(() => {
         const frame = frameRef.current;
         if (!frame) return;
@@ -49,8 +54,10 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             // 가로 스크롤이 생긴다. 축소(zoom)는 글자까지 작아져 못 쓴다 — 넘칠 때만 mua-fit 클래스를 붙여
             // 고정 width 를 무력화(html.ts 의 body.mua-fit 규칙)하고 글자 크기 그대로 화면 폭에 맞춰 개행시킨다.
             const frameWidth = frame.clientWidth;
+            // 폭이 아직 0 이면(창이 미끄러져 들어오는 중) 재지 않는다 — 그 값으로 잰 높이가 굳으면 본문이 잘린다.
+            if (frameWidth <= 0) return;
             const contentWidth = Math.max(doc.documentElement?.scrollWidth ?? 0, doc.body?.scrollWidth ?? 0);
-            if (frameWidth > 0 && contentWidth > frameWidth + 1 && !doc.body.classList.contains("mua-fit")) {
+            if (contentWidth > frameWidth + 1 && !doc.body.classList.contains("mua-fit")) {
                 doc.body.classList.add("mua-fit");
             }
             const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
@@ -80,10 +87,12 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
                 doc.addEventListener("click", onDocClick);
                 listenedDoc = doc;
                 // 문서가 커지거나 줄어들 때마다 — 이미지 지연 로드·mua-fit 개행 모두 여기서 잡힌다.
+                // iframe 자신도 함께 본다 — 창이 미끄러져 들어오며 폭이 커지는 것은 여기서만 잡힌다.
                 if (typeof ResizeObserver !== "undefined") {
                     observer = new ResizeObserver(() => fit());
                     if (doc.documentElement) observer.observe(doc.documentElement);
                     if (doc.body) observer.observe(doc.body);
+                    observer.observe(frame);
                 }
                 // 이미지 load 도 직접 듣는다 — 크기 변화가 없는 경우(같은 크기 자리표시자)에도 한 번 더 재 준다.
                 doc.querySelectorAll("img").forEach((img) => {
