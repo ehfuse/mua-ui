@@ -75,7 +75,14 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
                 // 클래스를 막 바꿨으면 레이아웃이 다시 잡힌 뒤의 높이를 재야 한다 — 강제 리플로를 한 번 일으킨다.
                 if (shouldFit !== wasFit) void doc.body.offsetHeight;
                 const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
-                if (height > 0) frame.style.height = `${height + 8}px`;
+                // ⚠️ 여유 8px 은 **누적되면 안 된다**(2026-09-11). iframe 을 높이면 안쪽 문서도 그만큼 커져
+                // 관찰자가 다시 돌고, 그때 또 8 을 더하면 8px 씩 끝없이 자란다(크로미움에서 1454→1462→1470 확인).
+                // 그래서 이미 그 높이에 맞춰져 있으면(오차 8px 이내) 건드리지 않는다.
+                if (height > 0) {
+                    const next = height + 8;
+                    const current = parseFloat(frame.style.height) || 0;
+                    if (Math.abs(current - next) > 8) frame.style.height = `${next}px`;
+                }
             } finally {
                 fitting = false;
             }
@@ -95,12 +102,39 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
         let listenedDoc: Document | null = null;
         let observer: ResizeObserver | null = null;
         const imageListeners: Array<{ img: HTMLImageElement; handler: () => void }> = [];
-        const onLoad = () => {
+        /**
+         * 관찰자·리스너를 **지금 보이는 문서에** 붙인다.
+         *
+         * ⚠️ iframe 은 srcDoc 을 읽으며 **문서를 통째로 갈아끼운다**(2026-09-11, 크로미움에서 직접 확인).
+         * effect 가 처음 돌 때 잡히는 contentDocument 는 곧 버려질 빈 문서이고, 그 문서는 끝까지
+         * scrollHeight=0 을 준다. 진짜 문서는 load 와 함께 온다(같은 본문이 894 로 잡혔다).
+         * 그래서 **문서가 바뀌면 다시 붙여야 한다** — 한 번 붙이고 attached 로 막으면 버려진 문서만
+         * 보게 되어 높이가 영영 0/초기값에 굳는다(목록에서 열 때 본문이 잘린 진짜 이유).
+         */
+        let attachedDoc: Document | null = null;
+        const attach = () => {
+            const doc = frame.contentDocument;
+            // 아직 문서가 없으면(진짜 로딩 중) load 를 기다린다.
+            if (!doc?.body) return;
+            // 같은 문서면 다시 붙일 것 없이 재기만 한다.
+            if (attachedDoc === doc) {
+                fit();
+                return;
+            }
+            // 문서가 갈렸으면 앞 문서에 걸어 둔 것들을 걷어낸다.
+            observer?.disconnect();
+            observer = null;
+            listenedDoc?.removeEventListener("click", onDocClick);
+            imageListeners.forEach(({ img, handler }) => {
+                img.removeEventListener("load", handler);
+                img.removeEventListener("error", handler);
+            });
+            imageListeners.length = 0;
+            attachedDoc = doc;
             fit();
             // 초기 몇 번은 그대로 둔다 — 관찰자가 붙기 전 폰트 적용·mua-fit 개행으로 바뀌는 높이를 잡는다.
-            timers = [200, 800, 2000].map((ms) => setTimeout(fit, ms));
-            const doc = frame.contentDocument;
-            if (doc) {
+            timers.push(...[200, 800, 2000].map((ms) => setTimeout(fit, ms)));
+            {
                 doc.addEventListener("click", onDocClick);
                 listenedDoc = doc;
                 // 문서가 커지거나 줄어들 때마다 — 이미지 지연 로드·mua-fit 개행 모두 여기서 잡힌다.
@@ -121,7 +155,24 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
                 });
             }
         };
+        const onLoad = () => attach();
         frame.addEventListener("load", onLoad);
+        // 이미 로드가 끝난 뒤일 수 있으므로 지금 바로 한 번 시도한다(위 주석 참고).
+        attach();
+        /**
+         * 바깥 iframe 관찰은 **문서 준비와 무관하게** 따로 붙인다. attach() 안에만 두면
+         * "문서가 아직 없다 + load 는 이미 지나갔다" 가 겹칠 때 아무것도 안 붙는다.
+         * 창이 폭 0 으로 열려 미끄러져 들어오는 경우가 정확히 여기라, 폭이 커지는 순간을 놓치면 잘린 채로 굳는다.
+         */
+        let frameObserver: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== "undefined") {
+            frameObserver = new ResizeObserver(() => {
+                // 폭이 생기면 그때 관찰자를 붙이고(attach 는 한 번만 먹는다) 다시 잰다.
+                attach();
+                fit();
+            });
+            frameObserver.observe(frame);
+        }
         // 앱을 내렸다 올리면(모바일 웹뷰) 그동안 레이아웃이 멈춰 있어 폭이 어긋난 채로 남을 수 있다.
         // 지금까지는 복귀 때 리플로가 우연히 한 번 돌아 고쳐졌을 뿐이라, 여기서 직접 다시 잰다.
         const onWake = () => {
@@ -133,6 +184,7 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
         window.addEventListener("pageshow", onWake);
         return () => {
             frame.removeEventListener("load", onLoad);
+            frameObserver?.disconnect();
             document.removeEventListener("visibilitychange", onWake);
             window.removeEventListener("pageshow", onWake);
             listenedDoc?.removeEventListener("click", onDocClick);
