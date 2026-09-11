@@ -59,7 +59,9 @@ export function DefaultMobileDetailDialog({
             contentTopPadding={16}
             sectionsPaddingTop={0}
             contentBottomPadding={0}
-            scrollPastLastSection={false}
+            // ⚠️ scrollPastLastSection 을 끄지 않는다(2026-09-11). 끄면 마지막 섹션이 보이는 높이에 맞춰 갇혀,
+            // 메일 본문처럼 화면보다 긴 내용이 카드 중간에서 잘리고 그 아래가 안 보였다.
+            // 본문 높이는 MailBodyFrame 이 iframe 에 그대로 주므로, 다이얼로그는 길이대로 스크롤하면 된다.
             sections={[{ id: `${modalId}-body`, title, showTitle: false, children }]}
         />
     );
