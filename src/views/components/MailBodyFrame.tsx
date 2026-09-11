@@ -47,7 +47,11 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
         const frame = frameRef.current;
         if (!frame) return;
         let timers: ReturnType<typeof setTimeout>[] = [];
+        // fit() 이 mua-fit 을 붙였다 떼면 문서 크기가 바뀌어 ResizeObserver 가 다시 fit() 을 부른다.
+        // 재진입을 막지 않으면 붙임/뗌이 번갈아 도는 무한 루프가 된다(폭이 경계값일 때).
+        let fitting = false;
         const fit = () => {
+            if (fitting) return;
             const doc = frame.contentDocument;
             if (!doc?.body) return;
             // 가로 넘침 — 고정폭(테이블 width=600 등) 메일은 max-width 로도 최소 내용 폭 이하로 안 줄어
@@ -56,12 +60,25 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             const frameWidth = frame.clientWidth;
             // 폭이 아직 0 이면(창이 미끄러져 들어오는 중) 재지 않는다 — 그 값으로 잰 높이가 굳으면 본문이 잘린다.
             if (frameWidth <= 0) return;
-            const contentWidth = Math.max(doc.documentElement?.scrollWidth ?? 0, doc.body?.scrollWidth ?? 0);
-            if (contentWidth > frameWidth + 1 && !doc.body.classList.contains("mua-fit")) {
-                doc.body.classList.add("mua-fit");
+
+            // mua-fit 은 **폭이 바뀔 때마다 다시 판정한다**(2026-09-11). 한 번 붙이고 끝내면, 좁은 폭에서 붙은 채로
+            // 창이 넓어져도 그대로 남아 좁은 레이아웃의 높이가 굳는다(앱 전환으로도 안 풀렸던 이유).
+            // 판정은 클래스를 뗀 상태의 내용 폭으로 해야 한다 — 붙인 상태에서는 이미 접혀 있어 항상 "안 넘친다" 가 된다.
+            fitting = true;
+            try {
+                const wasFit = doc.body.classList.contains("mua-fit");
+                if (wasFit) doc.body.classList.remove("mua-fit");
+                const naturalWidth = Math.max(doc.documentElement?.scrollWidth ?? 0, doc.body?.scrollWidth ?? 0);
+                const shouldFit = naturalWidth > frameWidth + 1;
+                doc.body.classList.toggle("mua-fit", shouldFit);
+
+                // 클래스를 막 바꿨으면 레이아웃이 다시 잡힌 뒤의 높이를 재야 한다 — 강제 리플로를 한 번 일으킨다.
+                if (shouldFit !== wasFit) void doc.body.offsetHeight;
+                const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
+                if (height > 0) frame.style.height = `${height + 8}px`;
+            } finally {
+                fitting = false;
             }
-            const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
-            if (height > 0) frame.style.height = `${height + 8}px`;
         };
         /** 본문 링크 클릭 — http(s) 링크는 기본 동작(새 창)을 막고 부모에서 연다. mailto 등은 그대로 둔다. */
         const onDocClick = (event: Event) => {
@@ -105,8 +122,19 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             }
         };
         frame.addEventListener("load", onLoad);
+        // 앱을 내렸다 올리면(모바일 웹뷰) 그동안 레이아웃이 멈춰 있어 폭이 어긋난 채로 남을 수 있다.
+        // 지금까지는 복귀 때 리플로가 우연히 한 번 돌아 고쳐졌을 뿐이라, 여기서 직접 다시 잰다.
+        const onWake = () => {
+            if (document.visibilityState === "hidden") return;
+            fit();
+            timers.push(setTimeout(fit, 100));
+        };
+        document.addEventListener("visibilitychange", onWake);
+        window.addEventListener("pageshow", onWake);
         return () => {
             frame.removeEventListener("load", onLoad);
+            document.removeEventListener("visibilitychange", onWake);
+            window.removeEventListener("pageshow", onWake);
             listenedDoc?.removeEventListener("click", onDocClick);
             observer?.disconnect();
             imageListeners.forEach(({ img, handler }) => {
