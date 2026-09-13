@@ -99,18 +99,22 @@ export function MailManageHost() {
     // 새 메일의 보내는 계정 — 마지막에 고른 것 > 기본 발신 > 첫 계정(메일 화면과 같은 규칙).
     const lastAccountSeq = state.useValue("lastAccountSeq") as number;
     const sidebarAccounts = useMemo(() => allAccounts.filter((a) => a.in_sidebar !== false), [allAccounts]);
-    const openCompose = useCallback(() => {
-        const account =
-            sidebarAccounts.find((a) => a.seq === lastAccountSeq) ??
-            sidebarAccounts.find((a) => a.is_default) ??
-            sidebarAccounts[0];
-        // 계정이 하나도 없으면 등록부터 — 빈 작성 창을 열어 봐야 보낼 수 없다.
-        if (!account) {
-            accountForm.form.actions.openDialog(null);
-            return;
-        }
-        compose.form.actions.openNew(account);
-    }, [sidebarAccounts, lastAccountSeq, compose.form.actions, accountForm.form.actions]);
+    const openCompose = useCallback(
+        (to?: string) => {
+            const account =
+                sidebarAccounts.find((a) => a.seq === lastAccountSeq) ??
+                sidebarAccounts.find((a) => a.is_default) ??
+                sidebarAccounts[0];
+            // 계정이 하나도 없으면 등록부터 — 빈 작성 창을 열어 봐야 보낼 수 없다.
+            if (!account) {
+                accountForm.form.actions.openDialog(null);
+                return;
+            }
+            // 받는 사람 미리 채우기(앱 본문의 이메일 주소를 눌렀을 때, 2026-09-13).
+            compose.form.actions.openNew(account, to ?? "");
+        },
+        [sidebarAccounts, lastAccountSeq, compose.form.actions, accountForm.form.actions]
+    );
 
     // 관리 다이얼로그(계정/메일함/규칙 탭). 계정 등록·수정 창은 그 위에 겹쳐 연다.
     const manageModal = useModal({ modalId: "mail-manage-dialog" });
@@ -150,7 +154,7 @@ export function MailManageHost() {
         const check = () => {
             const request = consumeMailManageRequest();
             if (!request) return;
-            if (request.kind === "compose") openCompose();
+            if (request.kind === "compose") openCompose(request.to);
             else if (request.kind === "manage") openManage(request.tab);
             else if (request.kind === "account") accountForm.form.actions.openDialog(request.account);
             else setRuleEditing({ rule: request.rule, prefill: request.prefill });
