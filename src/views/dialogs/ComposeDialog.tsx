@@ -38,7 +38,23 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const mode = String(form.useFormValue("mode") ?? "new");
 
     const editorRef = useRef<EhfuseEditorRef>(null);
+    const toInputRef = useRef<HTMLInputElement | null>(null);
+    const subjectInputRef = useRef<HTMLInputElement | null>(null);
     const lastSyncedHtmlRef = useRef<string | null>(null);
+
+    // 열릴 때 커서 자리 — 받는 사람이 채워져 열리면(앱 본문의 이메일 주소를 눌러 연 새 메일) 제목부터 친다.
+    // 받는 사람이 비었으면(새 메일·전달) 받는 사람부터. 둘 다 차 있으면(답장) 건드리지 않는다.
+    // 창이 열리는 동안 다이얼로그가 포커스를 자기 쪽으로 가져가므로 열림 전환이 끝난 뒤에 준다.
+    useEffect(() => {
+        if (!modal.isOpen) return;
+        const timer = setTimeout(() => {
+            const to = String(form.getFormValue("to") ?? "").trim();
+            const subject = String(form.getFormValue("subject") ?? "").trim();
+            if (!to) toInputRef.current?.focus();
+            else if (!subject) subjectInputRef.current?.focus();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [modal.isOpen, form]);
     const stagingTokenRef = useRef(0);
 
     const accountOptions = useMemo(
@@ -199,6 +215,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     name="to"
                                     label="받는 사람"
                                     form={form}
+                                    inputRef={toInputRef}
                                     fullWidth
                                     placeholder="주소를 쉼표로 구분해 입력"
                                     autoComplete="off"
@@ -244,7 +261,14 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     {showCcBcc ? "참조 숨기기" : "참조/숨은참조"}
                                 </Button>
                             </Box>
-                            <ClearTextField name="subject" label="제목" form={form} fullWidth autoComplete="off" />
+                            <ClearTextField
+                                name="subject"
+                                label="제목"
+                                form={form}
+                                inputRef={subjectInputRef}
+                                fullWidth
+                                autoComplete="off"
+                            />
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
                                 첨부하려고 매번 끝까지 내려야 하고, 붙였는지도 눈에 들어오지 않는다. */}
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
