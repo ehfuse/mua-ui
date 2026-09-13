@@ -9,6 +9,7 @@
  * 안 읽은 메일은 왼쪽 파란 세로띠로 구분한다.
  */
 
+import { useRef, type MouseEvent } from "react";
 import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { StarRoundedIcon } from "../../internal/icons";
@@ -25,6 +26,8 @@ interface MailMobileListProps {
     onToggleStar: (row: MailMessageListItem) => void; // 별 탭 — 중요 토글
     checkedSeqs: Set<number>; // 복수 선택된 seq
     onToggleCheck: (seq: number) => void; // 체크박스 토글
+    // 길게 누르기(contextmenu) → 팝업 메뉴. 데스크톱 표의 우클릭 메뉴와 같은 항목을 그대로 띄운다.
+    onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void;
 }
 
 /** 메일 모바일 카드 목록을 렌더링한다. */
@@ -36,7 +39,10 @@ export function MailMobileList({
     onToggleStar,
     checkedSeqs,
     onToggleCheck,
+    onRowContextMenu,
 }: MailMobileListProps) {
+    // 길게 눌러 메뉴를 연 직후 손을 떼면 click 이 이어져 상세가 함께 열린다 — 그 한 번만 삼킨다.
+    const suppressClickRef = useRef(false);
     if (rows.length === 0) {
         return loading ? (
             <MobileListLoadingSpinner />
@@ -53,7 +59,24 @@ export function MailMobileList({
                     // 카드 배경/모서리/그림자는 StackContentsLayout 이 감싸는 Paper 가 담당한다 — 안쪽만 그린다.
                     <Box
                         key={row.seq}
-                        onClick={() => onSelect(row)}
+                        onClick={() => {
+                            // 방금 길게 눌러 메뉴를 연 것이면 상세를 열지 않는다.
+                            if (suppressClickRef.current) {
+                                suppressClickRef.current = false;
+                                return;
+                            }
+                            onSelect(row);
+                        }}
+                        // 폰에서 카드를 길게 누르면 브라우저가 contextmenu 를 쏜다 — 그 자리에 팝업 메뉴를 띄운다.
+                        // 기본 동작(텍스트 선택 핸들·브라우저 메뉴)은 핸들러 안에서 막는다.
+                        onContextMenu={
+                            onRowContextMenu
+                                ? (event) => {
+                                      suppressClickRef.current = true;
+                                      onRowContextMenu(row, event);
+                                  }
+                                : undefined
+                        }
                         sx={{
                             display: "flex",
                             flexDirection: "column",
@@ -62,6 +85,8 @@ export function MailMobileList({
                             boxSizing: "border-box",
                             cursor: "pointer",
                             userSelect: "none",
+                            // iOS 사파리는 길게 누르면 링크/이미지 콜아웃을 띄운다 — 팝업 메뉴와 겹치지 않게 끈다.
+                            WebkitTouchCallout: "none",
                             py: 1,
                             pr: 1.75,
                             pl: 0.5,

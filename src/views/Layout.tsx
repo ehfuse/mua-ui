@@ -483,6 +483,19 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         },
         [messages, rowContextMenu]
     );
+    /**
+     * 모바일 카드 길게 누르기 → 팝업 메뉴. 표 우클릭과 같은 메뉴(contextMenuItems)를 손가락 위치에 띄운다.
+     * 길게 누르면 브라우저가 contextmenu 를 쏘는데, 그대로 두면 시스템 메뉴·텍스트 선택 핸들이 함께 떠서 막는다.
+     * 이어지는 pointer/click 이 카드 onClick(상세 열기)으로 새지 않게 전파도 끊는다(2026-09-13).
+     */
+    const handleCardContextMenu = useCallback(
+        (row: MailMessageListItem, event: ReactMouseEvent) => {
+            event.preventDefault();
+            event.stopPropagation();
+            rowContextMenu.openHandler(row)(event);
+        },
+        [rowContextMenu]
+    );
     const rowAction = useCallback(
         (row: MailMessageListItem, action: BulkMessageAction, move?: MailMoveTarget) =>
             void state.actions.applyMessageAction([row.seq], action, move).then((ok: boolean) => {
@@ -992,6 +1005,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             onToggleStar={handleToggleStar}
                             checkedSeqs={checkedSeqs}
                             onToggleCheck={toggleChecked}
+                            onRowContextMenu={handleCardContextMenu}
                         />
                         {/* 무한 스크롤 sentinel — 뷰포트(또는 다이얼로그 스크롤러)에 들어오면 다음 페이지 */}
                         {loadingMore ? <MobileListLoadingMoreSpinner /> : null}
