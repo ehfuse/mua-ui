@@ -1049,6 +1049,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         {detailPanel}
                     </Box>
                 </MobileDetailDialog>
+                {/*
+                 * 카드 길게 누르기 메뉴 — 모바일 가지에도 그려야 뜬다(2026-09-13).
+                 * 0.3.94 에서 카드에 onContextMenu 를 달았지만 ContextMenu 는 아래 데스크톱 return 에만 있어,
+                 * 폰에서는 상태만 열리고 메뉴가 그려지지 않았다(길게 눌러도 아무 일이 없던 원인).
+                 */}
+                <ContextMenu state={rowContextMenu} items={contextMenuItems} />
                 {dialogs}
             </>
         );
