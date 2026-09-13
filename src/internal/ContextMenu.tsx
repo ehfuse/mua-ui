@@ -152,7 +152,8 @@ export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
                               minWidth: 160,
                           }),
                     zIndex: 1400,
-                    py: isMobile ? 1.25 : 0.5,
+                    // 모바일은 틀 위아래 여백을 두지 않는다 — 있으면 첫·끝 줄만 그만큼 높아 보였다(2026-09-13).
+                    py: isMobile ? 0 : 0.5,
                     bgcolor: "#ffffff",
                     borderRadius: isMobile ? 2.5 : 1,
                     border: isMobile ? "none" : "1px solid #e5e7eb",
