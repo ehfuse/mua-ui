@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState, type MouseEvent, type ReactNode } fro
 import { createPortal } from "react-dom";
 import { Box, Divider } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useIsMobile } from "./useIsMobile";
 
 /** 우클릭 메뉴 위치/대상 상태다. */
 export interface ContextMenuState<T> {
@@ -74,6 +75,9 @@ interface ContextMenuProps<T> {
 /** 우클릭 메뉴를 렌더링한다(백드롭 없는 Portal div). */
 export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
     const { anchor, target, close } = state;
+    // 폰에서는 손가락 위치가 아니라 화면 한가운데에 띄운다 — 누른 손·카드에 가리지 않고,
+    // 좁은 화면에서 위아래로 잘리지도 않는다(2026-09-13 사용자 지시).
+    const isMobile = useIsMobile();
 
     // 메뉴가 열린 동안: 빈 곳/메뉴 밖 우클릭/좌클릭이면 닫는다(메뉴 위 우클릭은 무시).
     useEffect(() => {
@@ -118,29 +122,48 @@ export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
     const translateX = openLeftward ? "-100%" : "0";
 
     return createPortal(
-        <Box
-            data-context-menu
-            sx={{
-                position: "fixed",
-                top: anchor.top,
-                left: anchor.left,
-                // 화면을 벗어나면 위/왼쪽으로 펼쳐 잘리지 않게 한다.
-                transform: `translate(${translateX}, ${translateY})`,
-                zIndex: 1400,
-                minWidth: 160,
-                py: 0.5,
-                bgcolor: "#ffffff",
-                borderRadius: 1,
-                border: "1px solid #e5e7eb",
-                boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
-                // 우클릭 메뉴 항목 텍스트는 선택되지 않게 한다.
-                userSelect: "none",
-            }}
-        >
-            {visibleItems.map((item, index) => (
-                <ContextMenuRow key={index} item={item} index={index} target={target} close={close} />
-            ))}
-        </Box>,
+        <>
+            {/* 모바일 중앙 표시 — 뒤 화면을 덮어 메뉴에 집중시킨다. 바깥 탭 닫기는 위 pointerdown 리스너가
+                이미 처리하므로 여기에 onClick 을 두지 않는다(두 번 닫혀 다음 탭까지 삼키는 것을 막는다). */}
+            {isMobile ? (
+                <Box sx={{ position: "fixed", inset: 0, zIndex: 1399, bgcolor: "rgba(15, 23, 42, 0.32)" }} />
+            ) : null}
+            <Box
+                data-context-menu
+                sx={{
+                    position: "fixed",
+                    ...(isMobile
+                        ? // 화면 정중앙 — 항목이 많으면 안에서 스크롤한다(뷰포트를 넘지 않게).
+                          {
+                              top: "50%",
+                              left: "50%",
+                              transform: "translate(-50%, -50%)",
+                              maxHeight: "80vh",
+                              overflowY: "auto",
+                              minWidth: 240,
+                          }
+                        : {
+                              top: anchor.top,
+                              left: anchor.left,
+                              // 화면을 벗어나면 위/왼쪽으로 펼쳐 잘리지 않게 한다.
+                              transform: `translate(${translateX}, ${translateY})`,
+                              minWidth: 160,
+                          }),
+                    zIndex: 1400,
+                    py: 0.5,
+                    bgcolor: "#ffffff",
+                    borderRadius: 1,
+                    border: "1px solid #e5e7eb",
+                    boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
+                    // 우클릭 메뉴 항목 텍스트는 선택되지 않게 한다.
+                    userSelect: "none",
+                }}
+            >
+                {visibleItems.map((item, index) => (
+                    <ContextMenuRow key={index} item={item} index={index} target={target} close={close} />
+                ))}
+            </Box>
+        </>,
         document.body
     );
 }
