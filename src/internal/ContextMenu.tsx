@@ -152,7 +152,7 @@ export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
                               minWidth: 160,
                           }),
                     zIndex: 1400,
-                    py: isMobile ? 1 : 0.5,
+                    py: isMobile ? 1.25 : 0.5,
                     bgcolor: "#ffffff",
                     borderRadius: isMobile ? 2.5 : 1,
                     border: isMobile ? "none" : "1px solid #e5e7eb",
@@ -224,7 +224,8 @@ function ContextMenuRow<T>({
                     alignItems: "center",
                     gap: roomy ? 1.75 : 1,
                     px: roomy ? 2.5 : 2,
-                    py: roomy ? 1.25 : 1,
+                    // 줄 위아래 13 — 10 은 폰에서 줄끼리 빽빽해 보였다(2026-09-13).
+                    py: roomy ? 1.6 : 1,
                     fontSize: 15,
                     // 폰에서 400 은 흐려 보인다 — 조직 고르기 팝업과 같은 500.
                     fontWeight: roomy ? 500 : undefined,
@@ -302,7 +303,7 @@ function ContextMenuRow<T>({
                                             display: "flex",
                                             alignItems: "center",
                                             gap: 1,
-                                            ...(roomy ? { pl: 6.5, pr: 2.5, py: 1.1, fontWeight: 500 } : { px: 2, py: 1 }),
+                                            ...(roomy ? { pl: 6.5, pr: 2.5, py: 1.35, fontWeight: 500 } : { px: 2, py: 1 }),
                                             fontSize: 15,
                                             whiteSpace: "nowrap",
                                             color: childDisabled ? "text.disabled" : "#0f172a",
