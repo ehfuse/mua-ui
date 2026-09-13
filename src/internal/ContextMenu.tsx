@@ -138,9 +138,11 @@ export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
                               top: "50%",
                               left: "50%",
                               transform: "translate(-50%, -50%)",
-                              maxHeight: "80vh",
+                              // 조직 고르기 팝업(앱 PickMenuDialog)과 같은 틀 — 넉넉한 폭·큰 모서리(2026-09-13).
+                              width: 300,
+                              maxWidth: "90vw",
+                              maxHeight: "70dvh",
                               overflowY: "auto",
-                              minWidth: 240,
                           }
                         : {
                               top: anchor.top,
@@ -150,17 +152,17 @@ export function ContextMenu<T>({ state, items }: ContextMenuProps<T>) {
                               minWidth: 160,
                           }),
                     zIndex: 1400,
-                    py: 0.5,
+                    py: isMobile ? 1 : 0.5,
                     bgcolor: "#ffffff",
-                    borderRadius: 1,
-                    border: "1px solid #e5e7eb",
-                    boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
+                    borderRadius: isMobile ? 2.5 : 1,
+                    border: isMobile ? "none" : "1px solid #e5e7eb",
+                    boxShadow: isMobile ? "0 20px 48px rgba(15, 23, 42, 0.24)" : "0 16px 34px rgba(15, 23, 42, 0.18)",
                     // 우클릭 메뉴 항목 텍스트는 선택되지 않게 한다.
                     userSelect: "none",
                 }}
             >
                 {visibleItems.map((item, index) => (
-                    <ContextMenuRow key={index} item={item} index={index} target={target} close={close} />
+                    <ContextMenuRow key={index} item={item} index={index} target={target} close={close} roomy={isMobile} />
                 ))}
             </Box>
         </>,
@@ -174,11 +176,17 @@ function ContextMenuRow<T>({
     index,
     target,
     close,
+    roomy = false,
 }: {
     item: ContextMenuItem<T>;
     index: number;
     target: T | null;
     close: () => void;
+    /**
+     * 모바일 가운데 팝업 모양(2026-09-13) — 조직 고르기 팝업처럼 줄을 넉넉히, 줄마다 구분선.
+     * 하위 메뉴는 오른쪽이 아니라 **그 줄 아래로** 펼친다(폰 폭에서는 오른쪽이 화면 밖이다).
+     */
+    roomy?: boolean;
 }) {
     const [open, setOpen] = useState(false);
     const disabled =
@@ -192,11 +200,15 @@ function ContextMenuRow<T>({
         : [];
     return (
         <Box
-            onMouseEnter={() => hasChildren && setOpen(true)}
-            onMouseLeave={() => hasChildren && setOpen(false)}
+            onMouseEnter={roomy ? undefined : () => hasChildren && setOpen(true)}
+            onMouseLeave={roomy ? undefined : () => hasChildren && setOpen(false)}
             sx={{ position: "relative" }}
         >
-            {item.dividerBefore && index > 0 ? <Divider sx={{ my: 0.5 }} /> : null}
+            {roomy ? (
+                index > 0 ? <Divider sx={{ my: 0 }} /> : null
+            ) : item.dividerBefore && index > 0 ? (
+                <Divider sx={{ my: 0.5 }} />
+            ) : null}
             <Box
                 onClick={() => {
                     if (disabled) return;
@@ -210,14 +222,19 @@ function ContextMenuRow<T>({
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 1,
-                    px: 2,
-                    py: 1,
+                    gap: roomy ? 1.75 : 1,
+                    px: roomy ? 2.5 : 2,
+                    py: roomy ? 1.25 : 1,
                     fontSize: 15,
+                    // 폰에서 400 은 흐려 보인다 — 조직 고르기 팝업과 같은 500.
+                    fontWeight: roomy ? 500 : undefined,
+                    lineHeight: roomy ? 1.6 : undefined,
                     color: disabled ? "text.disabled" : "#0f172a",
                     cursor: disabled ? "default" : "pointer",
-                    "&:hover": disabled ? undefined : { bgcolor: "#f1f5f9" },
-                    "& .MuiSvgIcon-root": { fontSize: 20 },
+                    "&:hover": disabled || roomy ? undefined : { bgcolor: "#f1f5f9" },
+                    // 손가락은 호버가 없다 — 누르는 동안만 옅게 칠한다.
+                    "&:active": disabled || !roomy ? undefined : { bgcolor: "#f1f5f9" },
+                    "& .MuiSvgIcon-root": { fontSize: 20, color: roomy ? "#475569" : undefined },
                 }}
             >
                 {item.icon}
@@ -225,26 +242,38 @@ function ContextMenuRow<T>({
                     {label}
                 </Box>
                 {hasChildren ? (
-                    <ChevronRightIcon sx={{ ml: 2, color: "#64748b", fontSize: "18px !important" }} />
+                    <ChevronRightIcon
+                        sx={{
+                            ml: 2,
+                            color: "#64748b",
+                            fontSize: "18px !important",
+                            transition: "transform 150ms",
+                            transform: roomy && open ? "rotate(90deg)" : "none",
+                        }}
+                    />
                 ) : null}
             </Box>
             {hasChildren && open ? (
                 <Box
                     data-context-menu
-                    sx={{
-                        position: "absolute",
-                        top: -4,
-                        left: "100%",
-                        minWidth: 180,
-                        maxHeight: 320,
-                        overflowY: "auto",
-                        py: 0.5,
-                        bgcolor: "#ffffff",
-                        borderRadius: 1,
-                        border: "1px solid #e5e7eb",
-                        boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
-                        zIndex: 1401,
-                    }}
+                    sx={
+                        roomy
+                            ? { py: 0.5, maxHeight: 240, overflowY: "auto", bgcolor: "#f8fafc" }
+                            : {
+                                  position: "absolute",
+                                  top: -4,
+                                  left: "100%",
+                                  minWidth: 180,
+                                  maxHeight: 320,
+                                  overflowY: "auto",
+                                  py: 0.5,
+                                  bgcolor: "#ffffff",
+                                  borderRadius: 1,
+                                  border: "1px solid #e5e7eb",
+                                  boxShadow: "0 16px 34px rgba(15, 23, 42, 0.18)",
+                                  zIndex: 1401,
+                              }
+                    }
                 >
                     {visibleChildren.length === 0 ? (
                         <Box sx={{ px: 2, py: 1, fontSize: 15, color: "text.disabled" }}>없음</Box>
@@ -273,8 +302,7 @@ function ContextMenuRow<T>({
                                             display: "flex",
                                             alignItems: "center",
                                             gap: 1,
-                                            px: 2,
-                                            py: 1,
+                                            ...(roomy ? { pl: 6.5, pr: 2.5, py: 1.1, fontWeight: 500 } : { px: 2, py: 1 }),
                                             fontSize: 15,
                                             whiteSpace: "nowrap",
                                             color: childDisabled ? "text.disabled" : "#0f172a",
