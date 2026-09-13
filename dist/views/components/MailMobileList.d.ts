@@ -8,6 +8,7 @@
  * 왼쪽 별은 중요 토글(카드 클릭과 분리), 카드를 누르면 상세(MobileDetailDialog)가 슬라이드로 열린다.
  * 안 읽은 메일은 왼쪽 파란 세로띠로 구분한다.
  */
+import { type MouseEvent } from "react";
 import type { MailMessageListItem } from "../../models/types";
 interface MailMobileListProps {
     rows: MailMessageListItem[];
@@ -17,7 +18,8 @@ interface MailMobileListProps {
     onToggleStar: (row: MailMessageListItem) => void;
     checkedSeqs: Set<number>;
     onToggleCheck: (seq: number) => void;
+    onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void;
 }
 /** 메일 모바일 카드 목록을 렌더링한다. */
-export declare function MailMobileList({ rows, loading, emptyMessage, onSelect, onToggleStar, checkedSeqs, onToggleCheck, }: MailMobileListProps): import("react").JSX.Element;
+export declare function MailMobileList({ rows, loading, emptyMessage, onSelect, onToggleStar, checkedSeqs, onToggleCheck, onRowContextMenu, }: MailMobileListProps): import("react").JSX.Element;
 export {};
