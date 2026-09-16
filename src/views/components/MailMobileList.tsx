@@ -149,7 +149,7 @@ export function MailMobileList({
                                     sx={{
                                         flex: 1,
                                         width: 0,
-                                        fontSize: mfs(17),
+                                        fontSize: mfs(18),
                                         fontWeight: unread ? 700 : 500,
                                         color: "#0f172a",
                                         whiteSpace: "nowrap",
