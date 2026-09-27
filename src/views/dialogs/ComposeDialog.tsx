@@ -3,7 +3,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Box, Button, Chip, CircularProgress, Stack } from "@mui/material";
+import { Box, Button, Checkbox, Chip, CircularProgress, FormControlLabel, Stack } from "@mui/material";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
@@ -36,6 +36,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const showCcBcc = Boolean(form.useFormValue("showCcBcc"));
     const attachments = (form.useFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
     const mode = String(form.useFormValue("mode") ?? "new");
+    const selectedSeq = Number(form.useFormValue("mail_account_seq") ?? 0);
+    const sendNoreply = Boolean(form.useFormValue("send_noreply"));
 
     const editorRef = useRef<EhfuseEditorRef>(null);
     const toInputRef = useRef<HTMLInputElement | null>(null);
@@ -65,6 +67,20 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             })),
         [accounts]
     );
+
+    /*
+     * 발신 전용 noreply — 기업메일 사서함(hosted)은 도메인마다 noreply@ 가 기본으로 있다(2026-09-27).
+     * 회원가입 인증·알림처럼 답장을 받지 않는 메일을 보낼 때 고른다. 외부 계정(지메일 등)은 그 도메인이 우리 것이 아니라 숨긴다.
+     */
+    const selectedAccount = accounts.find((a) => a.seq === selectedSeq);
+    const noreplyAddress =
+        selectedAccount?.kind === "hosted" && selectedAccount.email.includes("@")
+            ? `noreply@${selectedAccount.email.split("@")[1]}`
+            : "";
+    useEffect(() => {
+        // 외부 계정으로 바꾸면 noreply 선택을 푼다(서버도 거절한다).
+        if (!noreplyAddress && sendNoreply) form.setFormValue("send_noreply", false);
+    }, [noreplyAddress, sendNoreply, form]);
 
     // 에디터 → 폼 동기화
     const editorConfig = useMemo<EditorConfig>(
@@ -221,6 +237,27 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     autoComplete="off"
                                 />
                             </Box>
+                            {noreplyAddress && (
+                                <FormControlLabel
+                                    sx={{ m: 0, mt: -0.5 }}
+                                    control={
+                                        <Checkbox
+                                            size="small"
+                                            checked={sendNoreply}
+                                            onChange={(event) => form.setFormValue("send_noreply", event.target.checked)}
+                                        />
+                                    }
+                                    label={
+                                        <Box component="span" sx={{ fontSize: "0.875rem" }}>
+                                            발신 전용 <strong>{noreplyAddress}</strong> 로 보내기
+                                            <Box component="span" sx={{ color: "text.secondary" }}>
+                                                {" "}
+                                                — 답장을 받지 않는 안내·알림 메일
+                                            </Box>
+                                        </Box>
+                                    }
+                                />
+                            )}
                             <Box
                                 sx={{
                                     display: "grid",

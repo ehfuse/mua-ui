@@ -35,6 +35,7 @@ export function toComposeRequest(values: ComposeForm): ComposeRequest {
     return {
         mail_account_seq: values.mail_account_seq,
         ...(values.seq > 0 ? { seq: values.seq } : {}),
+        ...(values.send_noreply ? { send_as: "noreply" as const } : {}),
         to: splitAddressInput(values.to),
         cc: splitAddressInput(values.cc),
         bcc: splitAddressInput(values.bcc),

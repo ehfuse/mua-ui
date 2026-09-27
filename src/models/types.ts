@@ -242,6 +242,7 @@ export interface ComposeForm {
     in_reply_to: string; // 답장 대상 Message-ID
     references: string[]; // References
     showCcBcc: boolean; // 참조/숨은참조 노출
+    send_noreply: boolean; // 기업메일 사서함에서 발신 전용 noreply@<도메인> 으로 보낸다(서버가 사서함 종류를 다시 확인한다)
 }
 
 /** 발송/임시저장 요청 본문 */
@@ -263,6 +264,7 @@ export interface ComposeRequest {
     }[]; // 첨부
     in_reply_to?: string | null; // In-Reply-To
     references?: string[]; // References
+    send_as?: "noreply"; // 발신 전용 noreply@<도메인> 으로 보낸다(기업메일 사서함만)
 }
 
 /** 계정 저장 요청 본문(폼에서 변환) */
