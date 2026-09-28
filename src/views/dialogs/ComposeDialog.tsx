@@ -379,7 +379,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                 ...(isMobile
                     ? {
                           left: (
-                              <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                              // 간격은 mfd 액션바 슬롯과 같은 gap 1rem — Stack spacing(margin)은 액션바가 버튼 margin 을 지워 버튼이 붙었다.
+                              <Box sx={{ display: "flex", gap: "1rem", width: "100%" }}>
                                   <Button
                                       variant="outlined"
                                       onClick={() => void saveDraft()}
@@ -406,7 +407,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                   >
                                       {sending ? <CircularProgress size={20} color="inherit" /> : "보내기"}
                                   </Button>
-                              </Stack>
+                              </Box>
                           ),
                       }
                     : {
