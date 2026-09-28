@@ -962,8 +962,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     if (isMobile) {
         const scopeAccount = accounts.find((a) => a.seq === filters.mailAccountSeq);
         const scopeLabel = scopeAccount ? scopeAccount.name || scopeAccount.email : "전체 계정";
-        const unreadLabel =
-            filters.folder === "inbox" && counts.inbox_unread > 0 ? ` · 안 읽음 ${counts.inbox_unread}` : "";
+        const unreadCount = filters.folder === "inbox" ? counts.inbox_unread : 0;
         return (
             <>
                 <MobileCardListLayout
@@ -991,7 +990,33 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                         }}
                                     >
                                         {scopeLabel}
-                                        {unreadLabel}
+                                        {unreadCount > 0 && (
+                                            <>
+                                                {" · "}
+                                                {/* 누르면 "안 읽은 메일만" 스위치와 같이 켜고 끈다(0.3.106) — 켜져 있으면 파란 글자. */}
+                                                <Box
+                                                    component="button"
+                                                    type="button"
+                                                    aria-pressed={filters.unreadOnly}
+                                                    onClick={() =>
+                                                        state.actions.setFilters({
+                                                            unreadOnly: !filters.unreadOnly,
+                                                            starredOnly: false,
+                                                        })
+                                                    }
+                                                    sx={{
+                                                        p: 0,
+                                                        border: 0,
+                                                        background: "none",
+                                                        cursor: "pointer",
+                                                        font: "inherit",
+                                                        color: filters.unreadOnly ? "primary.main" : "inherit",
+                                                    }}
+                                                >
+                                                    안 읽음 {counts.inbox_unread}
+                                                </Box>
+                                            </>
+                                        )}
                                     </Typography>
                                     {headerActions}
                                 </>
