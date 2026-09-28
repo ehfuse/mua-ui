@@ -144,7 +144,8 @@ export function MailMobileList({
                         {/* 2·3행: 제목(+첨부)·미리보기 — 별표 오른쪽이 아니라 아래 행에 전폭으로. */}
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0, pl: 1, pt: 0.25 }}>
                             {/* 2줄: 제목 + 첨부 */}
-                            <Box sx={{ display: "flex", alignItems: "center", columnGap: 0.5, minWidth: 0 }}>
+                            {/* 제목은 말줄임하지 않고 줄을 바꿔 다 보인다(0.3.105) — 한 줄로 자르면 앞머리 말머리만 남아 무슨 메일인지 몰랐다. */}
+                            <Box sx={{ display: "flex", alignItems: "flex-start", columnGap: 0.5, minWidth: 0 }}>
                                 <Typography
                                     sx={{
                                         flex: 1,
@@ -152,15 +153,15 @@ export function MailMobileList({
                                         fontSize: mfs(18),
                                         fontWeight: unread ? 700 : 500,
                                         color: "#0f172a",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
+                                        // 줄 간격은 아래 미리보기 줄과 같은 값.
+                                        lineHeight: 1.4,
+                                        wordBreak: "break-word",
                                     }}
                                 >
                                     {row.translated_subject || row.subject || "(제목 없음)"}
                                 </Typography>
                                 {row.has_attachment ? (
-                                    <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0 }} />
+                                    <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0, mt: 0.25 }} />
                                 ) : null}
                             </Box>
                             {/* 3줄: 미리보기 */}
