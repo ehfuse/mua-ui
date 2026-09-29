@@ -229,7 +229,6 @@ export interface ComposeForm {
     in_reply_to: string;
     references: string[];
     showCcBcc: boolean;
-    send_noreply: boolean;
 }
 /** 발송/임시저장 요청 본문 */
 export interface ComposeRequest {
@@ -250,7 +249,6 @@ export interface ComposeRequest {
     }[];
     in_reply_to?: string | null;
     references?: string[];
-    send_as?: "noreply";
 }
 /** 계정 저장 요청 본문(폼에서 변환) */
 /** 기업메일 사서함 프로필 수정 요청 — 서버가 이 세 필드만 받는다(주소·서버 설정은 팀 관리 › 기업메일). */
