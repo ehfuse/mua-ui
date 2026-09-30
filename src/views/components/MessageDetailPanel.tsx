@@ -118,6 +118,23 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
 /** 메시지별 AI 번역 캐시(세션 메모리) — 같은 메일을 다시 열어도 LLM 을 또 부르지 않는다. */
 const translationCache = new Map<number, MailTranslation>();
 
+
+/**
+ * 본문이 주로 한국어인지 — 태그·data: 주소를 걷어낸 앞부분 4천 자에서 한글 음절이 영문 글자 이상이면 한국어로 본다.
+ * 한국어 메일에도 영문 제품명·주소가 섞이므로 "영문이 하나라도 있으면" 이 아니라 수를 견준다.
+ */
+function isMostlyKorean(raw: string): boolean {
+    const text = raw
+        .replace(/<(script|style)[\s\S]*?<\/\1>/gi, "")
+        .replace(/data:[^"')\s]+/gi, "")
+        .replace(/<[^>]+>/g, " ")
+        .replace(/https?:\/\/\S+/gi, "")
+        .slice(0, 4000);
+    const hangul = (text.match(/[\uac00-\ud7a3]/g) ?? []).length;
+    const latin = (text.match(/[A-Za-z]/g) ?? []).length;
+    return hangul > 0 && hangul >= latin;
+}
+
 /** 상세 패널 컴포넌트 */
 export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const {
@@ -247,6 +264,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const isTrash = detail.folder === "trash";
     const isSpam = detail.folder === "spam";
     const isDraft = detail.folder === "draft";
+    // 이미 한국어인 메일은 번역할 것이 없다 — 번역본을 보는 중("원문 보기")이 아니면 단추를 숨긴다.
+    const koreanMail = isMostlyKorean(`${detail.subject ?? ""}\n${detail.body_text || detail.body_html || ""}`);
     const canReplyAll = detail.cc.length > 0;
     const hasRemoteImages = /<img\b[^>]*\ssrc\s*=\s*["'](https?:)?\/\//i.test(detail.body_html || "");
     // 신뢰 발신자(주소록)면 차단 안내 없이 바로 표시한다.
@@ -712,7 +731,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             )}
                         </IconButton>
                     </Tooltip>
-                    {!isDraft ? (
+                    {!isDraft && (!koreanMail || (translation && showTranslation)) ? (
                         <Button
                             size="small"
                             variant="outlined"
@@ -722,7 +741,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 translating ? <CircularProgress size={16} /> : <TranslateIcon sx={{ fontSize: 18 }} />
                             }
                             onClick={() => void handleTranslate()}
-                            sx={{ fontSize: "13.5px", color: "#334155", borderColor: "#cbd5e1" }}
+                            sx={{ fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
                         >
                             {translation && showTranslation ? "원문 보기" : "번역하기"}
                         </Button>
