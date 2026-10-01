@@ -220,7 +220,7 @@ export function MailFoldersList({ folders, onChanged }: { folders: MailUserFolde
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
             {folders.length === 0 ? (
                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                    만든 메일함이 없습니다. 아래 [만들기]로 만드세요.
+                    만든 메일함이 없습니다. 아래 [메일함 만들기]로 만드세요.
                 </Typography>
             ) : null}
             {folders.map((folder) => (
