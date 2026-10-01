@@ -452,7 +452,6 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             preset,
             protocol,
             incomingSecurity,
-            smtpSecurity,
             useIncomingAuth,
             isShared,
             isAdmin,
