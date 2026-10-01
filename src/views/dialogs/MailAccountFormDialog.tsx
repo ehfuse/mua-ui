@@ -490,7 +490,9 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                     : undefined
             }
             locale="ko"
-            maxWidth="sm"
+            // sm(600)은 수신 서버 줄(프로토콜·호스트)이 눌려 보였고 md(900)는 너무 넓다 — 그 사이 680 으로 직접 잡는다(2026-10-01).
+            width={isMobile ? undefined : 680}
+            maxWidth="md"
             // 마지막 섹션 아래 자동 스크롤 여백은 끄고, 하단 패딩은 상단 패딩(mfd contentTopPadding 기본값)과 같게 둔다.
             scrollPastLastSection={false}
             contentBottomPadding={MAIL_ACCOUNT_DIALOG_CONTENT_PADDING}
