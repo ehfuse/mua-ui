@@ -164,11 +164,11 @@ export function MailMobileList({
                                     <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0, mt: 0.25 }} />
                                 ) : null}
                             </Box>
-                            {/* 3줄: 미리보기 */}
+                            {/* 3줄: 미리보기 — 15→14(2026-10-01): 제목(18)과 차이를 벌려 제목이 먼저 읽히게. 14px 아래로는 줄이지 않는다. */}
                             {row.snippet ? (
                                 <Typography
                                     sx={{
-                                        fontSize: mfs(15),
+                                        fontSize: mfs(14),
                                         color: "#475569",
                                         lineHeight: 1.4,
                                         display: "-webkit-box",
