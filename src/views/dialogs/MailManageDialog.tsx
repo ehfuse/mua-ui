@@ -1,7 +1,8 @@
 /**
- * 메일 관리 다이얼로그 — 계정 / 메일함 / 규칙을 상단 탭(switchContent)으로 한 곳에서 관리한다.
- * 헤더 ⚙ = 계정 탭, 사이드바 메일 그룹의 ⚙ = 메일함 탭, 헤더 [규칙] = 규칙 탭으로 열린다.
- * 액션바 왼쪽 [+ …]는 활성 탭에 맞춰 바뀌고(계정 추가 / 만들기 / 규칙 추가), 오른쪽은 [닫기].
+ * 메일 관리 다이얼로그 — 계정 / 메일함 / 규칙 중 **하나**를 창 하나로 연다(2026-10-01).
+ * 전에는 세 목록을 상단 탭(switchContent)으로 한 창에 두었는데, 메일함·규칙을 찾으려면 창을 열고 탭을 다시 골라야 했다.
+ * 이제 사이드바 메일 ⋮ 메뉴가 "메일 계정 관리 / 메일함 관리 / 메일 규칙" 을 따로 고르고, 창은 고른 목록만 보인다(탭 없음).
+ * 액션바 왼쪽 [+ …]는 그 목록에 맞춰 바뀌고(계정 추가 / 메일함 만들기 / 규칙 추가), 오른쪽은 [닫기].
  */
 
 import { useState } from "react";
@@ -16,13 +17,13 @@ import { MailRulesList } from "./MailRulesList";
 
 /** 관리 탭 키 */
 export type MailManageTab = "accounts" | "folders" | "rules";
-const TAB_ORDER: MailManageTab[] = ["accounts", "folders", "rules"];
-const ADD_LABEL: Record<MailManageTab, string> = { accounts: "계정 추가", folders: "만들기", rules: "규칙 추가" };
+const ADD_LABEL: Record<MailManageTab, string> = { accounts: "계정 추가", folders: "메일함 만들기", rules: "규칙 추가" };
+const TITLE: Record<MailManageTab, string> = { accounts: "메일 계정 관리", folders: "메일함 관리", rules: "메일 규칙" };
 
 interface MailManageDialogProps {
     open: boolean; // 열림
-    tab: MailManageTab; // 활성 탭
-    onTabChange: (tab: MailManageTab) => void; // 탭 전환
+    tab: MailManageTab; // 보일 목록(계정 / 메일함 / 규칙)
+    onTabChange?: (tab: MailManageTab) => void; // 예전 탭 전환(탭을 없애 쓰지 않는다 — 호출부 호환용)
     onClose: () => void; // 닫기
     accounts: MailAccount[]; // 계정 목록
     syncingSeqs: number[]; // 동기화 중인 계정 seq
@@ -43,7 +44,6 @@ interface MailManageDialogProps {
 export function MailManageDialog({
     open,
     tab,
-    onTabChange,
     onClose,
     accounts,
     syncingSeqs,
@@ -109,12 +109,9 @@ export function MailManageDialog({
                 }
                 open={open}
                 onClose={onClose}
-                title={{ text: "메일 관리" }}
+                title={{ text: TITLE[tab] }}
                 titleIcons={{ delete: { visible: false } }}
-                // 탭 클릭 = 스크롤이 아니라 그 탭의 목록만 보여준다
-                tabs={{ switchContent: true, fullWidth: true }}
-                activeTabValue={TAB_ORDER.indexOf(tab)}
-                onTabChange={(index: number) => onTabChange(TAB_ORDER[index] ?? "accounts")}
+                tabs={{ visible: false }}
                 locale="ko"
                 // 계정 줄이 [아이콘][이름·주소·서버][칩][액션] 네 칸이라 sm(600)에서는 주소가 눌리고
                 // md(900)는 남는 자리가 커 헐거워 보인다 — mfd 의 width 로 그 사이를 직접 잡는다(2026-09-07).
@@ -125,6 +122,7 @@ export function MailManageDialog({
                 contentBottomPadding={24}
                 sections={[
                     {
+                        key: "accounts" as MailManageTab,
                         id: "mail-manage-accounts",
                         tabTitle: "계정",
                         showTitle: false,
@@ -140,12 +138,14 @@ export function MailManageDialog({
                         ),
                     },
                     {
+                        key: "folders" as MailManageTab,
                         id: "mail-manage-folders",
                         tabTitle: "메일함",
                         showTitle: false,
                         children: <MailFoldersList folders={folders} onChanged={onFoldersChanged} />,
                     },
                     {
+                        key: "rules" as MailManageTab,
                         id: "mail-manage-rules",
                         tabTitle: "규칙",
                         showTitle: false,
@@ -158,7 +158,9 @@ export function MailManageDialog({
                             />
                         ),
                     },
-                ]}
+                ]
+                    .filter((section) => section.key === tab)
+                    .map(({ key: _key, ...section }) => section)}
                 actions={{
                     visible: true,
                     showCancelButton: false,

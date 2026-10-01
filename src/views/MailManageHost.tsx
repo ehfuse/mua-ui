@@ -116,7 +116,7 @@ export function MailManageHost() {
         [sidebarAccounts, lastAccountSeq, compose.form.actions, accountForm.form.actions]
     );
 
-    // 관리 다이얼로그(계정/메일함/규칙 탭). 계정 등록·수정 창은 그 위에 겹쳐 연다.
+    // 관리 다이얼로그(계정 / 메일함 / 규칙 중 하나 — 탭 없이 고른 목록만, 2026-10-01). 계정 등록·수정 창은 그 위에 겹쳐 연다.
     const manageModal = useModal({ modalId: "mail-manage-dialog" });
     const [manageTab, setManageTab] = useState<MailManageTab>("accounts");
     const openManage = useCallback(
