@@ -119,7 +119,6 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     const FormDialog = useMuaFormDialog();
     const protocol = String(form.useFormValue("incoming_protocol") ?? "imap") as IncomingProtocol;
     const incomingSecurity = String(form.useFormValue("incoming_security") ?? "ssl") as ConnectionSecurity;
-    const smtpSecurity = String(form.useFormValue("smtp_security") ?? "ssl") as ConnectionSecurity;
     const useIncomingAuth = form.useFormValue("smtp_use_incoming_auth") !== false;
     const isSubmitting = Boolean(form.isSubmitting);
 
@@ -409,7 +408,6 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                 />
                             </Box>
                         ) : null}
-                        <Typography sx={NOTE_SX}>SMTP · {smtpSecurity.toUpperCase()}</Typography>
                     </Box>
                 ),
             },
@@ -478,8 +476,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             maxContentHeight={isMobile ? undefined : 800}
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
-            // 모바일은 섹션 탭(기본/수신/발신/서명)을 숨긴다 — 좁아서 잘리고, 어차피 한 화면을 스크롤한다.
-            tabs={{ visible: !isMobile }}
+            // 섹션 탭(기본/수신/발신/서명)은 숨긴다 — 한 화면을 스크롤하면 다 보이고, 섹션 제목과 같은 말이 두 번 선다(2026-10-01).
+            tabs={{ visible: false }}
             // 모바일 액션바 — 왼쪽 슬롯·래퍼를 전폭으로 늘려 3열 버튼이 화면 폭을 균등하게 나눠 갖게 한다.
             sx={
                 isMobile
