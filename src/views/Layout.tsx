@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useParams } from "react-router-dom";
-import { Box, Button, Drawer, Fab, Stack, Typography } from "@mui/material";
+import { Box, Button, Checkbox, Drawer, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
@@ -975,8 +975,26 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, minWidth: 0 }}>
                         {/* 툴바 — 현재 계정 범위(+받은편지함 미읽음) · 동기화 · 계정 관리 */}
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 0.5, minWidth: 0 }}>
+                            {/* 전체 선택(2026-10-01) — 폰에서는 한 통씩 체크하는 길뿐이라 여러 통을 읽음·삭제하기 어려웠다.
+                                카드 체크박스와 같은 크기·같은 세로줄(카드 왼쪽 띠 4px + 여백 4px 만큼 들인다). */}
+                            {messages.length > 0 && (
+                                <Checkbox
+                                    size="medium"
+                                    checked={allChecked}
+                                    indeterminate={someChecked && !allChecked}
+                                    onChange={toggleAllChecked}
+                                    sx={{ p: 0.75, ml: 0.5, flexShrink: 0 }}
+                                    inputProps={{ "aria-label": "전체 선택" }}
+                                />
+                            )}
                             {bulkBar ? (
-                                <Box sx={{ flex: 1, minWidth: 0 }}>{bulkBar}</Box>
+                                <>
+                                    {/* 고른 수 — 아이콘만 있는 바가 무엇을 대상으로 하는지 보인다. */}
+                                    <Typography sx={{ flexShrink: 0, fontSize: mfs(15), color: "#475569", fontWeight: 600 }}>
+                                        {checkedCount}개
+                                    </Typography>
+                                    <Box sx={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "flex-end" }}>{bulkBar}</Box>
+                                </>
                             ) : (
                                 <>
                                     <Typography
