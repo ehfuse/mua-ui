@@ -52,6 +52,7 @@ export {
     requestMailCompose,
     requestMailManage,
     requestMailRuleForm,
+    type MailComposeDraft,
     type MailManageRequest,
     type MailManageTab,
 } from "./internal/manageRequest";

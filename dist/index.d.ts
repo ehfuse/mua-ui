@@ -14,7 +14,7 @@ export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
 export { notifyMailTeamContextChanged } from "./internal/teamContext";
 export { resetMailEntry } from "./internal/entryBootstrap";
 export { MailManageHost } from "./views/MailManageHost";
-export { requestMailAccountForm, requestMailFoldersManage, requestMailCompose, requestMailManage, requestMailRuleForm, type MailManageRequest, type MailManageTab, } from "./internal/manageRequest";
+export { requestMailAccountForm, requestMailFoldersManage, requestMailCompose, requestMailManage, requestMailRuleForm, type MailComposeDraft, type MailManageRequest, type MailManageTab, } from "./internal/manageRequest";
 export { requestMailRefresh } from "./internal/refreshRequest";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";
 export { FolderIcon as MailFolderIcon } from "./internal/FolderIcon";

@@ -56,14 +56,21 @@ export function toComposeRequest(values: ComposeForm): ComposeRequest {
 /** 새 메일 작성 열기 */
 const openNew =
     (modal: ReturnType<typeof useModal>) =>
-    (context: ActionContext<ComposeForm>, account: MailAccount | undefined, to = ""): void => {
+    (
+        context: ActionContext<ComposeForm>,
+        account: MailAccount | undefined,
+        to = "",
+        // 제목·본문 미리 채우기(2026-10-05) — 다른 화면의 내용을 메일로 보낼 때. 없으면 예전처럼 빈 본문 + 서명.
+        draft?: { subject?: string; html?: string }
+    ): void => {
         context.reset();
         context.setValues({
             ...defaultComposeForm,
             mode: "new",
             mail_account_seq: account?.seq ?? 0,
             to,
-            body_html: `<p><br></p>${signatureBlock(account)}`,
+            ...(draft?.subject ? { subject: draft.subject } : {}),
+            body_html: `${draft?.html || "<p><br></p>"}${signatureBlock(account)}`,
         });
         modal.open();
     };

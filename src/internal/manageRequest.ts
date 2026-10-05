@@ -11,10 +11,20 @@ import type { MailAccount, MailRule, MailRuleFormPrefill } from "../models/types
 export type MailManageTab = "accounts" | "folders" | "rules";
 
 export type MailManageRequest =
-    | { kind: "compose"; to?: string } // 새 메일 작성(사이드바 "새 메일" — 메일 화면 밖에서도 그 자리에서 열린다). to 는 받는 사람 미리 채우기
+    // 새 메일 작성(사이드바 "새 메일" — 메일 화면 밖에서도 그 자리에서 열린다). to 는 받는 사람, draft 는 제목·본문 미리 채우기
+    | { kind: "compose"; to?: string; draft?: MailComposeDraft }
     | { kind: "manage"; tab: MailManageTab } // 관리 다이얼로그(계정/메일함/규칙 탭)
     | { kind: "account"; account: MailAccount | null } // 계정 등록(null)/수정 폼
     | { kind: "rule"; rule: MailRule | null; prefill: MailRuleFormPrefill | null }; // 규칙 추가(null)/수정 폼
+
+/**
+ * 작성 창에 미리 채울 제목·본문(2026-10-05) — 다른 화면의 내용(회의록 등)을 메일로 보낼 때 쓴다.
+ * html 은 본문 맨 위에 들어가고 그 아래에 서명이 붙는다. 넣는 쪽이 HTML 로 이스케이프해 준다.
+ */
+export interface MailComposeDraft {
+    subject?: string;
+    html?: string;
+}
 
 let pending: MailManageRequest | null = null;
 const listeners = new Set<() => void>();
@@ -31,8 +41,8 @@ function push(request: MailManageRequest): void {
  * `to` 를 주면 받는 사람을 채워 연다(2026-09-13) — 앱 본문의 이메일 주소를 누르면 mailto: 로 OS 메일 앱이 뜨는 대신
  * 이 앱의 작성 창이 뜨게 하려는 것이다. 여러 명이면 쉼표로 잇는다(작성 창 입력 형식과 같다).
  */
-export function requestMailCompose(to?: string): void {
-    push({ kind: "compose", ...(to ? { to } : {}) });
+export function requestMailCompose(to?: string, draft?: MailComposeDraft): void {
+    push({ kind: "compose", ...(to ? { to } : {}), ...(draft ? { draft } : {}) });
 }
 
 /** 관리 다이얼로그를 연다(기본 계정 탭). */

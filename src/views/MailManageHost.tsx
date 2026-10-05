@@ -19,7 +19,7 @@ import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailController } from "../controllers/mailController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
 import type { MailAccount, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
-import { consumeMailManageRequest, subscribeMailManage, type MailManageTab } from "../internal/manageRequest";
+import { consumeMailManageRequest, subscribeMailManage, type MailComposeDraft, type MailManageTab } from "../internal/manageRequest";
 import { requestMailRefresh } from "../internal/refreshRequest";
 import { MailManageDialog } from "./dialogs/MailManageDialog";
 import { MailAccountFormDialog } from "./dialogs/MailAccountFormDialog";
@@ -100,7 +100,7 @@ export function MailManageHost() {
     const lastAccountSeq = state.useValue("lastAccountSeq") as number;
     const sidebarAccounts = useMemo(() => allAccounts.filter((a) => a.in_sidebar !== false), [allAccounts]);
     const openCompose = useCallback(
-        (to?: string) => {
+        (to?: string, draft?: MailComposeDraft) => {
             const account =
                 sidebarAccounts.find((a) => a.seq === lastAccountSeq) ??
                 sidebarAccounts.find((a) => a.is_default) ??
@@ -111,7 +111,7 @@ export function MailManageHost() {
                 return;
             }
             // 받는 사람 미리 채우기(앱 본문의 이메일 주소를 눌렀을 때, 2026-09-13).
-            compose.form.actions.openNew(account, to ?? "");
+            compose.form.actions.openNew(account, to ?? "", draft);
         },
         [sidebarAccounts, lastAccountSeq, compose.form.actions, accountForm.form.actions]
     );
@@ -154,7 +154,7 @@ export function MailManageHost() {
         const check = () => {
             const request = consumeMailManageRequest();
             if (!request) return;
-            if (request.kind === "compose") openCompose(request.to);
+            if (request.kind === "compose") openCompose(request.to, request.draft);
             else if (request.kind === "manage") openManage(request.tab);
             else if (request.kind === "account") accountForm.form.actions.openDialog(request.account);
             else setRuleEditing({ rule: request.rule, prefill: request.prefill });
