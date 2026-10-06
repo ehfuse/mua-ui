@@ -12,13 +12,19 @@
  *
  * ⚠️ MuaProvider 안에서 써야 한다(앱 FormDialog·로그인 계정을 거기서 받는다).
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ConfirmDialog } from "@ehfuse/alerts";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Box, Drawer } from "@mui/material";
+import { ConfirmDialog, ErrorAlert } from "@ehfuse/alerts";
 import { useModal } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailController } from "../controllers/mailController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
-import type { MailAccount, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
+import type { MailAccount, MailListFolder, MailMessageDetail, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
+import { MAIL_FOLDER_LABELS } from "../models/subPage";
+import { useMuaConfig } from "../MuaProvider";
+import { useIsMobile } from "../internal/useIsMobile";
+import { DefaultMobileDetailDialog } from "../internal/mobileDefaults";
+import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { consumeMailManageRequest, subscribeMailManage, type MailComposeDraft, type MailManageTab } from "../internal/manageRequest";
 import { requestMailRefresh } from "../internal/refreshRequest";
 import { MailManageDialog } from "./dialogs/MailManageDialog";
@@ -149,6 +155,87 @@ export function MailManageHost() {
         [accountForm]
     );
 
+    /**
+     * 편지 한 통 보기(2026-10-06) — 메일 화면 밖에서 편지를 그 자리에 연다(requestMailMessageView).
+     * 메일 화면의 목록 상태(선택·상세)와 섞이지 않게 여기서 따로 읽어 쥔다 — 메일 화면이 떠 있지 않을 때 쓰는 창이다.
+     * 넓은 화면은 메일 화면의 목록형과 같은 오른쪽 드로어, 폰은 같은 상세 다이얼로그(mfd 슬라이드)로 띄운다.
+     */
+    const isMobile = useIsMobile();
+    const { mobile: mobileConfig } = useMuaConfig();
+    const MobileDetailDialog = mobileConfig?.DetailDialog ?? DefaultMobileDetailDialog;
+    const [viewing, setViewing] = useState<{ seq: number; detail: MailMessageDetail | null; loading: boolean } | null>(null);
+    const viewRequest = useRef(0);
+    const closeView = useCallback(() => {
+        viewRequest.current += 1;
+        setViewing(null);
+    }, []);
+    const openView = useCallback((seq: number, markRead = true) => {
+        const request = ++viewRequest.current;
+        setViewing((prev) => (prev?.seq === seq ? { ...prev, loading: !prev.detail } : { seq, detail: null, loading: true }));
+        void mailApi
+            .getMessage(seq, markRead)
+            .then((res) => {
+                // 그 사이 닫았거나 다른 편지를 열었으면 버린다.
+                if (request !== viewRequest.current) return;
+                setViewing({ seq, detail: unwrap(res, "메일을 불러오지 못했습니다."), loading: false });
+                if (markRead) void state.actions.loadCounts();
+            })
+            .catch((error) => {
+                if (request !== viewRequest.current) return;
+                setViewing(null);
+                ErrorAlert({ message: error instanceof Error ? error.message : "메일을 불러오지 못했습니다." });
+            });
+    }, [state.actions]);
+    const viewDetail = viewing?.detail ?? null;
+    const viewAccount = useMemo(
+        () => allAccounts.find((a) => a.seq === viewDetail?.mail_account_seq) ?? sidebarAccounts.find((a) => a.is_default) ?? sidebarAccounts[0],
+        [allAccounts, sidebarAccounts, viewDetail]
+    );
+    /** 편지를 다른 곳으로 보내는 동작(휴지통·스팸·복원·삭제·읽지 않음) — 끝나면 창을 닫고 건수·메일 화면 목록을 맞춘다. */
+    const viewActThenClose = useCallback(
+        (action: "trash" | "spam" | "restore" | "delete" | "unread") => {
+            if (!viewDetail) return;
+            void state.actions.applyMessageAction([viewDetail.seq], action).then((ok: boolean) => {
+                if (!ok) return;
+                closeView();
+                void state.actions.loadCounts();
+                void requestMailRefresh();
+            });
+        },
+        [viewDetail, state.actions, closeView]
+    );
+    const viewPanel = viewing ? (
+        <MessageDetailPanel
+            detail={viewDetail}
+            loading={viewing.loading}
+            embedded={isMobile}
+            onClose={closeView}
+            onReply={(mode) => viewDetail && viewAccount && compose.form.actions.openFromMessage(viewDetail, mode, viewAccount)}
+            onEditDraft={() => viewDetail && compose.form.actions.openDraft(viewDetail)}
+            onComposeTo={(address) => openCompose(address)}
+            onToggleStar={() =>
+                viewDetail &&
+                void state.actions
+                    .applyMessageAction([viewDetail.seq], viewDetail.is_starred ? "unstar" : "star")
+                    // 별표는 이 창이 쥔 상세에 바로 반영한다(목록 상태만 고쳐서는 이 창이 안 바뀐다).
+                    .then((ok: boolean) => ok && setViewing((prev) => (prev?.detail ? { ...prev, detail: { ...prev.detail, is_starred: !prev.detail.is_starred } } : prev)))
+            }
+            onMarkUnread={() => viewActThenClose("unread")}
+            onTrash={() => viewActThenClose("trash")}
+            onSpam={() => viewActThenClose("spam")}
+            onRestore={() => viewActThenClose("restore")}
+            onDeleteForever={() => viewActThenClose("delete")}
+            onCreateRule={() =>
+                viewDetail &&
+                // 조건은 비워 두고 [조건 추가]에서 고르면 이 편지의 값이 채워진다(메일 화면의 "규칙 만들기" 와 같다).
+                setRuleEditing({
+                    rule: null,
+                    prefill: { hints: { from_address: String(viewDetail.from?.address ?? ""), from_name: String(viewDetail.from?.name ?? ""), subject: viewDetail.subject ?? "" } },
+                })
+            }
+        />
+    ) : null;
+
     // 열기 요청 소비 — 마운트 때 대기 중인 것 + 이후 들어오는 것.
     useEffect(() => {
         const check = () => {
@@ -157,14 +244,34 @@ export function MailManageHost() {
             if (request.kind === "compose") openCompose(request.to, request.draft);
             else if (request.kind === "manage") openManage(request.tab);
             else if (request.kind === "account") accountForm.form.actions.openDialog(request.account);
+            else if (request.kind === "message") openView(request.seq);
             else setRuleEditing({ rule: request.rule, prefill: request.prefill });
         };
         check();
         return subscribeMailManage(check);
-    }, [openManage, openCompose, accountForm.form.actions]);
+    }, [openManage, openCompose, openView, accountForm.form.actions]);
 
     return (
         <>
+            {isMobile ? (
+                <MobileDetailDialog
+                    modalId="mail-message-view"
+                    open={Boolean(viewing)}
+                    title={MAIL_FOLDER_LABELS[viewDetail?.folder as MailListFolder] ?? "메일"}
+                    onClose={closeView}
+                >
+                    <Box sx={{ bgcolor: "#fff", borderRadius: 2, overflow: "hidden", boxShadow: "0 1px 3px rgba(15,23,42,0.12)" }}>{viewPanel}</Box>
+                </MobileDetailDialog>
+            ) : (
+                <Drawer
+                    anchor="right"
+                    open={Boolean(viewing)}
+                    onClose={closeView}
+                    slotProps={{ paper: { sx: { width: "min(850px, 50vw)", maxWidth: "50vw", display: "flex", flexDirection: "column" } } }}
+                >
+                    {viewPanel}
+                </Drawer>
+            )}
             <ComposeDialog controller={compose} accounts={sidebarAccounts} />
             <MailManageDialog
                 open={manageModal.isOpen}

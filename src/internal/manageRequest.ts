@@ -15,7 +15,8 @@ export type MailManageRequest =
     | { kind: "compose"; to?: string; draft?: MailComposeDraft }
     | { kind: "manage"; tab: MailManageTab } // 관리 다이얼로그(계정/메일함/규칙 탭)
     | { kind: "account"; account: MailAccount | null } // 계정 등록(null)/수정 폼
-    | { kind: "rule"; rule: MailRule | null; prefill: MailRuleFormPrefill | null }; // 규칙 추가(null)/수정 폼
+    | { kind: "rule"; rule: MailRule | null; prefill: MailRuleFormPrefill | null } // 규칙 추가(null)/수정 폼
+    | { kind: "message"; seq: number }; // 편지 한 통 보기(메일 화면 밖 — 드라이브의 첨부 모아 보기 등)
 
 /**
  * 작성 창에 미리 채울 제목·본문(2026-10-05) — 다른 화면의 내용(회의록 등)을 메일로 보낼 때 쓴다.
@@ -43,6 +44,14 @@ function push(request: MailManageRequest): void {
  */
 export function requestMailCompose(to?: string, draft?: MailComposeDraft): void {
     push({ kind: "compose", ...(to ? { to } : {}), ...(draft ? { draft } : {}) });
+}
+
+/**
+ * 편지 한 통을 그 자리에서 연다(2026-10-06) — 메일 화면 밖(드라이브의 첨부 모아 보기 등)에서 "이 첨부가 붙은 편지" 를 볼 때.
+ * 편지를 여는 창이 메일 화면 안에만 있어, 밖에서는 메일함 목록으로 보낸 뒤 그 편지를 다시 찾아야 했다.
+ */
+export function requestMailMessageView(seq: number): void {
+    if (seq > 0) push({ kind: "message", seq });
 }
 
 /** 관리 다이얼로그를 연다(기본 계정 탭). */

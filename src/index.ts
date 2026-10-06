@@ -50,6 +50,7 @@ export {
     requestMailAccountForm,
     requestMailFoldersManage,
     requestMailCompose,
+    requestMailMessageView,
     requestMailManage,
     requestMailRuleForm,
     type MailComposeDraft,
