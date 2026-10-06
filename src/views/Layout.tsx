@@ -11,7 +11,7 @@ import { Box, Button, Checkbox, Drawer, Fab, Stack, Typography } from "@mui/mate
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
-import { ConfirmDialog, ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
+import { ConfirmDialog, ErrorAlert, WarningAlert } from "@ehfuse/alerts";
 import type { BulkMessageAction } from "../apis/mailApi";
 import { useIsMobile } from "../internal/useIsMobile";
 import { mfs } from "../internal/mobileFontScale";
@@ -21,6 +21,7 @@ import { isMailSidebarFilled, markMailSidebarFilled, takeMailEntry } from "../in
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
 import { MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
+import { useSenderContacts } from "../controllers/senderContacts";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime, type MailChangedData } from "../apis/useMailRealtime";
@@ -322,47 +323,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         [detailAccount, compose.form.actions]
     );
 
-    // 주소록에 있는 메일 주소 집합 — 상세의 "주소록 추가" 아이콘은 없는 주소에만 보인다(추가하면 즉시 사라진다).
-    const [contactEmails, setContactEmails] = useState<Set<string>>(() => new Set());
-    useEffect(() => {
-        if (!logined) return;
-        let cancelled = false;
-        void mailApi
-            .listContacts("")
-            .then((res) => {
-                if (cancelled || !res || res.ok === false) return;
-                setContactEmails(new Set((res.data?.items ?? []).map((c) => c.email.toLowerCase())));
-            })
-            .catch(() => undefined);
-        return () => {
-            cancelled = true;
-        };
-    }, [logined]);
-    const detailFromAddress = String(detail?.from?.address ?? "").toLowerCase();
-    const canAddContact = Boolean(detailFromAddress) && !contactEmails.has(detailFromAddress);
-    // 주소록에 있는 보낸 사람의 메일은 외부 이미지를 차단하지 않는다(신뢰 발신자).
-    const trustedSender = Boolean(detailFromAddress) && contactEmails.has(detailFromAddress);
-
-    /** 상세의 보낸 사람 → 주소록 추가(같은 주소가 이미 있으면 안내만 하고 아이콘을 감춘다). */
-    const handleAddContact = useCallback(
-        async (address: string, name: string) => {
-            const key = address.toLowerCase();
-            try {
-                // 공용 메일 계정으로 받은 메일에서 추가하면 공용 주소록으로.
-                const scope = detailAccount?.scope === "shared" ? "shared" : "personal";
-                const res = await mailApi.createContact({ email: address, name, scope });
-                if (res && res.ok === false) {
-                    WarningAlert({ message: res.error || "이미 주소록에 있는 메일 주소입니다." });
-                } else {
-                    SuccessAlert("주소록에 추가했습니다.");
-                }
-                setContactEmails((prev) => new Set(prev).add(key));
-            } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "주소록에 추가하지 못했습니다." });
-            }
-        },
-        [detailAccount]
-    );
+    // 보낸 사람이 주소록에 없으면 "주소록 추가" 아이콘을 보이고, 있으면 외부 이미지를 차단하지 않는다(신뢰 발신자).
+    const { canAddContact, trustedSender, addContact: handleAddContact } = useSenderContacts(detail?.from?.address, detailAccount);
 
     // 헤더 ⚙ = 관리 다이얼로그의 계정 탭 — 다이얼로그 자체는 MailManageHost 가 그린다.
     const handleManageAccounts = useCallback(() => requestMailManage("accounts"), []);

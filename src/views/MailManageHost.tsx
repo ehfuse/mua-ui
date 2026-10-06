@@ -19,6 +19,7 @@ import { useModal } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailController } from "../controllers/mailController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
+import { useSenderContacts } from "../controllers/senderContacts";
 import type { MailAccount, MailListFolder, MailMessageDetail, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
 import { useMuaConfig } from "../MuaProvider";
@@ -191,6 +192,8 @@ export function MailManageHost() {
         () => allAccounts.find((a) => a.seq === viewDetail?.mail_account_seq) ?? sidebarAccounts.find((a) => a.is_default) ?? sidebarAccounts[0],
         [allAccounts, sidebarAccounts, viewDetail]
     );
+    // 메일 화면과 같은 주소록 판정 — 없는 주소면 추가 아이콘, 있는 주소면 외부 이미지를 바로 보인다.
+    const viewContacts = useSenderContacts(viewDetail?.from?.address, viewAccount);
     /** 편지를 다른 곳으로 보내는 동작(휴지통·스팸·복원·삭제·읽지 않음) — 끝나면 창을 닫고 건수·메일 화면 목록을 맞춘다. */
     const viewActThenClose = useCallback(
         (action: "trash" | "spam" | "restore" | "delete" | "unread") => {
@@ -213,6 +216,8 @@ export function MailManageHost() {
             onReply={(mode) => viewDetail && viewAccount && compose.form.actions.openFromMessage(viewDetail, mode, viewAccount)}
             onEditDraft={() => viewDetail && compose.form.actions.openDraft(viewDetail)}
             onComposeTo={(address) => openCompose(address)}
+            trustedSender={viewContacts.trustedSender}
+            onAddContact={viewContacts.canAddContact ? (address, name) => void viewContacts.addContact(address, name) : undefined}
             onToggleStar={() =>
                 viewDetail &&
                 void state.actions
