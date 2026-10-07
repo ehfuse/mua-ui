@@ -22,6 +22,9 @@ export type MailManageRequest = {
     kind: "rule";
     rule: MailRule | null;
     prefill: MailRuleFormPrefill | null;
+} | {
+    kind: "message";
+    seq: number;
 };
 /**
  * 작성 창에 미리 채울 제목·본문(2026-10-05) — 다른 화면의 내용(회의록 등)을 메일로 보낼 때 쓴다.
@@ -39,6 +42,11 @@ export interface MailComposeDraft {
  * 이 앱의 작성 창이 뜨게 하려는 것이다. 여러 명이면 쉼표로 잇는다(작성 창 입력 형식과 같다).
  */
 export declare function requestMailCompose(to?: string, draft?: MailComposeDraft): void;
+/**
+ * 편지 한 통을 그 자리에서 연다(2026-10-06) — 메일 화면 밖(드라이브의 첨부 모아 보기 등)에서 "이 첨부가 붙은 편지" 를 볼 때.
+ * 편지를 여는 창이 메일 화면 안에만 있어, 밖에서는 메일함 목록으로 보낸 뒤 그 편지를 다시 찾아야 했다.
+ */
+export declare function requestMailMessageView(seq: number): void;
 /** 관리 다이얼로그를 연다(기본 계정 탭). */
 export declare function requestMailManage(tab?: MailManageTab): void;
 /** 메일함 탭으로 관리 다이얼로그를 연다 — 예전 이름(사이드바 우클릭 "메일함 관리")을 그대로 유지한다. */

@@ -150,7 +150,7 @@ export function MailMobileList({
                                     sx={{
                                         flex: 1,
                                         width: 0,
-                                        fontSize: mfs(18),
+                                        fontSize: mfs(17),
                                         fontWeight: unread ? 700 : 500,
                                         color: "#0f172a",
                                         // 줄 간격은 아래 미리보기 줄과 같은 값.
