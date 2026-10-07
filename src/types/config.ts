@@ -40,6 +40,7 @@ export interface MuaMobileDetailDialogProps {
     onClose: () => void; // 닫힘 처리
     children: ReactNode; // 본문
     actions?: FormDialogProps["actions"]; // 하단 액션바(선택)
+    flush?: boolean; // 본문을 여백 없이 화면 폭에 꽉 채운다(메일 상세 — 좁은 폰에서 본문 폭을 여백에 뺏기지 않게)
 }
 
 /**

@@ -30,6 +30,7 @@ export function DefaultMobileDetailDialog({
     onClose,
     children,
     actions,
+    flush = false,
 }: MuaMobileDetailDialogProps) {
     const FormDialog = useMuaFormDialog();
     const handleClosed = useCallback(() => onClose(), [onClose]);
@@ -55,8 +56,8 @@ export function DefaultMobileDetailDialog({
             readonly
             locale="ko"
             sx={{ DialogContent: { backgroundColor: "#f1f4f7" } }}
-            contentPaddingX={16}
-            contentTopPadding={16}
+            contentPaddingX={flush ? 0 : 16}
+            contentTopPadding={flush ? 0 : 16}
             sectionsPaddingTop={0}
             contentBottomPadding={0}
             // ⚠️ scrollPastLastSection 을 끄지 않는다(2026-09-11). 끄면 마지막 섹션이 보이는 높이에 맞춰 갇혀,

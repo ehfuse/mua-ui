@@ -1042,17 +1042,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             : MAIL_FOLDER_LABELS[(detail?.folder as MailListFolder | undefined) ?? filters.folder]
                     }
                     onClose={() => state.actions.clearSelection()}
+                    // 바깥 카드와 그 둘레 여백을 두지 않는다(2026-10-07) — 카드 안에 본문 상자가 또 들어가 좁은 폰에서 본문 폭이 여백에 다 뺏겼다.
+                    flush
                 >
-                    <Box
-                        sx={{
-                            bgcolor: "#fff",
-                            borderRadius: 2,
-                            overflow: "hidden",
-                            boxShadow: "0 1px 3px rgba(15,23,42,0.12)",
-                        }}
-                    >
-                        {detailPanel}
-                    </Box>
+                    <Box sx={{ bgcolor: "#fff" }}>{detailPanel}</Box>
                 </MobileDetailDialog>
                 {/*
                  * 카드 길게 누르기 메뉴 — 모바일 가지에도 그려야 뜬다(2026-09-13).

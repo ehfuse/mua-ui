@@ -35,6 +35,7 @@ export interface MuaMobileDetailDialogProps {
     onClose: () => void;
     children: ReactNode;
     actions?: FormDialogProps["actions"];
+    flush?: boolean;
 }
 /**
  * 모바일 서브페이지 브리지 — 앱의 전역 서브페이지 호스트(라우트 이동 없이 mfd 풀스크린 슬라이드로 여는 스토어)와 잇는다.
