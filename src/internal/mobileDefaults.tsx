@@ -56,6 +56,8 @@ export function DefaultMobileDetailDialog({
             readonly
             locale="ko"
             sx={{ DialogContent: { backgroundColor: "#f1f4f7" } }}
+            // 읽는 화면(메일 상세)은 내리는 만큼 제목바를 접어 본문에 높이를 돌려준다(mfd 1.8.12 — 그보다 옛 판은 이 값을 무시한다).
+            {...({ collapsibleTitle: flush } as object)}
             contentPaddingX={flush ? 0 : 16}
             contentTopPadding={flush ? 0 : 16}
             sectionsPaddingTop={0}
