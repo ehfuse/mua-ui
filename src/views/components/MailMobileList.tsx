@@ -150,7 +150,8 @@ export function MailMobileList({
                                     sx={{
                                         flex: 1,
                                         width: 0,
-                                        fontSize: mfs(17),
+                                        // 17→16(2026-10-08 지시) — 목록형으로 바뀌어 줄이 촘촘해진 만큼 제목·내용을 1px 씩 줄였다.
+                                        fontSize: mfs(16),
                                         fontWeight: unread ? 700 : 500,
                                         color: "#0f172a",
                                         // 줄 간격은 아래 미리보기 줄과 같은 값.
@@ -164,11 +165,12 @@ export function MailMobileList({
                                     <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0, mt: 0.25 }} />
                                 ) : null}
                             </Box>
-                            {/* 3줄: 미리보기 — 15→14(2026-10-01): 제목(18)과 차이를 벌려 제목이 먼저 읽히게. 14px 아래로는 줄이지 않는다. */}
+                            {/* 3줄: 미리보기 — 15→14(2026-10-01): 제목과 차이를 벌려 제목이 먼저 읽히게.
+                                14→13(2026-10-08 사용자 지시 — 제목과 함께 1px 씩). 앱 규칙(14px 미만 금지)의 예외라 여기서 더 줄이지 않는다. */}
                             {row.snippet ? (
                                 <Typography
                                     sx={{
-                                        fontSize: mfs(14),
+                                        fontSize: mfs(13),
                                         color: "#475569",
                                         lineHeight: 1.4,
                                         display: "-webkit-box",
