@@ -14,7 +14,7 @@ import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { StarRoundedIcon } from "../../internal/icons";
 import { mfs } from "../../internal/mobileFontScale";
-import { MobileCardStack, MobileChip, MobileListLoadingSpinner } from "../../internal/mobileParts";
+import { MobileChip, MobileListLoadingSpinner, MobilePlainList } from "../../internal/mobileParts";
 import type { MailMessageListItem } from "../../models/types";
 import { formatCounterpart, formatMailListDate } from "../../utils/format";
 
@@ -52,11 +52,11 @@ export function MailMobileList({
     }
 
     return (
-        <MobileCardStack>
+        <MobilePlainList>
             {rows.map((row) => {
                 const unread = !row.is_read;
                 return (
-                    // 카드 배경/모서리/그림자는 StackContentsLayout 이 감싸는 Paper 가 담당한다 — 안쪽만 그린다.
+                    // 목록형(2026-10-08) — 바탕·모서리·줄 사이 구분선은 MobilePlainList 가 그린다. 여기서는 줄 안쪽만 그린다.
                     <Box
                         key={row.seq}
                         onClick={() => {
@@ -185,6 +185,6 @@ export function MailMobileList({
                     </Box>
                 );
             })}
-        </MobileCardStack>
+        </MobilePlainList>
     );
 }

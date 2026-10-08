@@ -19,6 +19,14 @@ export declare function MobileListLoadingSpinner(): import("react").JSX.Element;
 export declare function MobileCardStack({ children }: {
     children: ReactNode;
 }): import("react").JSX.Element;
+/**
+ * 모바일 목록형(2026-10-08) — 흰 바탕 한 장에 줄을 잇고 줄 사이는 가로 구분선만 둔다.
+ * 메일 목록은 카드형(줄마다 떨어진 상자)이었는데, 상자 사이 간격과 그림자 때문에 한 화면에 몇 통 안 보이고 훑기 어려웠다.
+ * 바탕 한 장은 카드 스택의 Paper 와 같은 그림자·모서리라 다른 화면의 카드와 결이 같다.
+ */
+export declare function MobilePlainList({ children }: {
+    children: ReactNode;
+}): import("react").JSX.Element;
 /** 모바일 다음 페이지(무한 스크롤) 로딩 — 하단 중앙 작은 스피너. */
 export declare function MobileListLoadingMoreSpinner(): import("react").JSX.Element;
 /**

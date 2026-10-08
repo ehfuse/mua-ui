@@ -1,7 +1,7 @@
 /** 모바일 카드 목록 부품(칩·카드 스택·로딩 스피너) — 코드샵 대시보드 규격과 동일하게 패키지 안에 둔다. */
 
 import type { ReactNode } from "react";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, Paper } from "@mui/material";
 import { StackContentsLayout } from "@ehfuse/mui-dashboard-layout";
 import { mfs } from "./mobileFontScale";
 
@@ -74,6 +74,21 @@ export function MobileCardStack({ children }: { children: ReactNode }) {
     return (
         <Box sx={{ minWidth: 0, "& > .stack-contents-layout": { pb: MOBILE_LIST_CARD_GAP } }}>
             <StackContentsLayout gap={MOBILE_LIST_CARD_GAP as unknown as string}>{children}</StackContentsLayout>
+        </Box>
+    );
+}
+
+/**
+ * 모바일 목록형(2026-10-08) — 흰 바탕 한 장에 줄을 잇고 줄 사이는 가로 구분선만 둔다.
+ * 메일 목록은 카드형(줄마다 떨어진 상자)이었는데, 상자 사이 간격과 그림자 때문에 한 화면에 몇 통 안 보이고 훑기 어려웠다.
+ * 바탕 한 장은 카드 스택의 Paper 와 같은 그림자·모서리라 다른 화면의 카드와 결이 같다.
+ */
+export function MobilePlainList({ children }: { children: ReactNode }) {
+    return (
+        <Box sx={{ minWidth: 0, pb: MOBILE_LIST_CARD_GAP }}>
+            <Paper elevation={1} sx={{ overflow: "hidden", "& > * + *": { borderTop: "1px solid #e2e8f0" } }}>
+                {children}
+            </Paper>
         </Box>
     );
 }
