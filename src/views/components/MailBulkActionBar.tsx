@@ -7,7 +7,8 @@
 import { useState, type ReactNode } from "react";
 import { Button, IconButton, Stack } from "@mui/material";
 import { Tooltip } from "../../internal/Tooltip";
-import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
+// 읽음은 열린 편지 봉투(0.3.125) — 체크 달린 봉투는 옆의 "읽지 않음"(점 달린 봉투)과 한눈에 갈리지 않았다.
+import DraftsOutlinedIcon from "@mui/icons-material/DraftsOutlined";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
@@ -132,7 +133,7 @@ export function MailBulkActionBar({
             items.push(replyButton("전체 답장", <ReplyAllArrowIcon fontSize="small" />, "replyAll"));
             items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
         }
-        items.push(button("읽음", <MarkEmailReadOutlinedIcon fontSize="small" />, "read", canMarkRead));
+        items.push(button("읽음", <DraftsOutlinedIcon fontSize="small" />, "read", canMarkRead));
         items.push(button("읽지 않음", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread));
     }
     return (
