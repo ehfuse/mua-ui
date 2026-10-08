@@ -1,5 +1,5 @@
 /**
- * 메일 목록 헤더 설정(useHeaderConfig) — 검색(300ms 디바운스) + 검색칸 오른쪽 "안 읽은 메일만" 스위치(filter custom — 계정은 사이드바 계정별 받은편지함이 고른다) + 좌/우 슬롯.
+ * 메일 목록 헤더 설정(useHeaderConfig) — 검색(300ms 디바운스) + 검색칸 오른쪽 "안 읽음" 스위치(filter custom — 계정은 사이드바 계정별 받은편지함이 고른다) + 좌/우 슬롯.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -13,12 +13,15 @@ import type { MailFilters } from "../models/types";
 interface HeaderConfigProps {
     controller: MailController; // 컨트롤러
     left?: ReactElement; // 왼쪽 툴바
-    right?: ReactElement; // 오른쪽 액션(동기화·설정) — 데스크탑은 "안 읽은 메일만" 스위치가 그 왼쪽에 붙는다
+    right?: ReactElement; // 오른쪽 액션(동기화·설정) — 데스크탑은 "안 읽음" 스위치가 그 왼쪽에 붙는다
     toolbar?: ReactNode; // 검색칸 오른쪽(필터 영역)에 놓을 툴바(삭제/스팸/답장/전달/읽음 표시 버튼)
     isMobile?: boolean; // 모바일(검색 오버레이) 여부 — 검색칸이 전체 폭을 쓴다
 }
 
 /** 메일 헤더 설정을 반환한다. */
+/** 모바일에서 "안 읽음" 스위치(스위치 58 + 글자 + 여백)가 차지하는 폭 — 검색칸이 이만큼 좁아져 한 줄에 선다. */
+const MOBILE_UNREAD_SWITCH_WIDTH = 124;
+
 export function useHeaderConfig({
     controller,
     left,
@@ -26,8 +29,9 @@ export function useHeaderConfig({
     toolbar,
     isMobile = false,
 }: HeaderConfigProps): NonNullable<ListLayoutProps["header"]> {
-    // 모바일 검색칸 폭(앱 주입값, 기본 전체 폭)
-    const mobileSearchWidth = useMuaConfig().mobile?.searchWidth ?? "100%";
+    // 모바일 검색칸 폭(앱 주입값). 기본은 "안 읽음" 스위치가 **같은 줄 오른쪽**에 서도록 그만큼 뺀 폭이다(0.3.122) —
+    // 전체 폭(100%)이면 스위치가 다음 줄로 밀려 검색 상자가 두 줄을 차지했다.
+    const mobileSearchWidth = useMuaConfig().mobile?.searchWidth ?? `calc(100% - ${MOBILE_UNREAD_SWITCH_WIDTH}px)`;
     const { state } = controller;
     const loadingList = state.useValue("loadingList") as boolean;
     const filters = state.useValue("filters") as MailFilters;
@@ -58,7 +62,7 @@ export function useHeaderConfig({
         [state.actions]
     );
 
-    /** "안 읽은 메일만" 스위치(폴더·계정은 사이드바 메뉴가 고른다). */
+    /** "안 읽음" 스위치(폴더·계정은 사이드바 메뉴가 고른다). */
     const unreadSwitch = (
         <FormControlLabel
             control={
@@ -67,11 +71,13 @@ export function useHeaderConfig({
                     onChange={(_, checked) => state.actions.setFilters({ unreadOnly: checked, starredOnly: false })}
                 />
             }
-            label="안 읽은 메일만"
+            // 이름은 "안 읽음"(0.3.122) — "안 읽은 메일만" 은 길어 검색칸과 한 줄에 서지 못했다.
+            label="안 읽음"
             sx={{
                 ml: 0.5,
                 mr: 0,
-                "& .MuiFormControlLabel-label": { fontSize: "13.5px", color: "#111", whiteSpace: "nowrap" },
+                flexShrink: 0,
+                "& .MuiFormControlLabel-label": { fontSize: "14px", color: "#111", whiteSpace: "nowrap" },
             }}
         />
     );
