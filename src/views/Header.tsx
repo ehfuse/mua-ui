@@ -101,7 +101,8 @@ export function useHeaderConfig({
         left,
         right: rightSlot,
         showSearch: true,
-        searchPlaceholder: "제목, 보낸 사람 검색",
+        // 모바일은 짧게(0.3.123) — "안 읽음" 스위치와 한 줄을 나눠 쓰면서 칸이 좁아져 긴 안내 글이 "제목, 보낸 사ㅌ" 처럼 잘렸다.
+        searchPlaceholder: isMobile ? "제목·보낸 사람" : "제목, 보낸 사람 검색",
         searchWidth: isMobile ? mobileSearchWidth : undefined,
         // 모바일은 medium(56px) — 게시판·내 문서의 제목줄 검색칸과 같은 높이라야 탭을 오가도 같은 판으로 읽힌다(mdl 3.3.68).
         searchSize: isMobile ? "medium" : undefined,
