@@ -969,7 +969,24 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                             fontWeight: 600,
                                         }}
                                     >
-                                        {scopeLabel}
+                                        {/* 체크박스 바로 옆 글자는 그 체크박스의 이름으로 읽힌다(0.3.128) — 계정 범위("전체 계정")를 두니 "전체 선택" 이 아니라
+                                            계정을 고르는 칸처럼 보였다. 체크박스가 있으면 "전체 선택"(눌러도 켜진다)을 먼저 적고, 계정 범위는
+                                            한 계정만 볼 때만 뒤에 붙인다. 메일이 없어 체크박스가 없을 때는 예전처럼 범위만 적는다. */}
+                                        {messages.length > 0 ? (
+                                            <>
+                                                <Box
+                                                    component="button"
+                                                    type="button"
+                                                    onClick={toggleAllChecked}
+                                                    sx={{ p: 0, border: 0, background: "none", cursor: "pointer", font: "inherit", color: "inherit" }}
+                                                >
+                                                    전체 선택
+                                                </Box>
+                                                {scopeAccount ? ` · ${scopeLabel}` : ""}
+                                            </>
+                                        ) : (
+                                            scopeLabel
+                                        )}
                                         {unreadCount > 0 && (
                                             <>
                                                 {" · "}
