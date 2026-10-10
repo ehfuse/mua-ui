@@ -485,7 +485,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     ...(isMobile
                         ? {
                               left: (
-                                  <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                                  <Stack direction="row" sx={{ width: "100%", gap: 1.5 }}>
                                       <Button
                                           variant="outlined"
                                           onClick={requestClose}

@@ -17,7 +17,11 @@ import { MailRulesList } from "./MailRulesList";
 
 /** 관리 탭 키 */
 export type MailManageTab = "accounts" | "folders" | "rules";
-const ADD_LABEL: Record<MailManageTab, string> = { accounts: "계정 추가", folders: "메일함 만들기", rules: "규칙 추가" };
+const ADD_LABEL: Record<MailManageTab, string> = {
+    accounts: "계정 추가",
+    folders: "메일함 만들기",
+    rules: "규칙 추가",
+};
 const TITLE: Record<MailManageTab, string> = { accounts: "메일 계정 관리", folders: "메일함 관리", rules: "메일 규칙" };
 
 interface MailManageDialogProps {
@@ -168,10 +172,13 @@ export function MailManageDialog({
                     ...(isMobile
                         ? {
                               left: (
-                                  <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
-                                      {addButton}
-                                      {closeButton}
-                                  </Stack>
+                                  <>
+                                      {/* 간격은 spacing(자식 여백)이 아니라 gap 으로 준다(0.3.129) — mfd 액션바가 단추 여백을 0 으로 지워 두 단추가 붙었다. */}
+                                      <Stack direction="row" sx={{ width: "100%", gap: 1.5 }}>
+                                          {addButton}
+                                          {closeButton}
+                                      </Stack>
+                                  </>
                               ),
                           }
                         : { left: addButton, right: closeButton }),

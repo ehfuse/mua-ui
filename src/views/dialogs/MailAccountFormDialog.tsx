@@ -512,7 +512,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                           · 발신 {testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}`}
                                       </Typography>
                                   ) : null}
-                                  <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                                  <Stack direction="row" sx={{ width: "100%", gap: 1.5 }}>
                                       <Button
                                           variant="outlined"
                                           onClick={() => void testConnection()}
