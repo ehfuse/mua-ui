@@ -974,6 +974,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                 scope={filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all"}
                                 onScopeChange={(scope) => state.actions.setFilters({ unreadOnly: scope === "unread", starredOnly: scope === "starred" })}
                                 unreadCount={unreadCount}
+                                searchOpen={searchOverlayOpen}
                                 search={filters.search}
                                 onSearch={(keyword) => state.actions.setFilters({ search: keyword })}
                             />
