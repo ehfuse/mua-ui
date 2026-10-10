@@ -57,6 +57,9 @@ import { requestMailAccountForm, requestMailManage, requestMailRuleForm } from "
 import { subscribeMailRefresh } from "../internal/refreshRequest";
 import { MailManageHost } from "./MailManageHost";
 import { MailHeaderActions, type MailViewMode } from "./components/MailHeaderActions";
+import { MailMobileTop } from "./components/MailMobileTop";
+import type { ComponentType, ReactNode } from "react";
+import type { MuaMobileCardListLayoutProps } from "../types/config";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
@@ -89,6 +92,33 @@ interface MailLayoutProps {
  *   `mail` = 받은편지함(전체 계정) · `mail/account/:accountSeq` = 계정별 받은편지함 · `mail/:folder` = 그 외 폴더(계정 선택 유지)
  * 데스크탑 = ListLayout 표 + 오른쪽 상세 패널, 모바일 = 카드 목록(MobileCardListLayout) + 상세/작성/계정 mfd 슬라이드.
  */
+/**
+ * 모바일 목록 껍데기 — 탭 머리를 쓰는 경우(inlineTop)에는 검색·필터 상자를 그리는 목록 래퍼를 거치지 않고 내용만 놓는다.
+ * 래퍼를 거치면 그 머리 상자(검색칸 + "안 읽음" 스위치)가 탭 위에 한 번 더 선다.
+ */
+function MobileListShell({
+    inlineTop,
+    Layout,
+    header,
+    searchOverlayOpen,
+    inDialog,
+    children,
+}: {
+    inlineTop: boolean;
+    Layout: ComponentType<MuaMobileCardListLayoutProps>;
+    header: MuaMobileCardListLayoutProps["header"];
+    searchOverlayOpen: boolean;
+    inDialog: boolean;
+    children: ReactNode;
+}) {
+    if (inlineTop) return <Box sx={{ minWidth: 0 }}>{children}</Box>;
+    return (
+        <Layout header={header} searchOverlayOpen={searchOverlayOpen} storageKey="mail-mobile-list" inDialog={inDialog}>
+            {children}
+        </Layout>
+    );
+}
+
 export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const controller = useMailController();
     const params = useParams<{ folder?: string; accountSeq?: string; folderSeq?: string }>();
@@ -925,16 +955,29 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         const scopeAccount = accounts.find((a) => a.seq === filters.mailAccountSeq);
         const scopeLabel = scopeAccount ? scopeAccount.name || scopeAccount.email : "전체 계정";
         const unreadCount = filters.folder === "inbox" ? counts.inbox_unread : 0;
+        // 앱이 모바일 목록 래퍼를 주입하지 않았으면 머리(검색·필터 상자)를 그리지 않고 탭 + 접히는 검색칸을 쓴다.
+        const inlineMobileTop = !mobileConfig?.CardListLayout;
         return (
             <>
-                <MobileCardListLayout
+                <MobileListShell
+                    inlineTop={inlineMobileTop}
+                    Layout={MobileCardListLayout}
                     header={headerConfig}
                     searchOverlayOpen={searchOverlayOpen}
-                    storageKey="mail-mobile-list"
                     // 서브페이지 다이얼로그 안에서는 좌우 여백·폭을 다이얼로그가 이미 준다(두 번 들어가지 않게). 페이지 모드는 페이지 여백.
                     inDialog={isEmbedded && !isInline}
                 >
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, minWidth: 0 }}>
+                        {/* 갈래 탭 + 접히는 검색칸(0.3.130) — 앱이 목록 래퍼를 주입하지 않았을 때만. 주입한 앱은 앱바의 검색 오버레이를 쓴다. */}
+                        {inlineMobileTop && (
+                            <MailMobileTop
+                                scope={filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all"}
+                                onScopeChange={(scope) => state.actions.setFilters({ unreadOnly: scope === "unread", starredOnly: scope === "starred" })}
+                                unreadCount={unreadCount}
+                                search={filters.search}
+                                onSearch={(keyword) => state.actions.setFilters({ search: keyword })}
+                            />
+                        )}
                         {/* 툴바 — 현재 계정 범위(+받은편지함 미읽음) · 동기화 · 계정 관리 */}
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 0.5, minWidth: 0 }}>
                             {/* 전체 선택(2026-10-01) — 폰에서는 한 통씩 체크하는 길뿐이라 여러 통을 읽음·삭제하기 어려웠다.
@@ -987,7 +1030,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                         ) : (
                                             scopeLabel
                                         )}
-                                        {unreadCount > 0 && (
+                                        {/* 안 읽음 토글 글자는 탭이 없을 때만 둔다 — 탭(안 읽음 N)이 같은 일을 한다. */}
+                                        {unreadCount > 0 && !inlineMobileTop && (
                                             <>
                                                 {" · "}
                                                 {/* 누르면 "안 읽은 메일만" 스위치와 같이 켜고 끈다(0.3.106) — 켜져 있으면 파란 글자. */}
@@ -1033,7 +1077,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         {loadingMore ? <MobileListLoadingMoreSpinner /> : null}
                         {hasMore ? <Box ref={sentinelRef} sx={{ height: 1 }} /> : null}
                     </Box>
-                </MobileCardListLayout>
+                </MobileListShell>
                 {/* 새 메일 — 업무함 새 업무 FAB 와 같은 자리(우·하단 24). 다이얼로그(portal) 안에서는 하단 바 변수가 0 이라
                     바가 있는 라우트 화면에서만 그 높이만큼 올라간다. 계정이 없으면 계정 등록 창이 열린다(handleCompose). */}
                 <Fab

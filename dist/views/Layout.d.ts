@@ -22,10 +22,5 @@ interface MailLayoutProps {
         inline?: boolean;
     };
 }
-/**
- * 메일 레이아웃 컴포넌트 — 폴더는 라우트(또는 embedded props)가 정한다(사이드바 메뉴와 1:1).
- *   `mail` = 받은편지함(전체 계정) · `mail/account/:accountSeq` = 계정별 받은편지함 · `mail/:folder` = 그 외 폴더(계정 선택 유지)
- * 데스크탑 = ListLayout 표 + 오른쪽 상세 패널, 모바일 = 카드 목록(MobileCardListLayout) + 상세/작성/계정 mfd 슬라이드.
- */
 export default function MailLayout({ embedded }?: MailLayoutProps): import("react").JSX.Element;
 export {};
