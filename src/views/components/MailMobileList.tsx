@@ -16,7 +16,7 @@ import { StarRoundedIcon } from "../../internal/icons";
 import { mfs } from "../../internal/mobileFontScale";
 import { MobileChip, MobileListLoadingSpinner, MobilePlainList } from "../../internal/mobileParts";
 import type { MailMessageListItem } from "../../models/types";
-import { formatCounterpart, formatMailListDate } from "../../utils/format";
+import { formatCounterpart, formatMailListDate, scheduledPrefix } from "../../utils/format";
 
 interface MailMobileListProps {
     rows: MailMessageListItem[]; // 목록(누적 페이지)
@@ -159,6 +159,7 @@ export function MailMobileList({
                                         wordBreak: "break-word",
                                     }}
                                 >
+                                    {scheduledPrefix(row.send_at)}
                                     {row.translated_subject || row.subject || "(제목 없음)"}
                                 </Typography>
                                 {row.has_attachment ? (

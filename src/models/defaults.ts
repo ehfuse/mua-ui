@@ -97,6 +97,8 @@ export const defaultComposeForm: ComposeForm = {
     in_reply_to: "",
     references: [],
     showCcBcc: false,
+    scheduled: false,
+    send_at: "",
     read_receipt: false,
     secure: false,
     secure_password: "",

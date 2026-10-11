@@ -89,6 +89,7 @@ export interface MailMessageListItem {
     has_cc: boolean;
     mail_folder_seq: number;
     size: number;
+    send_at?: string | null;
     translated_subject?: string | null;
 }
 /** 상세(본문·첨부 포함) */
@@ -115,6 +116,26 @@ export interface MailMessageDetail extends MailMessageListItem {
     attachments: MailAttachment[];
     in_reply_to: string | null;
     references: string[];
+    send_error?: string | null;
+    scheduled?: {
+        read_receipt: boolean;
+        secure: boolean;
+        hint: string;
+    } | null;
+    read_receipt?: boolean;
+    secure?: {
+        hint: string;
+        expires_at: string;
+    } | null;
+}
+/** 보낸 메일의 받는 사람 한 명 — 열어 봤는지 */
+export interface MailReceipt {
+    recipient: string;
+    kind: "to" | "cc" | "bcc";
+    status: "sent" | "failed";
+    open_count: number;
+    first_open_at: string;
+    last_open_at: string;
 }
 /** 폴더별 건수 */
 export interface MailFolderCounts {
@@ -229,6 +250,12 @@ export interface ComposeForm {
     in_reply_to: string;
     references: string[];
     showCcBcc: boolean;
+    scheduled: boolean;
+    send_at: string;
+    read_receipt: boolean;
+    secure: boolean;
+    secure_password: string;
+    secure_hint: string;
 }
 /** 발송/임시저장 요청 본문 */
 export interface ComposeRequest {
@@ -249,6 +276,12 @@ export interface ComposeRequest {
     }[];
     in_reply_to?: string | null;
     references?: string[];
+    send_at?: string | null;
+    read_receipt?: boolean;
+    secure?: {
+        password: string;
+        hint?: string;
+    } | null;
 }
 /** 계정 저장 요청 본문(폼에서 변환) */
 /** 기업메일 사서함 프로필 수정 요청 — 서버가 이 세 필드만 받는다(주소·서버 설정은 팀 관리 › 기업메일). */

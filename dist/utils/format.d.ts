@@ -8,6 +8,8 @@ export declare function parseMailDate(value: string | null | undefined): Date | 
 export declare function formatMailListDate(value: string | null | undefined): string;
 /** 상세용 전체 일시 — YYYY년 M월 D일 (요일) HH:mm */
 export declare function formatMailFullDate(value: string | null | undefined): string;
+/** 예약 메일의 제목 머리 — "[예약 10월 12일 09:00] ". 예약이 아니면 빈 문자열. */
+export declare function scheduledPrefix(sendAt: string | null | undefined): string;
 /** 주소를 "이름 <addr>" 또는 "addr" 로 표시한다. */
 export declare function formatAddressLabel(addr: MailAddress | null | undefined): string;
 /** 주소 목록을 쉼표로 잇는다. */

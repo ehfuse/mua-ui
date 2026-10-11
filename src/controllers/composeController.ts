@@ -52,9 +52,29 @@ function saveReadReceiptPref(on: boolean): void {
 /** 새 창의 기본값 — 수신확인만 지난번 선택을 따른다(보안메일·비밀번호는 매번 새로 정한다). */
 const freshComposeForm = (): ComposeForm => ({ ...defaultComposeForm, read_receipt: loadReadReceiptPref() });
 
+/** 예약 칸의 값("YYYY-MM-DD HH:mm", 이 기기의 시간대)을 시각으로 읽는다. 비었거나 틀리면 null. */
+function parseScheduleInput(value: string): Date | null {
+    const date = new Date(
+        String(value ?? "")
+            .trim()
+            .replace(" ", "T")
+    );
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** 서버의 예약 시각(UTC "YYYY-MM-DD HH:mm:ss")을 예약 칸의 값으로 바꾼다. */
+function toScheduleInput(value: string | null | undefined): string {
+    if (!value) return "";
+    const date = new Date(`${value.replace(" ", "T")}Z`);
+    if (Number.isNaN(date.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 /** 폼 값을 요청 본문으로 변환한다. 수신확인·보안메일은 보낼 때만 싣는다(임시저장은 내용만 둔다). */
 export function toComposeRequest(values: ComposeForm, forSend = false): ComposeRequest {
     return {
+        ...(forSend && values.scheduled ? { send_at: parseScheduleInput(values.send_at)?.toISOString() ?? null } : {}),
         ...(forSend && (values.read_receipt || values.secure) ? { read_receipt: true } : {}),
         ...(forSend && values.secure
             ? { secure: { password: values.secure_password, hint: values.secure_hint.trim() } }
@@ -197,6 +217,16 @@ const openDraft =
             attachments: detail.attachments.map((a) => ({ uuid: a.uuid, name: a.name, mime: a.mime, size: a.size })),
             in_reply_to: detail.in_reply_to ?? "",
             references: detail.references ?? [],
+            // 예약해 둔 메일이면 예약 시각과 옵션을 그대로 편다. 보안메일 비밀번호는 서버가 돌려주지 않아 다시 넣어야 한다.
+            ...(detail.send_at
+                ? {
+                      scheduled: true,
+                      send_at: toScheduleInput(detail.send_at),
+                      read_receipt: Boolean(detail.scheduled?.read_receipt),
+                      secure: Boolean(detail.scheduled?.secure),
+                      secure_hint: detail.scheduled?.hint ?? "",
+                  }
+                : {}),
         });
         modal.open();
     };
@@ -220,6 +250,13 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                 WarningAlert({ message: "받는 사람을 입력하세요." });
                 return false;
             }
+            if (values.scheduled) {
+                const at = parseScheduleInput(values.send_at);
+                if (!at || at.getTime() < Date.now() + 60_000) {
+                    WarningAlert({ message: "예약 시각을 지금보다 뒤로 정하세요." });
+                    return false;
+                }
+            }
             if (values.secure && values.secure_password.length < 4) {
                 WarningAlert({ message: "보안메일 열람 비밀번호를 4자 이상 입력하세요." });
                 return false;
@@ -232,7 +269,8 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                 // 받는 사람마다 따로 보내므로 일부만 실패할 수 있다 — 누구에게 안 갔는지 알려야 다시 보낸다.
                 if (failed.length > 0)
                     WarningAlert({ message: `보내지 못한 받는 사람이 있습니다: ${failed.join(", ")}` });
-                else SuccessAlert("메일을 보냈습니다.");
+                else
+                    SuccessAlert(sent.scheduled ? `${values.send_at} 에 보내도록 예약했습니다.` : "메일을 보냈습니다.");
                 modal.close();
                 onSent?.();
                 return true;
@@ -268,7 +306,12 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                 "attachments",
                 (saved.attachments ?? []).map((a) => ({ uuid: a.uuid, name: a.name, mime: a.mime, size: a.size }))
             );
-            SuccessAlert("임시보관함에 저장했습니다.");
+            // 임시저장은 예약을 푼다(서버) — 예약해 둔 메일을 고쳐 저장했으면 그 사실을 알린다.
+            SuccessAlert(
+                values.mode === "draft" && values.scheduled
+                    ? "예약을 풀고 임시보관함에 저장했습니다. 다시 예약하려면 [예약] 을 누르세요."
+                    : "임시보관함에 저장했습니다."
+            );
             onDraftSaved?.();
         } catch (error) {
             ErrorAlert({ message: error instanceof Error ? error.message : "임시저장하지 못했습니다." });

@@ -42,6 +42,14 @@ export function formatMailFullDate(value: string | null | undefined): string {
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${days[date.getDay()]}) ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** 예약 메일의 제목 머리 — "[예약 10월 12일 09:00] ". 예약이 아니면 빈 문자열. */
+export function scheduledPrefix(sendAt: string | null | undefined): string {
+    const date = parseMailDate(sendAt);
+    if (!date) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `[예약 ${date.getMonth() + 1}월 ${date.getDate()}일 ${pad(date.getHours())}:${pad(date.getMinutes())}] `;
+}
+
 /** 주소를 "이름 <addr>" 또는 "addr" 로 표시한다. */
 export function formatAddressLabel(addr: MailAddress | null | undefined): string {
     if (!addr) return "";

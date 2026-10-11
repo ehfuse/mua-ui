@@ -714,6 +714,26 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px" }}>
                             {formatMailFullDate(detail.date_time)}
                         </Typography>
+                        {detail.send_at ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                                    예약 발송
+                                </Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px" }}>
+                                    {formatMailFullDate(detail.send_at)}
+                                </Typography>
+                            </>
+                        ) : null}
+                        {detail.send_error ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                                    예약 실패
+                                </Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#dc2626", wordBreak: "break-all" }}>
+                                    {detail.send_error}
+                                </Typography>
+                            </>
+                        ) : null}
                         {detail.secure ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>

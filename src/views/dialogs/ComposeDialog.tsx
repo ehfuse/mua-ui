@@ -8,7 +8,7 @@ import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
 import { ErrorAlert, WarningAlert } from "@ehfuse/alerts";
-import { ClearTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
+import { ClearTextField, DateTimeTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaFileUploadBox, useMuaFormDialog } from "../../MuaProvider";
 import type { ComposeController } from "../../controllers/composeController";
@@ -37,6 +37,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const attachments = (form.useFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
     const mode = String(form.useFormValue("mode") ?? "new");
     const secure = Boolean(form.useFormValue("secure"));
+    const scheduled = Boolean(form.useFormValue("scheduled"));
 
     // 보안메일은 열어 본 사람이 늘 기록된다 — 수신확인을 켠 채로 잠가 그 사실이 보이게 한다.
     useEffect(() => {
@@ -279,7 +280,20 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 3, rowGap: 0.5 }}>
                                 <Switch form={form} name="read_receipt" label="수신확인" disabled={secure} />
                                 <Switch form={form} name="secure" label="보안메일" />
+                                <Switch form={form} name="scheduled" label="예약 발송" />
                             </Box>
+                            {scheduled ? (
+                                <Box
+                                    sx={{
+                                        display: "grid",
+                                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                                        gap: 1.5,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
+                                </Box>
+                            ) : null}
                             {secure ? (
                                 <Box
                                     sx={{
@@ -404,7 +418,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                       disabled={sending || savingDraft}
                                       sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
-                                      {sending ? <CircularProgress size={20} color="inherit" /> : "보내기"}
+                                      {sending ? <CircularProgress size={20} color="inherit" /> : scheduled ? "예약" : "보내기"}
                                   </Button>
                               </Box>
                           ),
@@ -428,7 +442,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                   disabled={sending || savingDraft}
                                   sx={{ minWidth: 88 }}
                               >
-                                  {sending ? <CircularProgress size={20} color="inherit" /> : "보내기"}
+                                  {sending ? <CircularProgress size={20} color="inherit" /> : scheduled ? "예약" : "보내기"}
                               </Button>
                           ),
                       }),

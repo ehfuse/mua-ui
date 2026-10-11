@@ -95,6 +95,7 @@ export interface MailMessageListItem {
     has_cc: boolean; // 참조 있음(목록에서 전체 답장 노출 판단)
     mail_folder_seq: number; // 사용자 메일함(folder=custom)
     size: number; // 크기
+    send_at?: string | null; // 예약 발송 시각(UTC) — 임시보관함의 예약 메일에만 있다
     // 번역본 보기 상태일 때의 번역 제목(목록 응답 — 서버가 translation_shown 일 때만 채운다). null/없음이면 원문 제목.
     translated_subject?: string | null;
 }
@@ -124,6 +125,8 @@ export interface MailMessageDetail extends MailMessageListItem {
     attachments: MailAttachment[]; // 첨부
     in_reply_to: string | null; // In-Reply-To
     references: string[]; // References
+    send_error?: string | null; // 예약 발송이 실패한 까닭(임시보관함에 남은 메일)
+    scheduled?: { read_receipt: boolean; secure: boolean; hint: string } | null; // 예약해 둔 보내기 옵션(비밀번호는 오지 않는다)
     read_receipt?: boolean; // 수신확인을 켜고 보낸 메일 — 받는 사람별 기록은 mailApi.receipts
     secure?: { hint: string; expires_at: string } | null; // 보안메일로 보낸 메일(힌트 · 열람 기한, 한국 시간)
 }
@@ -254,6 +257,8 @@ export interface ComposeForm {
     in_reply_to: string; // 답장 대상 Message-ID
     references: string[]; // References
     showCcBcc: boolean; // 참조/숨은참조 노출
+    scheduled: boolean; // 예약 발송 — 지금 보내지 않고 send_at 에 보낸다
+    send_at: string; // 예약 시각("YYYY-MM-DD HH:mm", 이 기기의 시간대)
     read_receipt: boolean; // 수신확인 — 받는 사람이 열어 본 때를 보낸 메일에서 본다
     secure: boolean; // 보안메일 — 받는 사람이 링크를 열어 비밀번호를 넣어야 본다
     secure_password: string; // 보안메일 열람 비밀번호(4자 이상)
@@ -279,6 +284,7 @@ export interface ComposeRequest {
     }[]; // 첨부
     in_reply_to?: string | null; // In-Reply-To
     references?: string[]; // References
+    send_at?: string | null; // 예약 발송 시각(ISO) — 있으면 임시보관함에 예약으로 둔다
     read_receipt?: boolean; // 수신확인(발송 때만)
     secure?: { password: string; hint?: string } | null; // 보안메일(발송 때만)
 }

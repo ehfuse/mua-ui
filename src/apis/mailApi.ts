@@ -180,7 +180,7 @@ export const mailApi = {
         entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/messages/${seq}`, {}),
     /** 발송 */
     send: (body: ComposeRequest) =>
-        entityAppServer.http.post<ApiOk<{ seq: number; message_id: string; failed_recipients?: string[] }>>(
+        entityAppServer.http.post<ApiOk<{ seq: number; message_id: string; failed_recipients?: string[]; scheduled?: boolean }>>(
             "/v1/mua/send",
             body
         ),

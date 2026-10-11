@@ -7,8 +7,8 @@ interface ComposeControllerOptions {
     onSent?: () => void;
     onDraftSaved?: () => void;
 }
-/** 폼 값을 요청 본문으로 변환한다. */
-export declare function toComposeRequest(values: ComposeForm): ComposeRequest;
+/** 폼 값을 요청 본문으로 변환한다. 수신확인·보안메일은 보낼 때만 싣는다(임시저장은 내용만 둔다). */
+export declare function toComposeRequest(values: ComposeForm, forSend?: boolean): ComposeRequest;
 /** 메일 작성 컨트롤러 훅. */
 export declare function useComposeController({ onSent, onDraftSaved }?: ComposeControllerOptions): {
     form: import("@ehfuse/forma").UseGlobalFormReturn<ComposeForm>;

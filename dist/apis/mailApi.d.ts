@@ -1,7 +1,7 @@
 /**
  * 메일(MUA) API 래퍼 — AS /v1/mua/* (entityAppServer 직접 호출, 오류는 throw).
  */
-import type { ComposeRequest, MailAccount, MailAccountRequest, MailHostedProfileRequest, MailAccountSecrets, MailConnectionTestResult, MailContact, MailContactRequest, MailFolder, MailFolderCounts, MailListFolder, MailTranslation, MailMessageDetail, MailMessageListItem, MailMoveTarget, MailRule, MailRuleRequest, MailSyncResult, MailUserFolder } from "../models/types";
+import type { ComposeRequest, MailAccount, MailAccountRequest, MailHostedProfileRequest, MailAccountSecrets, MailConnectionTestResult, MailContact, MailContactRequest, MailFolder, MailFolderCounts, MailListFolder, MailTranslation, MailMessageDetail, MailMessageListItem, MailMoveTarget, MailReceipt, MailRule, MailRuleRequest, MailSyncResult, MailUserFolder } from "../models/types";
 /** AS 표준 응답 */
 interface ApiOk<T> {
     ok: boolean;
@@ -155,6 +155,12 @@ export declare const mailApi: {
     send: (body: ComposeRequest) => Promise<ApiOk<{
         seq: number;
         message_id: string;
+        failed_recipients?: string[];
+        scheduled?: boolean;
+    }>>;
+    /** 보낸 메일의 받는 사람별 수신확인 */
+    receipts: (seq: number) => Promise<ApiOk<{
+        items: MailReceipt[];
     }>>;
     /** 임시보관 저장 */
     saveDraft: (body: ComposeRequest) => Promise<ApiOk<MailMessageDetail>>;

@@ -29,3 +29,4 @@ export { useContactFormController } from "./controllers/contactFormController";
 export { defaultMailState } from "./models/defaults";
 export { mailApi, unwrap } from "./apis/mailApi";
 export { useMailRealtime, type MailChangedData } from "./apis/useMailRealtime";
+export { MailBodyFrame } from "./views/components/MailBodyFrame";
