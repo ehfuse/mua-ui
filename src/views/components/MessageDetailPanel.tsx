@@ -46,6 +46,7 @@ import type {
     MailMoveTarget,
     MailMoveTargetOption,
     MailTranslation,
+    MailReceipt,
 } from "../../models/types";
 import { formatAddressList, formatBytes, formatMailFullDate } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
@@ -75,6 +76,30 @@ interface MessageDetailPanelProps {
      * 자체 세로 스크롤러 대신 내용 높이만큼 늘어나 다이얼로그 스크롤에 맡긴다.
      */
     embedded?: boolean;
+}
+
+/** "YYYY-MM-DD HH:mm:ss"(한국 시간) → "10월 11일 12:16" */
+function formatOpenTime(value: string): string {
+    const m = /^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(value);
+    return m ? `${Number(m[1])}월 ${Number(m[2])}일 ${m[3]}` : value;
+}
+
+/** 받는 사람 한 명의 수신확인 한 줄 — 주소 뒤에 읽은 때(또는 읽지 않음 · 발송 실패). */
+function ReceiptLine({ receipt }: { receipt: MailReceipt }) {
+    const failed = receipt.status === "failed";
+    const opened = receipt.open_count > 0;
+    return (
+        <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
+            {receipt.recipient}{" "}
+            <Box component="span" sx={{ color: failed ? "#dc2626" : opened ? "#2563eb" : "#475569", whiteSpace: "nowrap" }}>
+                {failed
+                    ? "발송 실패"
+                    : opened
+                      ? `읽음 ${formatOpenTime(receipt.first_open_at)}${receipt.open_count > 1 ? ` (${receipt.open_count}회)` : ""}`
+                      : "읽지 않음"}
+            </Box>
+        </Typography>
+    );
 }
 
 /** 답장을 받지 않는 발신 전용 주소인지(noreply / no-reply / do-not-reply / donotreply). */
@@ -251,6 +276,23 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: 0 });
     }, [detailSeq]);
+    // 수신확인을 켜고 보낸 메일이면 받는 사람별 기록을 읽는다 — 메일을 열 때마다 새로 읽어 그사이 열어 본 것이 보인다.
+    const hasReceipts = Boolean(detail?.read_receipt);
+    const [receipts, setReceipts] = useState<MailReceipt[]>([]);
+    useEffect(() => {
+        setReceipts([]);
+        if (!detailSeq || !hasReceipts) return;
+        let alive = true;
+        void mailApi
+            .receipts(detailSeq)
+            .then((res) => {
+                if (alive) setReceipts(res?.data?.items ?? []);
+            })
+            .catch(() => undefined);
+        return () => {
+            alive = false;
+        };
+    }, [detailSeq, hasReceipts]);
 
     if (loading && !detail) {
         return (
@@ -672,6 +714,29 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px" }}>
                             {formatMailFullDate(detail.date_time)}
                         </Typography>
+                        {detail.secure ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                                    보안메일
+                                </Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
+                                    {`${formatOpenTime(detail.secure.expires_at)}까지 열람`}
+                                    {detail.secure.hint ? ` · 힌트: ${detail.secure.hint}` : ""}
+                                </Typography>
+                            </>
+                        ) : null}
+                        {receipts.length > 0 ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                                    수신확인
+                                </Typography>
+                                <Box sx={{ minWidth: 0 }}>
+                                    {receipts.map((receipt) => (
+                                        <ReceiptLine key={`${receipt.kind}:${receipt.recipient}`} receipt={receipt} />
+                                    ))}
+                                </Box>
+                            </>
+                        ) : null}
                     </Box>
                     {detail.attachments.length > 0 ? (
                         <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1.5, flexWrap: "wrap" }}>

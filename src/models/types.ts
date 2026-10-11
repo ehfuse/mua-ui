@@ -124,6 +124,18 @@ export interface MailMessageDetail extends MailMessageListItem {
     attachments: MailAttachment[]; // 첨부
     in_reply_to: string | null; // In-Reply-To
     references: string[]; // References
+    read_receipt?: boolean; // 수신확인을 켜고 보낸 메일 — 받는 사람별 기록은 mailApi.receipts
+    secure?: { hint: string; expires_at: string } | null; // 보안메일로 보낸 메일(힌트 · 열람 기한, 한국 시간)
+}
+
+/** 보낸 메일의 받는 사람 한 명 — 열어 봤는지 */
+export interface MailReceipt {
+    recipient: string; // 받는 사람 주소
+    kind: "to" | "cc" | "bcc"; // 받는 사람 / 참조 / 숨은참조
+    status: "sent" | "failed"; // failed = 이 사람에게는 보내지 못했다
+    open_count: number; // 열어 본 횟수
+    first_open_at: string; // 처음 연 때(한국 시간 YYYY-MM-DD HH:mm:ss, 안 열었으면 빈 문자열)
+    last_open_at: string; // 마지막으로 연 때
 }
 
 /** 폴더별 건수 */
@@ -242,6 +254,10 @@ export interface ComposeForm {
     in_reply_to: string; // 답장 대상 Message-ID
     references: string[]; // References
     showCcBcc: boolean; // 참조/숨은참조 노출
+    read_receipt: boolean; // 수신확인 — 받는 사람이 열어 본 때를 보낸 메일에서 본다
+    secure: boolean; // 보안메일 — 받는 사람이 링크를 열어 비밀번호를 넣어야 본다
+    secure_password: string; // 보안메일 열람 비밀번호(4자 이상)
+    secure_hint: string; // 받는 사람에게 보이는 비밀번호 힌트
 }
 
 /** 발송/임시저장 요청 본문 */
@@ -263,6 +279,8 @@ export interface ComposeRequest {
     }[]; // 첨부
     in_reply_to?: string | null; // In-Reply-To
     references?: string[]; // References
+    read_receipt?: boolean; // 수신확인(발송 때만)
+    secure?: { password: string; hint?: string } | null; // 보안메일(발송 때만)
 }
 
 /** 계정 저장 요청 본문(폼에서 변환) */

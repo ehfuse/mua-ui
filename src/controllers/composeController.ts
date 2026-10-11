@@ -30,9 +30,35 @@ function signatureBlock(account: MailAccount | undefined): string {
     return sig ? `<p><br></p><div class="mail-signature">${sig}</div>` : "";
 }
 
-/** 폼 값을 요청 본문으로 변환한다. */
-export function toComposeRequest(values: ComposeForm): ComposeRequest {
+/** 수신확인을 마지막에 켰는지 기억하는 자리 — 늘 켜 두고 쓰는 사람이 창마다 다시 켜지 않게. */
+const READ_RECEIPT_KEY = "mua.compose.readReceipt";
+
+function loadReadReceiptPref(): boolean {
+    try {
+        return localStorage.getItem(READ_RECEIPT_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
+function saveReadReceiptPref(on: boolean): void {
+    try {
+        localStorage.setItem(READ_RECEIPT_KEY, on ? "1" : "0");
+    } catch {
+        // 저장소를 못 쓰는 환경이면 기억하지 않을 뿐이다.
+    }
+}
+
+/** 새 창의 기본값 — 수신확인만 지난번 선택을 따른다(보안메일·비밀번호는 매번 새로 정한다). */
+const freshComposeForm = (): ComposeForm => ({ ...defaultComposeForm, read_receipt: loadReadReceiptPref() });
+
+/** 폼 값을 요청 본문으로 변환한다. 수신확인·보안메일은 보낼 때만 싣는다(임시저장은 내용만 둔다). */
+export function toComposeRequest(values: ComposeForm, forSend = false): ComposeRequest {
     return {
+        ...(forSend && (values.read_receipt || values.secure) ? { read_receipt: true } : {}),
+        ...(forSend && values.secure
+            ? { secure: { password: values.secure_password, hint: values.secure_hint.trim() } }
+            : {}),
         mail_account_seq: values.mail_account_seq,
         ...(values.seq > 0 ? { seq: values.seq } : {}),
         to: splitAddressInput(values.to),
@@ -65,7 +91,7 @@ const openNew =
     ): void => {
         context.reset();
         context.setValues({
-            ...defaultComposeForm,
+            ...freshComposeForm(),
             mode: "new",
             mail_account_seq: account?.seq ?? 0,
             to,
@@ -92,7 +118,7 @@ const openFromMessage =
         const references = [...(detail.references ?? []), ...(detail.message_id ? [detail.message_id] : [])];
         context.reset();
         context.setValues({
-            ...defaultComposeForm,
+            ...freshComposeForm(),
             mode,
             mail_account_seq: account?.seq ?? detail.mail_account_seq,
             to: mode === "forward" ? "" : formatAddressLabel(replyTarget),
@@ -137,7 +163,7 @@ const openForwardMany =
         const subject = prefixSubject(first.subject, "Fwd") + (details.length > 1 ? ` 외 ${details.length - 1}건` : "");
         context.reset();
         context.setValues({
-            ...defaultComposeForm,
+            ...freshComposeForm(),
             mode: "forward",
             mail_account_seq: account?.seq ?? first.mail_account_seq,
             to: "",
@@ -158,7 +184,7 @@ const openDraft =
     (context: ActionContext<ComposeForm>, detail: MailMessageDetail): void => {
         context.reset();
         context.setValues({
-            ...defaultComposeForm,
+            ...freshComposeForm(),
             seq: detail.seq,
             mode: "draft",
             mail_account_seq: detail.mail_account_seq,
@@ -189,15 +215,24 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                 WarningAlert({ message: "보내는 계정을 선택하세요." });
                 return false;
             }
-            const request = toComposeRequest(values);
+            const request = toComposeRequest(values, true);
             if (request.to.length + request.cc.length + request.bcc.length === 0) {
                 WarningAlert({ message: "받는 사람을 입력하세요." });
                 return false;
             }
+            if (values.secure && values.secure_password.length < 4) {
+                WarningAlert({ message: "보안메일 열람 비밀번호를 4자 이상 입력하세요." });
+                return false;
+            }
             setSending(true);
             try {
-                unwrap(await mailApi.send(request), "메일을 보내지 못했습니다.");
-                SuccessAlert("메일을 보냈습니다.");
+                const sent = unwrap(await mailApi.send(request), "메일을 보내지 못했습니다.");
+                if (!values.secure) saveReadReceiptPref(values.read_receipt);
+                const failed = sent.failed_recipients ?? [];
+                // 받는 사람마다 따로 보내므로 일부만 실패할 수 있다 — 누구에게 안 갔는지 알려야 다시 보낸다.
+                if (failed.length > 0)
+                    WarningAlert({ message: `보내지 못한 받는 사람이 있습니다: ${failed.join(", ")}` });
+                else SuccessAlert("메일을 보냈습니다.");
                 modal.close();
                 onSent?.();
                 return true;

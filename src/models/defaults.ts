@@ -97,6 +97,10 @@ export const defaultComposeForm: ComposeForm = {
     in_reply_to: "",
     references: [],
     showCcBcc: false,
+    read_receipt: false,
+    secure: false,
+    secure_password: "",
+    secure_hint: "",
 };
 
 /** 연락처 폼 기본값 */

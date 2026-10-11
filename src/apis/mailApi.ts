@@ -19,6 +19,7 @@ import type {
     MailMessageDetail,
     MailMessageListItem,
     MailMoveTarget,
+    MailReceipt,
     MailRule,
     MailRuleRequest,
     MailSyncResult,
@@ -179,7 +180,13 @@ export const mailApi = {
         entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/messages/${seq}`, {}),
     /** 발송 */
     send: (body: ComposeRequest) =>
-        entityAppServer.http.post<ApiOk<{ seq: number; message_id: string }>>("/v1/mua/send", body),
+        entityAppServer.http.post<ApiOk<{ seq: number; message_id: string; failed_recipients?: string[] }>>(
+            "/v1/mua/send",
+            body
+        ),
+    /** 보낸 메일의 받는 사람별 수신확인 */
+    receipts: (seq: number) =>
+        entityAppServer.http.get<ApiOk<{ items: MailReceipt[] }>>(`/v1/mua/messages/${seq}/receipts`),
     /** 임시보관 저장 */
     saveDraft: (body: ComposeRequest) => entityAppServer.http.post<ApiOk<MailMessageDetail>>("/v1/mua/drafts", body),
     /** 주소록 목록(이름/메일 검색) */

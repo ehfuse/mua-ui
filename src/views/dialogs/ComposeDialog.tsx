@@ -8,7 +8,7 @@ import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
 import { ErrorAlert, WarningAlert } from "@ehfuse/alerts";
-import { ClearTextField, Select } from "@ehfuse/mui-form-controls";
+import { ClearTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaFileUploadBox, useMuaFormDialog } from "../../MuaProvider";
 import type { ComposeController } from "../../controllers/composeController";
@@ -36,6 +36,12 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const showCcBcc = Boolean(form.useFormValue("showCcBcc"));
     const attachments = (form.useFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
     const mode = String(form.useFormValue("mode") ?? "new");
+    const secure = Boolean(form.useFormValue("secure"));
+
+    // 보안메일은 열어 본 사람이 늘 기록된다 — 수신확인을 켠 채로 잠가 그 사실이 보이게 한다.
+    useEffect(() => {
+        if (secure) form.setFormValue("read_receipt", true);
+    }, [secure, form]);
 
     const editorRef = useRef<EhfuseEditorRef>(null);
     const toInputRef = useRef<HTMLInputElement | null>(null);
@@ -269,6 +275,36 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                 fullWidth
                                 autoComplete="off"
                             />
+                            {/* 보내기 옵션 — 수신확인(받는 사람이 연 때를 보낸 메일에서 본다) · 보안메일(링크를 열어 비밀번호를 넣어야 본다) */}
+                            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 3, rowGap: 0.5 }}>
+                                <Switch form={form} name="read_receipt" label="수신확인" disabled={secure} />
+                                <Switch form={form} name="secure" label="보안메일" />
+                            </Box>
+                            {secure ? (
+                                <Box
+                                    sx={{
+                                        display: "grid",
+                                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                                        gap: 1.5,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <PasswordTextField
+                                        name="secure_password"
+                                        label="열람 비밀번호(4자 이상) *"
+                                        form={form}
+                                        fullWidth
+                                        autoComplete="new-password"
+                                    />
+                                    <ClearTextField
+                                        name="secure_hint"
+                                        label="비밀번호 힌트(받는 사람에게 보임)"
+                                        form={form}
+                                        fullWidth
+                                        autoComplete="off"
+                                    />
+                                </Box>
+                            ) : null}
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
                                 첨부하려고 매번 끝까지 내려야 하고, 붙였는지도 눈에 들어오지 않는다. */}
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>

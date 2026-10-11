@@ -88,3 +88,6 @@ export { useContactFormController } from "./controllers/contactFormController";
 export { defaultMailState } from "./models/defaults";
 export { mailApi, unwrap } from "./apis/mailApi";
 export { useMailRealtime, type MailChangedData } from "./apis/useMailRealtime";
+
+// 메일 본문 뷰어(정제 + 샌드박스 iframe) — 메일 화면 밖에서 메일 본문을 그릴 때(보안메일 열람 페이지).
+export { MailBodyFrame } from "./views/components/MailBodyFrame";
