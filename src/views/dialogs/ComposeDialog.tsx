@@ -254,7 +254,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         />
                                     </>
                                 ) : null}
-                                {/* 참조 토글 줄 — 왼쪽이 비어 있던 자리에 보내기 옵션 스위치를 둔다(2026-10-11): 수신확인 · 보안메일 · 예약 발송.
+                                {/* 참조 토글 줄 — 왼쪽이 비어 있던 자리에 보내기 옵션 스위치를 둔다(2026-10-11): 예약 발송 · 수신확인 · 보안메일.
+                                    순서는 자주 쓰는 순이다(사용자 지시) — 아래 옵션 칸도 같은 순서로 선다(보낼 시각 → 비밀번호 · 힌트).
                                     토글은 늘 오른쪽 끝. 펼친 상태에서는 참조 두 칸 아래 줄에 놓이므로 폭을 다 차지시킨다. */}
                                 <Box
                                     sx={{
@@ -268,9 +269,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     }}
                                 >
                                     <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 3, rowGap: 0.5 }}>
+                                        <Switch form={form} name="scheduled" label="예약 발송" />
                                         <Switch form={form} name="read_receipt" label="수신확인" disabled={secure} />
                                         <Switch form={form} name="secure" label="보안메일" />
-                                        <Switch form={form} name="scheduled" label="예약 발송" />
                                     </Box>
                                     <Button
                                         size="small"
@@ -281,7 +282,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     </Button>
                                 </Box>
                             </Box>
-                            {/* 옵션 칸은 한 줄에 놓는다(2026-10-11) — 스위치를 모두 켜면 비밀번호·힌트·보낼 시각이 3열로 서고,
+                            {/* 옵션 칸은 한 줄에 놓는다(2026-10-11) — 스위치를 모두 켜면 보낼 시각·비밀번호·힌트가 3열로 서고,
                                 하나만 켜면 예전처럼 2열 폭을 쓴다. 따로 줄을 주면 본문이 그만큼 밀린다. 모바일은 1열. */}
                             {secure || scheduled ? (
                                 <Box
@@ -295,6 +296,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         alignItems: "center",
                                     }}
                                 >
+                                    {scheduled ? (
+                                        <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
+                                    ) : null}
                                     {secure ? (
                                         <>
                                             <PasswordTextField
@@ -312,9 +316,6 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                                 autoComplete="off"
                                             />
                                         </>
-                                    ) : null}
-                                    {scheduled ? (
-                                        <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
                                     ) : null}
                                 </Box>
                             ) : null}
