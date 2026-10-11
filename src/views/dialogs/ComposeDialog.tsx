@@ -300,14 +300,14 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         <>
                                             <PasswordTextField
                                                 name="secure_password"
-                                                label="열람 비밀번호(4자 이상) *"
+                                                label="열람 비밀번호 *"
                                                 form={form}
                                                 fullWidth
                                                 autoComplete="new-password"
                                             />
                                             <ClearTextField
                                                 name="secure_hint"
-                                                label="비밀번호 힌트(받는 사람에게 보임)"
+                                                label="비밀번호 힌트"
                                                 form={form}
                                                 fullWidth
                                                 autoComplete="off"
