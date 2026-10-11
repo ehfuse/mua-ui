@@ -282,18 +282,6 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                 <Switch form={form} name="secure" label="보안메일" />
                                 <Switch form={form} name="scheduled" label="예약 발송" />
                             </Box>
-                            {scheduled ? (
-                                <Box
-                                    sx={{
-                                        display: "grid",
-                                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                                        gap: 1.5,
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
-                                </Box>
-                            ) : null}
                             {secure ? (
                                 <Box
                                     sx={{
@@ -317,6 +305,18 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         fullWidth
                                         autoComplete="off"
                                     />
+                                </Box>
+                            ) : null}
+                            {scheduled ? (
+                                <Box
+                                    sx={{
+                                        display: "grid",
+                                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                                        gap: 1.5,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
                                 </Box>
                             ) : null}
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
