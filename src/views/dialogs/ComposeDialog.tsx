@@ -191,14 +191,14 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                     id: "mail-compose-main",
                     showTitle: false,
                     children: (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, width: "100%" }}>
                             {/* 보내는 계정과 받는 사람을 한 줄에 — 둘 다 한 줄짜리 값이라 각각 한 줄을 쓰면
                                 정작 본문이 밀린다. 참조/숨은참조 토글은 그 값들이 놓이는 아래 줄에 둔다(2026-09-07). */}
                             <Box
                                 sx={{
                                     display: "grid",
                                     gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                                    gap: 1.5,
+                                    gap: 2.5,
                                     alignItems: "center",
                                 }}
                             >
@@ -232,7 +232,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                 sx={{
                                     display: "grid",
                                     gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                                    gap: 1.5,
+                                    gap: 2.5,
                                     alignItems: "center",
                                 }}
                             >
@@ -254,33 +254,32 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         />
                                     </>
                                 ) : null}
-                                {/* 토글은 늘 오른쪽 끝. 펼친 상태에서는 참조 두 칸 아래 줄에 놓이므로 폭을 다 차지시킨다
-                                    — 한 칸만 차지하면 왼쪽 절반이 빈 채로 줄 하나를 더 쓴다. */}
-                                <Button
-                                    size="small"
-                                    onClick={() => form.setFormValue("showCcBcc", !showCcBcc)}
+                                {/* 참조 토글 줄 — 왼쪽이 비어 있던 자리에 보내기 옵션 스위치를 둔다(2026-10-11): 수신확인 · 보안메일 · 예약 발송.
+                                    토글은 늘 오른쪽 끝. 펼친 상태에서는 참조 두 칸 아래 줄에 놓이므로 폭을 다 차지시킨다. */}
+                                <Box
                                     sx={{
-                                        fontSize: "13.5px",
-                                        justifySelf: "end",
                                         gridColumn: { sm: "1 / -1" },
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        columnGap: 3,
+                                        rowGap: 0.5,
                                     }}
                                 >
-                                    {showCcBcc ? "참조 숨기기" : "참조/숨은참조"}
-                                </Button>
-                            </Box>
-                            <ClearTextField
-                                name="subject"
-                                label="제목"
-                                form={form}
-                                inputRef={subjectInputRef}
-                                fullWidth
-                                autoComplete="off"
-                            />
-                            {/* 보내기 옵션 — 수신확인(받는 사람이 연 때를 보낸 메일에서 본다) · 보안메일(링크를 열어 비밀번호를 넣어야 본다) */}
-                            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 3, rowGap: 0.5 }}>
-                                <Switch form={form} name="read_receipt" label="수신확인" disabled={secure} />
-                                <Switch form={form} name="secure" label="보안메일" />
-                                <Switch form={form} name="scheduled" label="예약 발송" />
+                                    <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 3, rowGap: 0.5 }}>
+                                        <Switch form={form} name="read_receipt" label="수신확인" disabled={secure} />
+                                        <Switch form={form} name="secure" label="보안메일" />
+                                        <Switch form={form} name="scheduled" label="예약 발송" />
+                                    </Box>
+                                    <Button
+                                        size="small"
+                                        onClick={() => form.setFormValue("showCcBcc", !showCcBcc)}
+                                        sx={{ fontSize: "13.5px", ml: "auto" }}
+                                    >
+                                        {showCcBcc ? "참조 숨기기" : "참조/숨은참조"}
+                                    </Button>
+                                </Box>
                             </Box>
                             {/* 옵션 칸은 한 줄에 놓는다(2026-10-11) — 스위치를 모두 켜면 비밀번호·힌트·보낼 시각이 3열로 서고,
                                 하나만 켜면 예전처럼 2열 폭을 쓴다. 따로 줄을 주면 본문이 그만큼 밀린다. 모바일은 1열. */}
@@ -292,7 +291,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                             xs: "1fr",
                                             sm: secure && scheduled ? "repeat(3, 1fr)" : "1fr 1fr",
                                         },
-                                        gap: 1.5,
+                                        gap: 2.5,
                                         alignItems: "center",
                                     }}
                                 >
@@ -319,6 +318,14 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     ) : null}
                                 </Box>
                             ) : null}
+                            <ClearTextField
+                                name="subject"
+                                label="제목"
+                                form={form}
+                                inputRef={subjectInputRef}
+                                fullWidth
+                                autoComplete="off"
+                            />
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
                                 첨부하려고 매번 끝까지 내려야 하고, 붙였는지도 눈에 들어오지 않는다. */}
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
