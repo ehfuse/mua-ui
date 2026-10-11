@@ -21,6 +21,7 @@ export const defaultMailFolderCounts: MailFolderCounts = {
     trash: 0,
     spam: 0,
     starred: 0,
+    scheduled: 0,
     custom: {},
 };
 

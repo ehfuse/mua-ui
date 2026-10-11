@@ -506,7 +506,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     );
     const isTrashFolder = filters.folder === "trash";
     const isSpamFolder = filters.folder === "spam";
-    const isDraftFolder = filters.folder === "draft";
+    // 예약편지함의 메일도 임시보관 행이다 — 답장·전달이 없고 열면 이어 쓴다.
+    const isDraftFolder = filters.folder === "draft" || filters.folder === "scheduled";
     // 우클릭 메뉴의 스팸 신고/삭제 확인 팝퍼 — 우클릭한 지점을 가상 앵커로 쓴다.
     const [rowConfirm, setRowConfirm] = useState<{
         row: MailMessageListItem;
@@ -697,17 +698,17 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         !isMobile || checkedSeqs.size > 0 ? (
             <MailBulkActionBar
                 count={checkedCount}
-                folder={filters.folder}
+                folder={isDraftFolder ? "draft" : filters.folder}
                 compact={isMobile}
                 onAction={runBulkAction}
-                replyEnabled={replyTargetSeq > 0 && filters.folder !== "draft"}
+                replyEnabled={replyTargetSeq > 0 && !isDraftFolder}
                 // 상세가 열린 대상은 참조 유무를 바로 알고, 체크만 한 행은 상세를 받은 뒤 검증한다.
                 replyAllEnabled={
                     replyTargetSeq > 0 &&
-                    filters.folder !== "draft" &&
+                    !isDraftFolder &&
                     (detail?.seq === replyTargetSeq ? detail.cc.length > 0 : true)
                 }
-                forwardEnabled={forwardTargetSeqs.length > 0 && filters.folder !== "draft"}
+                forwardEnabled={forwardTargetSeqs.length > 0 && !isDraftFolder}
                 canMarkRead={checkedRows.some((row) => !row.is_read)}
                 canMarkUnread={checkedRows.some((row) => row.is_read)}
                 onReply={(mode) => void handleToolbarReply(mode)}

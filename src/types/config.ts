@@ -59,6 +59,7 @@ export type MuaSubPageId =
     | "mail-sent"
     | "mail-starred"
     | "mail-draft"
+    | "mail-scheduled"
     | "mail-spam"
     | "mail-trash"
     | "mail-contacts"

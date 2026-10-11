@@ -8,7 +8,7 @@ export { setMuaPaths } from "./internal/pathsRegistry";
 export { default as MailRouteEntry } from "./views/MailRouteEntry";
 export { default as MailLayout } from "./views/Layout";
 export { default as ContactsPage } from "./views/ContactsPage";
-export { MailDraftSubPage, MailContactsSubPage, MailFolderSubPage, MailInboxSubPage, MailInboxTabPage, MailSentSubPage, MailSpamSubPage, MailStarredSubPage, MailTrashSubPage, } from "./views/MailSubPages";
+export { MailDraftSubPage, MailScheduledSubPage, MailContactsSubPage, MailFolderSubPage, MailInboxSubPage, MailInboxTabPage, MailSentSubPage, MailSpamSubPage, MailStarredSubPage, MailTrashSubPage, } from "./views/MailSubPages";
 export { useMailSidebarAccounts } from "./hooks/useMailSidebarAccounts";
 export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
 export { notifyMailTeamContextChanged } from "./internal/teamContext";

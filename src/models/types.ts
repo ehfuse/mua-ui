@@ -4,8 +4,8 @@
 
 /** 폴더 */
 export type MailFolder = "inbox" | "sent" | "draft" | "trash" | "spam" | "custom";
-/** 목록 폴더 — starred 는 중요 표시 가상 폴더(휴지통 제외) */
-export type MailListFolder = MailFolder | "starred";
+/** 목록 폴더 — starred 는 중요 표시 가상 폴더(휴지통 제외), scheduled 는 예약해 둔 메일(임시보관 가운데 예약 시각이 달린 것) */
+export type MailListFolder = MailFolder | "starred" | "scheduled";
 /** 수신 프로토콜 */
 export type IncomingProtocol = "imap" | "pop3";
 /** 계정 범위 — personal=소유자만, shared=같은 회사 전원 */
@@ -150,6 +150,7 @@ export interface MailFolderCounts {
     trash: number; // 휴지통
     spam: number; // 스팸함
     starred: number; // 중요(휴지통 제외)
+    scheduled: number; // 예약(임시보관 건수에서는 빠진다)
     custom: Record<string, number>; // 사용자 메일함별 건수(mail_folder_seq → 건수)
 }
 

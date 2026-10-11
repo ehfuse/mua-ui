@@ -38,6 +38,11 @@ export function MailDraftSubPage() {
     return <MailLayout embedded={{ folder: "draft" }} />;
 }
 
+/** 예약편지함(예약해 둔 메일 — 임시보관 가운데 예약 시각이 달린 것) */
+export function MailScheduledSubPage() {
+    return <MailLayout embedded={{ folder: "scheduled" }} />;
+}
+
 /** 스팸함 */
 export function MailSpamSubPage() {
     return <MailLayout embedded={{ folder: "spam" }} />;

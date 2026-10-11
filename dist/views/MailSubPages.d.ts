@@ -17,6 +17,8 @@ export declare function MailSentSubPage(): import("react").JSX.Element;
 export declare function MailStarredSubPage(): import("react").JSX.Element;
 /** 임시보관함 */
 export declare function MailDraftSubPage(): import("react").JSX.Element;
+/** 예약편지함(예약해 둔 메일 — 임시보관 가운데 예약 시각이 달린 것) */
+export declare function MailScheduledSubPage(): import("react").JSX.Element;
 /** 스팸함 */
 export declare function MailSpamSubPage(): import("react").JSX.Element;
 /** 휴지통 */

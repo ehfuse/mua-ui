@@ -29,6 +29,7 @@ export { default as MailLayout } from "./views/Layout";
 export { default as ContactsPage } from "./views/ContactsPage";
 export {
     MailDraftSubPage,
+    MailScheduledSubPage,
     MailContactsSubPage,
     MailFolderSubPage,
     MailInboxSubPage,

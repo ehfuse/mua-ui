@@ -5,7 +5,7 @@
 import type { MailListFolder } from "../models/types";
 
 /** 라우트 :folder 로 허용하는 값(없거나 모르는 값이면 받은편지함). */
-const ROUTE_FOLDERS: MailListFolder[] = ["inbox", "sent", "starred", "spam", "draft", "trash"];
+const ROUTE_FOLDERS: MailListFolder[] = ["inbox", "sent", "starred", "spam", "draft", "scheduled", "trash"];
 
 /** 라우트 :folder 값을 목록 폴더로 정규화한다. */
 export function toRouteFolder(value: string | undefined): MailListFolder {

@@ -47,7 +47,7 @@ export interface MuaSubPageBridge {
     setCount?: (count: number | null) => void;
 }
 /** 메일 서브페이지 id */
-export type MuaSubPageId = "mail-inbox" | "mail-sent" | "mail-starred" | "mail-draft" | "mail-spam" | "mail-trash" | "mail-contacts" | "mail-folder";
+export type MuaSubPageId = "mail-inbox" | "mail-sent" | "mail-starred" | "mail-draft" | "mail-scheduled" | "mail-spam" | "mail-trash" | "mail-contacts" | "mail-folder";
 /** 모바일 셸 주입(모두 선택 — 없으면 패키지 기본 구현). */
 export interface MuaMobileConfig {
     CardListLayout?: ComponentType<MuaMobileCardListLayoutProps>;
