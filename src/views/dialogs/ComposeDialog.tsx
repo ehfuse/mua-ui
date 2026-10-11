@@ -282,41 +282,41 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                 <Switch form={form} name="secure" label="보안메일" />
                                 <Switch form={form} name="scheduled" label="예약 발송" />
                             </Box>
-                            {secure ? (
+                            {/* 옵션 칸은 한 줄에 놓는다(2026-10-11) — 스위치를 모두 켜면 비밀번호·힌트·보낼 시각이 3열로 서고,
+                                하나만 켜면 예전처럼 2열 폭을 쓴다. 따로 줄을 주면 본문이 그만큼 밀린다. 모바일은 1열. */}
+                            {secure || scheduled ? (
                                 <Box
                                     sx={{
                                         display: "grid",
-                                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                                        gridTemplateColumns: {
+                                            xs: "1fr",
+                                            sm: secure && scheduled ? "repeat(3, 1fr)" : "1fr 1fr",
+                                        },
                                         gap: 1.5,
                                         alignItems: "center",
                                     }}
                                 >
-                                    <PasswordTextField
-                                        name="secure_password"
-                                        label="열람 비밀번호(4자 이상) *"
-                                        form={form}
-                                        fullWidth
-                                        autoComplete="new-password"
-                                    />
-                                    <ClearTextField
-                                        name="secure_hint"
-                                        label="비밀번호 힌트(받는 사람에게 보임)"
-                                        form={form}
-                                        fullWidth
-                                        autoComplete="off"
-                                    />
-                                </Box>
-                            ) : null}
-                            {scheduled ? (
-                                <Box
-                                    sx={{
-                                        display: "grid",
-                                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                                        gap: 1.5,
-                                        alignItems: "center",
-                                    }}
-                                >
-                                    <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
+                                    {secure ? (
+                                        <>
+                                            <PasswordTextField
+                                                name="secure_password"
+                                                label="열람 비밀번호(4자 이상) *"
+                                                form={form}
+                                                fullWidth
+                                                autoComplete="new-password"
+                                            />
+                                            <ClearTextField
+                                                name="secure_hint"
+                                                label="비밀번호 힌트(받는 사람에게 보임)"
+                                                form={form}
+                                                fullWidth
+                                                autoComplete="off"
+                                            />
+                                        </>
+                                    ) : null}
+                                    {scheduled ? (
+                                        <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
+                                    ) : null}
                                 </Box>
                             ) : null}
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
