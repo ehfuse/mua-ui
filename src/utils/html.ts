@@ -45,6 +45,11 @@ body.mua-fit table,body.mua-fit tbody,body.mua-fit tr,body.mua-fit td,body.mua-f
 body.mua-fit div,body.mua-fit p,body.mua-fit section,body.mua-fit article,body.mua-fit center{
     width:auto !important;min-width:0 !important;max-width:100% !important;
 }
+/* 표의 칸 폭은 <col width> 로도 못박히고(워드·아웃룩이 만든 표), 칸의 nowrap 은 글이 줄을 못 바꾸게 해 표가 글 폭 아래로 줄지 못한다 —
+   낱말을 안 끊는 keep-all 도 같다 —
+   모두 풀어야 표가 화면 폭 안으로 접힌다(2026-10-12 KCP 안내 메일: 칸마다 180px 로 서서 가로로 밀어야 했다). pre 는 건드리지 않는다. */
+body.mua-fit col,body.mua-fit colgroup{width:auto !important;min-width:0 !important;}
+body.mua-fit td,body.mua-fit th,body.mua-fit p,body.mua-fit div,body.mua-fit span,body.mua-fit a,body.mua-fit b,body.mua-fit font,body.mua-fit li,body.mua-fit nobr{white-space:normal !important;word-break:break-word !important;}
 body.mua-fit img,body.mua-fit video{max-width:100% !important;height:auto !important;}
 body.mua-fit{overflow-wrap:break-word;}
 /* mua-scroll — 접어도 화면 폭 안으로 안 들어오는 표(칸 안 글이 줄을 바꾸지 않는 표)를 감싼 상자(wrapWideTables).
