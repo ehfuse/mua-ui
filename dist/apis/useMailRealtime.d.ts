@@ -7,6 +7,8 @@ export interface MailChangedData {
     folder?: string;
     added?: number;
     changed_time?: string;
+    /** 서버가 보낸 것이 아니라 "끊겼다 돌아왔으니 다시 읽어라" 는 신호(2026-10-12) — 어느 계정·폴더인지 모르므로 보고 있는 것을 그대로 다시 읽는다. */
+    resync?: boolean;
 }
 interface UseMailRealtimeOptions {
     enabled?: boolean;

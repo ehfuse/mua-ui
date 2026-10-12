@@ -301,7 +301,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             const current = state.getValue("filters") as MailFilters;
             const sameAccount =
                 current.mailAccountSeq === 0 || current.mailAccountSeq === Number(data.mail_account_seq ?? 0);
-            if (sameAccount && (data.folder ?? "inbox") === current.folder) {
+            // resync(끊겼다 돌아옴)는 어느 폴더가 바뀌었는지 모른다 — 보고 있는 목록을 그대로 다시 읽는다.
+            if (data.resync || (sameAccount && (data.folder ?? "inbox") === current.folder)) {
                 void state.actions.loadMessages({ silent: true });
             }
             void state.actions.loadCounts();
