@@ -90,7 +90,9 @@ export function MailMobileList({
                             userSelect: "none",
                             // iOS 사파리는 길게 누르면 링크/이미지 콜아웃을 띄운다 — 팝업 메뉴와 겹치지 않게 끈다.
                             WebkitTouchCallout: "none",
-                            py: 1,
+                            // 위는 체크박스 · 별 단추의 안쪽 여백(6px)이 더해져 보이므로, 아래를 그만큼 더 준다 — 위아래 여백이 같아 보이게(2026-10-12 지적).
+                            pt: 1,
+                            pb: 1.5,
                             pr: 1.75,
                             pl: 0.5,
                             // 안 읽은 메일 — 왼쪽 파란 띠(목록 표의 굵은 글씨에 대응).
