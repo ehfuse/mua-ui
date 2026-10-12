@@ -127,7 +127,8 @@ export function MailMobileList({
                                     flex: 1,
                                     width: 0,
                                     ml: 0.5,
-                                    fontSize: mfs(16),
+                                    // 아래 제목과 같은 크기 — 제목만 줄이면 보낸사람이 제목보다 커 보인다.
+                                    fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
                                     fontWeight: unread ? 700 : 500,
                                     color: "#111827",
                                     whiteSpace: "nowrap",

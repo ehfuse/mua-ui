@@ -25,14 +25,35 @@ export const defaultMailFolderCounts: MailFolderCounts = {
     custom: {},
 };
 
-/** 필터 기본값 */
+/** 고른 갈래(전체 · 안읽음 · 별표)를 적어 두는 자리 — 탭마다 따로(sessionStorage)라 새로고침에는 남고 새로 열면 전체부터다. */
+const SCOPE_STORAGE_KEY = "mua.mail.scope";
+
+/** 적어 둔 갈래를 읽는다. 저장소를 못 쓰는 환경(사생활 보호 창 등)에서는 전체다. */
+function readStoredScope(): Pick<MailFilters, "unreadOnly" | "starredOnly"> {
+    try {
+        const scope = window.sessionStorage.getItem(SCOPE_STORAGE_KEY);
+        return { unreadOnly: scope === "unread", starredOnly: scope === "starred" };
+    } catch {
+        return { unreadOnly: false, starredOnly: false };
+    }
+}
+
+/** 고른 갈래를 적어 둔다 — 새로고침해도 보던 탭(별표 등)에 그대로 있게(2026-10-12). */
+export function storeMailScope(filters: Pick<MailFilters, "unreadOnly" | "starredOnly">): void {
+    try {
+        window.sessionStorage.setItem(SCOPE_STORAGE_KEY, filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all");
+    } catch {
+        // 저장소를 못 쓰면 기억하지 않을 뿐이다.
+    }
+}
+
+/** 필터 기본값 — 갈래만 새로고침 전에 보던 것을 잇는다. */
 export const defaultMailFilters: MailFilters = {
     mailAccountSeq: 0,
     folder: "inbox",
     mailFolderSeq: 0,
     search: "",
-    unreadOnly: false,
-    starredOnly: false,
+    ...readStoredScope(),
 };
 
 /** 상태 기본값 */

@@ -5,7 +5,7 @@
 import type { ActionContext } from "@ehfuse/forma";
 import { ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap, type BulkMessageAction } from "../apis/mailApi";
-import { defaultMailFolderCounts } from "../models/defaults";
+import { defaultMailFolderCounts, storeMailScope } from "../models/defaults";
 import {
     MAIL_PAGE_SIZE,
     type MailAccount,
@@ -62,6 +62,7 @@ export const setFilters =
             current.starredOnly === next.starredOnly;
         if (same) return;
         context.setValue("filters", next);
+        if (current.unreadOnly !== next.unreadOnly || current.starredOnly !== next.starredOnly) storeMailScope(next);
         // 폴더/계정이 바뀌면 선택 상세는 의미가 없어진다.
         if (
             current.folder !== next.folder ||
