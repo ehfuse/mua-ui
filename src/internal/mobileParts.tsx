@@ -88,7 +88,12 @@ export function MobilePlainList({ children, bleed = 0 }: { children: ReactNode; 
         <Box sx={{ minWidth: 0, pb: MOBILE_LIST_CARD_GAP, ...(bleed > 0 ? { mx: `-${bleed}px` } : {}) }}>
             <Paper
                 elevation={bleed > 0 ? 0 : 1}
-                sx={{ overflow: "hidden", "& > * + *": { borderTop: "1px solid #e2e8f0" }, ...(bleed > 0 ? { borderRadius: 0 } : {}) }}
+                sx={
+                    bleed > 0
+                        ? // 띠 모양 — 줄마다 흰 띠로 세우고 띠 사이를 간격으로 가른다(2026-10-12 지시 — 앱의 다른 목록과 같은 모양). 구분선은 두지 않는다.
+                          { overflow: "hidden", borderRadius: 0, bgcolor: "transparent", "& > *": { bgcolor: "#fff" }, "& > * + *": { mt: MOBILE_EDGE_GAP } }
+                        : { overflow: "hidden", "& > * + *": { borderTop: "1px solid #e2e8f0" } }
+                }
             >
                 {children}
             </Paper>
