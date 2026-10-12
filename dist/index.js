@@ -11,6 +11,11 @@ body.mua-fit table,body.mua-fit tbody,body.mua-fit tr,body.mua-fit td,body.mua-f
 body.mua-fit div,body.mua-fit p,body.mua-fit section,body.mua-fit article,body.mua-fit center{
     width:auto !important;min-width:0 !important;max-width:100% !important;
 }
+/* \uD45C\uC758 \uCE78 \uD3ED\uC740 <col width> \uB85C\uB3C4 \uBABB\uBC15\uD788\uACE0(\uC6CC\uB4DC\xB7\uC544\uC6C3\uB8E9\uC774 \uB9CC\uB4E0 \uD45C), \uCE78\uC758 nowrap \uC740 \uAE00\uC774 \uC904\uC744 \uBABB \uBC14\uAFB8\uAC8C \uD574 \uD45C\uAC00 \uAE00 \uD3ED \uC544\uB798\uB85C \uC904\uC9C0 \uBABB\uD55C\uB2E4 \u2014
+   \uB0B1\uB9D0\uC744 \uC548 \uB04A\uB294 keep-all \uB3C4 \uAC19\uB2E4 \u2014
+   \uBAA8\uB450 \uD480\uC5B4\uC57C \uD45C\uAC00 \uD654\uBA74 \uD3ED \uC548\uC73C\uB85C \uC811\uD78C\uB2E4(2026-10-12 KCP \uC548\uB0B4 \uBA54\uC77C: \uCE78\uB9C8\uB2E4 180px \uB85C \uC11C\uC11C \uAC00\uB85C\uB85C \uBC00\uC5B4\uC57C \uD588\uB2E4). pre \uB294 \uAC74\uB4DC\uB9AC\uC9C0 \uC54A\uB294\uB2E4. */
+body.mua-fit col,body.mua-fit colgroup{width:auto !important;min-width:0 !important;}
+body.mua-fit td,body.mua-fit th,body.mua-fit p,body.mua-fit div,body.mua-fit span,body.mua-fit a,body.mua-fit b,body.mua-fit font,body.mua-fit li,body.mua-fit nobr{white-space:normal !important;word-break:break-word !important;}
 body.mua-fit img,body.mua-fit video{max-width:100% !important;height:auto !important;}
 body.mua-fit{overflow-wrap:break-word;}
 /* mua-scroll \u2014 \uC811\uC5B4\uB3C4 \uD654\uBA74 \uD3ED \uC548\uC73C\uB85C \uC548 \uB4E4\uC5B4\uC624\uB294 \uD45C(\uCE78 \uC548 \uAE00\uC774 \uC904\uC744 \uBC14\uAFB8\uC9C0 \uC54A\uB294 \uD45C)\uB97C \uAC10\uC2FC \uC0C1\uC790(wrapWideTables).
