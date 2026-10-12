@@ -19,7 +19,9 @@ interface MailMobileListProps {
     checkedSeqs: Set<number>;
     onToggleCheck: (seq: number) => void;
     onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void;
+    /** 화면 끝까지 쓰는 띠로 그린다 — 본문 좌우 여백(px). 0 이면 카드 모양. */
+    bleed?: number;
 }
 /** 메일 모바일 카드 목록을 렌더링한다. */
-export declare function MailMobileList({ rows, loading, emptyMessage, onSelect, onToggleStar, checkedSeqs, onToggleCheck, onRowContextMenu, }: MailMobileListProps): import("react").JSX.Element;
+export declare function MailMobileList({ rows, loading, emptyMessage, onSelect, onToggleStar, checkedSeqs, onToggleCheck, onRowContextMenu, bleed, }: MailMobileListProps): import("react").JSX.Element;
 export {};

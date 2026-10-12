@@ -24,9 +24,15 @@ export declare function MobileCardStack({ children }: {
  * 메일 목록은 카드형(줄마다 떨어진 상자)이었는데, 상자 사이 간격과 그림자 때문에 한 화면에 몇 통 안 보이고 훑기 어려웠다.
  * 바탕 한 장은 카드 스택의 Paper 와 같은 그림자·모서리라 다른 화면의 카드와 결이 같다.
  */
-export declare function MobilePlainList({ children }: {
-    children: ReactNode;
+export declare function MobilePlainList({ children, bleed }: {
+    children: ReactNode; /** 화면 끝까지 쓰는 띠(2026-10-12) — 본문 좌우 여백(px)만큼 밖으로 빼고 모서리·그림자를 걷는다. 0 이면 카드 모양 그대로. */
+    bleed?: number;
 }): import("react").JSX.Element;
+/**
+ * 띠 사이 간격 — 호스트 앱이 정한 값(--mobile-edge-gap)을 따른다. 앱의 다른 목록(회의록 · 근태)과 같은 간격이어야 한 앱으로 읽힌다.
+ * 변수가 없는 앱에서는 7px.
+ */
+export declare const MOBILE_EDGE_GAP = "var(--mobile-edge-gap, 7px)";
 /** 모바일 다음 페이지(무한 스크롤) 로딩 — 하단 중앙 작은 스피너. */
 export declare function MobileListLoadingMoreSpinner(): import("react").JSX.Element;
 /**

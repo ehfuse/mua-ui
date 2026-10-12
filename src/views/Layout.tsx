@@ -19,7 +19,7 @@ import { useMobileSearchOverlay } from "../internal/mobileSearchOverlay";
 import { getMuaSubPageBridge } from "../internal/subPageBridge";
 import { isMailSidebarFilled, markMailSidebarFilled, takeMailEntry } from "../internal/entryBootstrap";
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
-import { MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
+import { MOBILE_EDGE_GAP, MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
 import { useSenderContacts } from "../controllers/senderContacts";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
@@ -959,6 +959,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         const unreadCount = filters.folder === "inbox" ? counts.inbox_unread : 0;
         // 앱이 모바일 목록 래퍼를 주입하지 않았으면 머리(검색·필터 상자)를 그리지 않고 탭 + 접히는 검색칸을 쓴다.
         const inlineMobileTop = !mobileConfig?.CardListLayout;
+        // 화면 끝까지 쓰는 띠 모양(2026-10-12) — 탭 띠를 쓰는 페이지 모드에서만. 계정 줄은 탭에 붙은 흰 띠가 되고, 목록은 그 아래 간격을 두고 화면 폭을 다 쓴다.
+        // 다이얼로그 안(서브페이지)은 좌우 여백을 다이얼로그가 주므로 카드 모양 그대로다.
+        const edgeBleed = inlineMobileTop && !(isEmbedded && !isInline) ? 16 : 0;
         return (
             <>
                 <MobileListShell
@@ -969,7 +972,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     // 서브페이지 다이얼로그 안에서는 좌우 여백·폭을 다이얼로그가 이미 준다(두 번 들어가지 않게). 페이지 모드는 페이지 여백.
                     inDialog={isEmbedded && !isInline}
                 >
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, minWidth: 0 }}>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: edgeBleed ? 0 : 1.5, minWidth: 0 }}>
                         {/* 갈래 탭 + 접히는 검색칸(0.3.130) — 앱이 목록 래퍼를 주입하지 않았을 때만. 주입한 앱은 앱바의 검색 오버레이를 쓴다. */}
                         {inlineMobileTop && (
                             <MailMobileTop
@@ -982,7 +985,17 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             />
                         )}
                         {/* 툴바 — 현재 계정 범위(+받은편지함 미읽음) · 동기화 · 계정 관리 */}
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, px: 0.5, minWidth: 0 }}>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                px: 0.5,
+                                minWidth: 0,
+                                // 띠 모양 — 계정 줄을 탭에 붙은 흰 띠로 세운다(좌우는 본문 여백 + 원래 들임 4px).
+                                ...(edgeBleed ? { mx: `-${edgeBleed}px`, px: `${edgeBleed + 4}px`, py: 0.5, bgcolor: "#fff", mb: MOBILE_EDGE_GAP } : {}),
+                            }}
+                        >
                             {/* 전체 선택(2026-10-01) — 폰에서는 한 통씩 체크하는 길뿐이라 여러 통을 읽음·삭제하기 어려웠다.
                                 카드 체크박스와 같은 크기·같은 세로줄(카드 왼쪽 띠 4px + 여백 4px 만큼 들인다). */}
                             {messages.length > 0 && (
@@ -1075,6 +1088,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             checkedSeqs={checkedSeqs}
                             onToggleCheck={toggleChecked}
                             onRowContextMenu={handleCardContextMenu}
+                            bleed={edgeBleed}
                         />
                         {/* 무한 스크롤 sentinel — 뷰포트(또는 다이얼로그 스크롤러)에 들어오면 다음 페이지 */}
                         {loadingMore ? <MobileListLoadingMoreSpinner /> : null}

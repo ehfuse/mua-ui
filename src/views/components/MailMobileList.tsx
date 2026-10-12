@@ -28,6 +28,8 @@ interface MailMobileListProps {
     onToggleCheck: (seq: number) => void; // 체크박스 토글
     // 길게 누르기(contextmenu) → 팝업 메뉴. 데스크톱 표의 우클릭 메뉴와 같은 항목을 그대로 띄운다.
     onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void;
+    /** 화면 끝까지 쓰는 띠로 그린다 — 본문 좌우 여백(px). 0 이면 카드 모양. */
+    bleed?: number;
 }
 
 /** 메일 모바일 카드 목록을 렌더링한다. */
@@ -40,6 +42,7 @@ export function MailMobileList({
     checkedSeqs,
     onToggleCheck,
     onRowContextMenu,
+    bleed = 0,
 }: MailMobileListProps) {
     // 길게 눌러 메뉴를 연 직후 손을 떼면 click 이 이어져 상세가 함께 열린다 — 그 한 번만 삼킨다.
     const suppressClickRef = useRef(false);
@@ -52,7 +55,7 @@ export function MailMobileList({
     }
 
     return (
-        <MobilePlainList>
+        <MobilePlainList bleed={bleed}>
             {rows.map((row) => {
                 const unread = !row.is_read;
                 return (
