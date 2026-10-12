@@ -151,7 +151,7 @@ export function MailMobileList({
                                         flex: 1,
                                         width: 0,
                                         // 17→16(2026-10-08 지시) — 목록형으로 바뀌어 줄이 촘촘해진 만큼 제목·내용을 1px 씩 줄였다.
-                                                                                // 카드 제목은 --card-title-shrink 만큼 줄인다(2026-10-12) — 호스트 앱이 PWA(독립 창)로 열렸을 때만 1px 을 넣는다. 변수가 없으면 0 이라 그대로다.
+                                        // 카드 제목은 --card-title-shrink 만큼 줄인다(2026-10-12) — 호스트 앱이 PWA(독립 창)로 열렸을 때만 1px 을 넣는다. 변수가 없으면 0 이라 그대로다.
                                         fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
                                         fontWeight: unread ? 700 : 500,
                                         color: "#0f172a",
