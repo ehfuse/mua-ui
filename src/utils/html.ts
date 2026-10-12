@@ -65,8 +65,24 @@ blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e1;color:#4
  * 안쪽 표부터 본다 — 안쪽 표를 감싸면 그것을 품은 바깥(배치용) 표가 줄어들 수 있어, 바깥까지 감쌀 일이 없어진다.
  */
 export function wrapWideTables(doc: Document): void {
-    const limit = doc.documentElement?.clientWidth ?? 0;
-    if (limit <= 0) return;
+    const root = doc.documentElement;
+    const limit = root?.clientWidth ?? 0;
+    if (limit <= 0 || !doc.defaultView) return;
+    const padRight = parseFloat(doc.defaultView.getComputedStyle(doc.body).paddingRight) || 0;
+    /**
+     * 상자의 폭을 화면에 남은 폭으로 못박는다. 폭을 정해 주지 않으면 두 가지로 틀어진다:
+     *   · 그냥 두면 상자가 안의 표만큼 넓어져(스크롤 상자도 제 내용 폭을 바깥에 그대로 알린다) 바깥 배치 표까지 넘친다 — 결국 메일 전체가 밀린다.
+     *   · 내용 폭을 0 으로 알리게 하면(contain) 바깥 표가 옆 칸 폭까지 줄어 상자가 몇십 px 로 쪼그라든다.
+     * mua-fit 의 `div{width:auto !important}` 를 이겨야 해서 important 로 넣는다. 조상 칸의 오른쪽 여백·테두리만큼 넘치면 그만큼 더 줄인다.
+     */
+    const size = (wrap: HTMLElement) => {
+        const width = Math.max(120, Math.floor(limit - padRight - wrap.getBoundingClientRect().left));
+        wrap.style.setProperty("width", `${width}px`, "important");
+        const excess = root.scrollWidth - limit;
+        if (excess > 0) wrap.style.setProperty("width", `${Math.max(120, width - excess)}px`, "important");
+    };
+    // 이미 감싼 상자는 폭만 다시 잰다 — 창 폭이 바뀌었을 수 있다(fit 은 폭이 바뀔 때마다 다시 돈다).
+    doc.body.querySelectorAll<HTMLElement>(".mua-scroll").forEach(size);
     const tables = Array.from(doc.body.querySelectorAll("table")).reverse();
     for (const table of tables) {
         const parent = table.parentElement;
@@ -76,6 +92,7 @@ export function wrapWideTables(doc: Document): void {
         wrap.className = "mua-scroll";
         parent.insertBefore(wrap, table);
         wrap.appendChild(table);
+        size(wrap);
     }
 }
 
