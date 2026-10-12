@@ -333,6 +333,10 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 spacing={1}
                 sx={{ px: 1.5, py: 1, borderBottom: "1px solid #e2e8f0", flexWrap: "wrap", rowGap: 0.5 }}
             >
+                {/* 모바일(embedded)은 아이콘 줄을 통째로 오른쪽에 붙인다(2026-10-12 사용자 지시) — 앞에 빈 칸을 두어 민다.
+                    전에는 ⋮ 만 오른쪽 끝이고 나머지는 왼쪽이라, 한 손으로 쥔 폰에서 자주 누르는 답장·삭제가 엄지에서 멀었다.
+                    데스크톱은 아이콘 줄이 왼쪽에서 이어지고 닫기 X 만 오른쪽이다. */}
+                {embedded ? <Box sx={{ flex: 1 }} /> : null}
                 {isDraft ? (
                     <Button size="small" variant="contained" onClick={onEditDraft} sx={{ fontSize: "13.5px" }}>
                         이어서 작성
@@ -401,8 +405,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </IconButton>
                     </Tooltip>
                 )}
-                {/* 모바일(embedded)은 닫기 X 가 없어 ⋮ 를 오른쪽 끝으로 민다(데스크톱은 아이콘 줄 이어서, X 만 오른쪽). */}
-                {embedded ? <Box sx={{ flex: 1 }} /> : null}
                 {/* ⋮ 더보기 — 삭제/읽지않음/스팸 등 전체 메뉴 */}
                 <Tooltip title="더보기">
                     <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="더보기">

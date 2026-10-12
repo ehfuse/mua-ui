@@ -47,8 +47,36 @@ body.mua-fit div,body.mua-fit p,body.mua-fit section,body.mua-fit article,body.m
 }
 body.mua-fit img,body.mua-fit video{max-width:100% !important;height:auto !important;}
 body.mua-fit{overflow-wrap:break-word;}
+/* mua-scroll — 접어도 화면 폭 안으로 안 들어오는 표(칸 안 글이 줄을 바꾸지 않는 표)를 감싼 상자(wrapWideTables).
+   그 표만 제자리에서 가로로 민다. 스크롤 막대가 표 바로 아래에 서므로 마우스로도 잡아 끌 수 있다. */
+.mua-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
 blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e1;color:#475569;}
 </style></head><body>${bodyHtml}</body></html>`;
+}
+
+/**
+ * 화면 폭보다 넓은 표를 가로 스크롤 상자(.mua-scroll)로 감싼다(2026-10-12).
+ *
+ * mua-fit 으로 고정 폭을 풀어도 줄지 않는 표가 있다 — 칸 안의 글이 줄을 바꾸지 않으면 표는 그 글 폭 아래로 못 줄어든다.
+ * 전에는 본문 문서 전체가 가로로 넘쳤는데, 본문 프레임은 내용 높이만큼 길어서 **가로 스크롤 막대가 메일 맨 아래에만** 생겼다:
+ * 폰은 손가락으로 밀면 되지만 PC(마우스)에서는 막대를 찾아 맨 아래까지 내려가야 해 가려진 칸을 사실상 볼 수 없었다.
+ * 넓은 표만 제자리에서 밀게 하면 막대가 그 표 바로 아래에 서고, 나머지 글은 화면 폭에 맞춰 그대로 읽힌다.
+ *
+ * 안쪽 표부터 본다 — 안쪽 표를 감싸면 그것을 품은 바깥(배치용) 표가 줄어들 수 있어, 바깥까지 감쌀 일이 없어진다.
+ */
+export function wrapWideTables(doc: Document): void {
+    const limit = doc.documentElement?.clientWidth ?? 0;
+    if (limit <= 0) return;
+    const tables = Array.from(doc.body.querySelectorAll("table")).reverse();
+    for (const table of tables) {
+        const parent = table.parentElement;
+        if (!parent || parent.classList.contains("mua-scroll")) continue;
+        if (table.getBoundingClientRect().width <= limit + 1) continue;
+        const wrap = doc.createElement("div");
+        wrap.className = "mua-scroll";
+        parent.insertBefore(wrap, table);
+        wrap.appendChild(table);
+    }
 }
 
 /** HTML 특수문자를 이스케이프한다. */

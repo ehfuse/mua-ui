@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Box } from "@mui/material";
-import { sanitizeMailHtml, wrapMailDocument } from "../../utils/html";
+import { sanitizeMailHtml, wrapMailDocument, wrapWideTables } from "../../utils/html";
 import { useMuaConfig } from "../../MuaProvider";
 
 interface MailBodyFrameProps {
@@ -71,6 +71,8 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
                 const naturalWidth = Math.max(doc.documentElement?.scrollWidth ?? 0, doc.body?.scrollWidth ?? 0);
                 const shouldFit = naturalWidth > frameWidth + 1;
                 doc.body.classList.toggle("mua-fit", shouldFit);
+                // 접어도 안 들어오는 표는 그 표만 가로로 밀게 감싼다 — 문서 전체가 넘치면 스크롤 막대가 메일 맨 아래에만 생겨 PC 에서 못 쓴다.
+                if (shouldFit) wrapWideTables(doc);
 
                 // 클래스를 막 바꿨으면 레이아웃이 다시 잡힌 뒤의 높이를 재야 한다 — 강제 리플로를 한 번 일으킨다.
                 if (shouldFit !== wasFit) void doc.body.offsetHeight;
