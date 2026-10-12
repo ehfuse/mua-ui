@@ -992,8 +992,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                 gap: 1,
                                 px: 0.5,
                                 minWidth: 0,
-                                // 띠 모양 — 계정 줄을 탭에 붙은 흰 띠로 세운다(좌우는 본문 여백 + 원래 들임 4px).
-                                ...(edgeBleed ? { mx: `-${edgeBleed}px`, px: `${edgeBleed + 4}px`, py: 0.5, bgcolor: "#fff", mb: MOBILE_EDGE_GAP } : {}),
+                                // 띠 모양 — 계정 줄을 탭에 붙은 흰 띠로 세운다.
+                                // 좌우는 아래 메일 줄에 맞춘다(0.3.148): 왼쪽 4px + 체크박스 들임 4px = 메일 줄의 띠 4px + 여백 4px 이라 체크박스가 같은 세로줄에 서고,
+                                // 오른쪽 6px + 단추 안쪽 여백 8px = 메일 줄의 오른쪽 여백 14px 이라 톱니가 시각 칸의 오른쪽 끝에 맞는다.
+                                // 띠가 화면 끝까지 가는데 본문 여백(16px)을 또 들이니 전체 선택만 16px 안쪽에 서 있었다.
+                                ...(edgeBleed ? { mx: `-${edgeBleed}px`, pl: "4px", pr: "6px", py: 0.5, bgcolor: "#fff", mb: MOBILE_EDGE_GAP } : {}),
                             }}
                         >
                             {/* 전체 선택(2026-10-01) — 폰에서는 한 통씩 체크하는 길뿐이라 여러 통을 읽음·삭제하기 어려웠다.
