@@ -96,7 +96,24 @@ export function MailMobileList({
                             pr: 1.75,
                             pl: 0.5,
                             // 안 읽은 메일 — 왼쪽 파란 띠(목록 표의 굵은 글씨에 대응).
-                            borderLeft: unread ? "4px solid #3b82f6" : "4px solid transparent",
+                            // 화면 폭을 끝까지 쓰는 띠 목록(bleed)에서는 띠를 화면 끝에서 살짝 띄운다(0.3.149) — 화면 테두리에 딱 붙어 잘린 것처럼 보였다.
+                            // 띄우는 폭은 호스트 앱이 --mobile-edge-band-inset 에 적는다(없으면 0). 띠 자리(4px)는 투명 테두리로 늘 잡아 두고, 띄운 만큼 내용도 들인다.
+                            borderLeft: "4px solid transparent",
+                            position: "relative",
+                            ...(bleed ? { ml: 0, pl: "calc(4px + var(--mobile-edge-band-inset, 0px))" } : {}),
+                            ...(unread
+                                ? {
+                                      "&::before": {
+                                          content: '""',
+                                          position: "absolute",
+                                          top: 0,
+                                          bottom: 0,
+                                          left: bleed ? "calc(-4px + var(--mobile-edge-band-inset, 0px))" : "-4px",
+                                          width: 4,
+                                          bgcolor: "#3b82f6",
+                                      },
+                                  }
+                                : {}),
                         }}
                     >
                         {/* 1행: 체크박스(복수 선택) · 중요 토글 · 상대 · 일시 — 체크/별은 카드 클릭(상세 열기)과 분리한다. */}
