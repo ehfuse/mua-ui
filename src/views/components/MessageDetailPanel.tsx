@@ -39,7 +39,7 @@ import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutl
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import { ErrorAlert } from "@ehfuse/alerts";
 import { useMuaSaveBlob } from "../../MuaProvider";
-import { mailApi } from "../../apis/mailApi";
+import { mailApi, unwrap } from "../../apis/mailApi";
 import type {
     MailAttachment,
     MailMessageDetail,
@@ -48,7 +48,7 @@ import type {
     MailTranslation,
     MailReceipt,
 } from "../../models/types";
-import { formatAddressList, formatBytes, formatMailFullDate } from "../../utils/format";
+import { formatAddressList, formatBytes, formatMailFullDate, sendStateColor, sendStateLabel } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
 
 interface MessageDetailPanelProps {
@@ -183,6 +183,18 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         onTranslationShownChange,
         embedded = false,
     } = props;
+    // 다시 보내기를 누르면 서버가 답하는 대로 "보내는 중" 으로 바꿔 그린다 — 목록은 실시간 알림으로 따로 갱신된다.
+    const [resentSeq, setResentSeq] = useState(0);
+    const sendState = detail && resentSeq === detail.seq ? "sending" : (detail?.send_state ?? "");
+    const handleResend = async () => {
+        if (!detail) return;
+        try {
+            unwrap(await mailApi.resend(detail.seq), "다시 보내지 못했습니다.");
+            setResentSeq(detail.seq);
+        } catch (error) {
+            ErrorAlert({ message: error instanceof Error ? error.message : "다시 보내지 못했습니다." });
+        }
+    };
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
     // 스팸 신고/삭제/영구 삭제 확인 팝퍼(앵커 = 누른 아이콘 버튼)
     const [confirm, setConfirm] = useState<{
@@ -726,14 +738,30 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 </Typography>
                             </>
                         ) : null}
-                        {detail.send_error ? (
+                        {sendState === "sending" ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>발송</Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: sendStateColor(sendState) }}>
+                                    {sendStateLabel(sendState)}
+                                </Typography>
+                            </>
+                        ) : null}
+                        {detail.send_error && sendState !== "sending" ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                                    예약 실패
+                                    {sendStateLabel(sendState) || "예약 실패"}
                                 </Typography>
-                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#dc2626", wordBreak: "break-all" }}>
-                                    {detail.send_error}
-                                </Typography>
+                                <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, flexWrap: "wrap", minWidth: 0 }}>
+                                    <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#dc2626", wordBreak: "break-all", minWidth: 0 }}>
+                                        {detail.send_error}
+                                    </Typography>
+                                    {/* 일부만 실패한 메일은 다시 보내지 않는다 — 이미 받은 사람에게 또 간다. */}
+                                    {sendState === "failed" ? (
+                                        <Button variant="outlined" size="small" onClick={handleResend} sx={{ flexShrink: 0, fontSize: "14px" }}>
+                                            다시 보내기
+                                        </Button>
+                                    ) : null}
+                                </Box>
                             </>
                         ) : null}
                         {detail.secure ? (

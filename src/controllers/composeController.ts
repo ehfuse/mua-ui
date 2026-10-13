@@ -270,7 +270,10 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                 if (failed.length > 0)
                     WarningAlert({ message: `보내지 못한 받는 사람이 있습니다: ${failed.join(", ")}` });
                 else
-                    SuccessAlert(sent.scheduled ? `${values.send_at} 에 보내도록 예약했습니다.` : "메일을 보냈습니다.");
+                    // 첨부가 큰 메일은 서버가 뒤에서 보낸다(pending) — 보낸편지함에 "보내는 중" 으로 보이고, 실패하면 거기 "발송 실패" 로 남는다.
+                    SuccessAlert(
+                        sent.scheduled ? `${values.send_at} 에 보내도록 예약했습니다.` : sent.pending ? "메일을 보내고 있습니다. 보낸편지함에서 확인할 수 있습니다." : "메일을 보냈습니다."
+                    );
                 modal.close();
                 onSent?.();
                 return true;

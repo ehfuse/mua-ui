@@ -16,7 +16,7 @@ import { StarRoundedIcon } from "../../internal/icons";
 import { mfs } from "../../internal/mobileFontScale";
 import { MobileChip, MobileListLoadingSpinner, MobilePlainList } from "../../internal/mobileParts";
 import type { MailMessageListItem } from "../../models/types";
-import { formatCounterpart, formatMailListDate, scheduledPrefix } from "../../utils/format";
+import { formatCounterpart, formatMailListDate, scheduledPrefix, sendStateColor, sendStateLabel } from "../../utils/format";
 
 interface MailMobileListProps {
     rows: MailMessageListItem[]; // 목록(누적 페이지)
@@ -184,6 +184,12 @@ export function MailMobileList({
                                     }}
                                 >
                                     {scheduledPrefix(row.send_at)}
+                                    {/* 뒤에서 보내는 메일 — 보내는 중 · 발송 실패를 제목 앞에 세운다. */}
+                                    {sendStateLabel(row.send_state) ? (
+                                        <Box component="span" sx={{ color: sendStateColor(row.send_state), fontWeight: 700, mr: 0.75 }}>
+                                            {sendStateLabel(row.send_state)}
+                                        </Box>
+                                    ) : null}
                                     {row.translated_subject || row.subject || "(제목 없음)"}
                                 </Typography>
                                 {row.has_attachment ? (

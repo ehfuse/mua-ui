@@ -90,6 +90,7 @@ export interface MailMessageListItem {
     mail_folder_seq: number;
     size: number;
     send_at?: string | null;
+    send_state?: string | null;
     translated_subject?: string | null;
 }
 /** 상세(본문·첨부 포함) */

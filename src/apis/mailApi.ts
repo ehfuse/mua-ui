@@ -180,10 +180,12 @@ export const mailApi = {
         entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/messages/${seq}`, {}),
     /** 발송 */
     send: (body: ComposeRequest) =>
-        entityAppServer.http.post<ApiOk<{ seq: number; message_id: string; failed_recipients?: string[]; scheduled?: boolean }>>(
+        entityAppServer.http.post<ApiOk<{ seq: number; message_id: string; failed_recipients?: string[]; scheduled?: boolean; pending?: boolean }>>(
             "/v1/mua/send",
             body
         ),
+    /** 발송 실패로 남은 보낸편지함 메일을 다시 보낸다(뒤에서) */
+    resend: (seq: number) => entityAppServer.http.post<ApiOk<{ seq: number; pending: boolean }>>(`/v1/mua/messages/${seq}/resend`, {}),
     /** 보낸 메일의 받는 사람별 수신확인 */
     receipts: (seq: number) =>
         entityAppServer.http.get<ApiOk<{ items: MailReceipt[] }>>(`/v1/mua/messages/${seq}/receipts`),

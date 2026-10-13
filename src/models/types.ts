@@ -96,6 +96,7 @@ export interface MailMessageListItem {
     mail_folder_seq: number; // 사용자 메일함(folder=custom)
     size: number; // 크기
     send_at?: string | null; // 예약 발송 시각(UTC) — 임시보관함의 예약 메일에만 있다
+    send_state?: string | null; // 뒤에서 보내는 메일의 상태(보낸편지함) — sending(보내는 중) · failed(발송 실패) · partial(일부 실패). 다 보냈으면 비어 있다
     // 번역본 보기 상태일 때의 번역 제목(목록 응답 — 서버가 translation_shown 일 때만 채운다). null/없음이면 원문 제목.
     translated_subject?: string | null;
 }

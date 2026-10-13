@@ -8,7 +8,7 @@ import { StarRoundedIcon } from "../../internal/icons";
 import { HighlightText } from "../../internal/HighlightText";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import type { MailMessageListItem } from "../../models/types";
-import { formatCounterpart, formatMailListDate, scheduledPrefix } from "../../utils/format";
+import { formatCounterpart, formatMailListDate, scheduledPrefix, sendStateColor, sendStateLabel } from "../../utils/format";
 
 /** 복수 선택 상태(체크박스 컬럼) */
 export interface MailListSelection {
@@ -110,6 +110,12 @@ export function getMailColumns(
                     >
                         {/* 번역본 보기 상태인 메일은 번역 제목을 보인다("원문 보기"로 되돌리면 원문 제목). */}
                         {scheduledPrefix(row.send_at)}
+                        {/* 뒤에서 보내는 메일 — 보내는 중 · 발송 실패를 제목 앞에 세운다. */}
+                        {sendStateLabel(row.send_state) ? (
+                            <Box component="span" sx={{ color: sendStateColor(row.send_state), fontWeight: 700, mr: 0.75 }}>
+                                {sendStateLabel(row.send_state)}
+                            </Box>
+                        ) : null}
                         <HighlightText text={row.translated_subject || row.subject || "(제목 없음)"} query={search} />
                     </Typography>
                     {showSnippet ? (

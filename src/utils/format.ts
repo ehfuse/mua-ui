@@ -42,6 +42,19 @@ export function formatMailFullDate(value: string | null | undefined): string {
     return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${days[date.getDay()]}) ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** 뒤에서 보내는 메일의 상태 글자 — 보낸편지함 목록의 제목 앞과 상세에 쓴다. 다 보낸 메일은 빈 문자열. */
+export function sendStateLabel(state: string | null | undefined): string {
+    if (state === "sending") return "보내는 중";
+    if (state === "failed") return "발송 실패";
+    if (state === "partial") return "일부 발송 실패";
+    return "";
+}
+
+/** 상태 글자의 색 — 보내는 중은 눌러 두고, 실패는 빨갛게 세운다. */
+export function sendStateColor(state: string | null | undefined): string {
+    return state === "sending" ? "#64748b" : "#dc2626";
+}
+
 /** 예약 메일의 제목 머리 — "[예약 10월 12일 09:00] ". 예약이 아니면 빈 문자열. */
 export function scheduledPrefix(sendAt: string | null | undefined): string {
     const date = parseMailDate(sendAt);

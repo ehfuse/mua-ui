@@ -157,6 +157,12 @@ export declare const mailApi: {
         message_id: string;
         failed_recipients?: string[];
         scheduled?: boolean;
+        pending?: boolean;
+    }>>;
+    /** 발송 실패로 남은 보낸편지함 메일을 다시 보낸다(뒤에서) */
+    resend: (seq: number) => Promise<ApiOk<{
+        seq: number;
+        pending: boolean;
     }>>;
     /** 보낸 메일의 받는 사람별 수신확인 */
     receipts: (seq: number) => Promise<ApiOk<{

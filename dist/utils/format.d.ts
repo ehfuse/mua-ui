@@ -8,6 +8,10 @@ export declare function parseMailDate(value: string | null | undefined): Date | 
 export declare function formatMailListDate(value: string | null | undefined): string;
 /** 상세용 전체 일시 — YYYY년 M월 D일 (요일) HH:mm */
 export declare function formatMailFullDate(value: string | null | undefined): string;
+/** 뒤에서 보내는 메일의 상태 글자 — 보낸편지함 목록의 제목 앞과 상세에 쓴다. 다 보낸 메일은 빈 문자열. */
+export declare function sendStateLabel(state: string | null | undefined): string;
+/** 상태 글자의 색 — 보내는 중은 눌러 두고, 실패는 빨갛게 세운다. */
+export declare function sendStateColor(state: string | null | undefined): string;
 /** 예약 메일의 제목 머리 — "[예약 10월 12일 09:00] ". 예약이 아니면 빈 문자열. */
 export declare function scheduledPrefix(sendAt: string | null | undefined): string;
 /** 주소를 "이름 <addr>" 또는 "addr" 로 표시한다. */
