@@ -400,7 +400,18 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         rowGap: 0.5,
                                     }}
                                 >
-                                    <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 3, rowGap: 0.5 }}>
+                                    {/* 좁은 폭(폰 · 설치한 웹앱 최소 폭)에서는 스위치 이름을 14px 로 줄이고 사이를 좁힌다(0.3.160) —
+                                        기본 크기면 셋이 한 줄에 못 서고 줄마다 꺾였다. */}
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            alignItems: "center",
+                                            columnGap: isMobile ? 1.5 : 3,
+                                            rowGap: 0.5,
+                                            ...(isMobile ? { "& .MuiFormControlLabel-label": { fontSize: "14px" } } : {}),
+                                        }}
+                                    >
                                         <Switch form={form} name="scheduled" label="예약 발송" />
                                         <Switch form={form} name="read_receipt" label="수신확인" disabled={secure} />
                                         <Switch form={form} name="secure" label="보안메일" />
@@ -408,7 +419,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     <Button
                                         size="small"
                                         onClick={() => form.setFormValue("showCcBcc", !showCcBcc)}
-                                        sx={{ fontSize: "13.5px", ml: "auto" }}
+                                        // 글자가 두 줄로 꺾이지 않게(0.3.160) — 좁은 폭에서 "참조/숨은 · 참조" 로 갈라졌다.
+                                        sx={{ fontSize: "14px", ml: "auto", whiteSpace: "nowrap", flexShrink: 0 }}
                                     >
                                         {showCcBcc ? "참조 숨기기" : "참조/숨은참조"}
                                     </Button>
