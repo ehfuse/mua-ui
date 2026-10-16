@@ -1,5 +1,8 @@
 /**
- * 메일 목록 모바일 머리(0.3.131) — 접히는 검색칸과 갈래 탭(전체 · 안 읽음 · 별표).
+ * 메일 목록 모바일 머리(0.3.131) — 접히는 검색칸과 갈래 탭(전체 · 안 읽음 · 별표 · 라벨).
+ *
+ * 라벨(0.3.162)은 넓은 화면처럼 라벨마다 탭을 두면 폰 폭을 넘치므로 탭 하나로 둔다 — 누르면 내 라벨을 고르는 메뉴가 뜨고,
+ * 고르면 그 라벨의 메일만 보이며 탭 글자가 그 라벨 이름이 된다. 라벨 기능을 켠 앱(config.labels)에서만 보인다.
  *
  * 검색칸은 접혀 있다가 **앱 제목 옆 돋보기**를 누르면 제목 줄 바로 아래로 펼쳐진다(겹쳐 뜨는 창이 아니라 목록을 밀어 내린다).
  * 돋보기는 앱(상단 바)이 그리고, 여닫힘은 앱과 같이 쓰는 전역 상태(mobileSearchOverlay.open)로 받는다.
@@ -10,12 +13,16 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Box, Collapse, InputAdornment, TextField } from "@mui/material";
+import { Box, Collapse, Divider, InputAdornment, Menu, MenuItem, TextField, Typography } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import CheckIcon from "@mui/icons-material/Check";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import { mfs } from "../../internal/mobileFontScale";
+import type { MailLabel } from "../../models/types";
+import { MailLabelDot, labelColor } from "./MailLabels";
 
-/** 갈래 — 전체 · 안 읽음 · 별표. */
-export type MailMobileScope = "all" | "unread" | "starred";
+/** 갈래 — 전체 · 안 읽음 · 별표 · 라벨. */
+export type MailMobileScope = "all" | "unread" | "starred" | "label";
 
 interface MailMobileTopProps {
     scope: MailMobileScope; // 지금 갈래
@@ -24,6 +31,11 @@ interface MailMobileTopProps {
     searchOpen: boolean; // 검색칸 펼침(앱 제목 옆 돋보기가 여닫는다)
     search: string; // 지금 걸려 있는 검색어
     onSearch: (keyword: string) => void; // 검색어 바꾸기(빈 값 = 검색 풀기)
+    /** 내 라벨 — 주면 "라벨" 탭이 생긴다(라벨 기능을 켠 앱만). */
+    labels?: MailLabel[];
+    labelSeq?: number; // 지금 고른 라벨(0 = 라벨로 거르지 않음)
+    onLabelChange?: (labelSeq: number) => void; // 라벨 고르기
+    onManageLabels?: () => void; // 메뉴 맨 아래 "라벨 관리"
     /** 화면 본문의 좌우·위 여백(px) — 그만큼 밖으로 빼 화면 끝과 제목 줄에 붙인다. */
     bleed?: number;
 }
@@ -37,8 +49,24 @@ const TABS: { key: MailMobileScope; label: string }[] = [
     { key: "starred", label: "별표" },
 ];
 
-export function MailMobileTop({ scope, onScopeChange, unreadCount, searchOpen, search, onSearch, bleed = 16 }: MailMobileTopProps) {
+export function MailMobileTop({
+    scope,
+    onScopeChange,
+    unreadCount,
+    searchOpen,
+    search,
+    onSearch,
+    labels,
+    labelSeq = 0,
+    onLabelChange,
+    onManageLabels,
+    bleed = 16,
+}: MailMobileTopProps) {
     const [draft, setDraft] = useState(search);
+    // 라벨 메뉴 — 탭을 누른 때의 탭 아래 좌표에 띄운다(갈래가 바뀌며 탭이 다시 그려져도 메뉴가 왼쪽 위로 튀지 않게).
+    const [labelMenuAt, setLabelMenuAt] = useState<{ top: number; left: number } | null>(null);
+    const tabs = labels ? [...TABS, { key: "label" as const, label: "라벨" }] : TABS;
+    const pickedLabel = labels?.find((label) => label.seq === labelSeq) ?? null;
     const inputRef = useRef<HTMLInputElement | null>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => () => {
@@ -90,8 +118,9 @@ export function MailMobileTop({ scope, onScopeChange, unreadCount, searchOpen, s
             </Collapse>
             {/* 갈래 탭 — 세 칸이 폭을 똑같이 나눈다. 고른 탭만 파란 굵은 글자 + 아래 굵은 줄. */}
             <Box role="tablist" aria-label="메일 보기" sx={{ display: "flex" }}>
-                {TABS.map((tab) => {
+                {tabs.map((tab) => {
                     const selected = scope === tab.key;
+                    const isLabel = tab.key === "label";
                     return (
                         <Box
                             component="button"
@@ -99,7 +128,11 @@ export function MailMobileTop({ scope, onScopeChange, unreadCount, searchOpen, s
                             role="tab"
                             key={tab.key}
                             aria-selected={selected}
-                            onClick={() => onScopeChange(tab.key)}
+                            onClick={(event) => {
+                                if (!isLabel) return onScopeChange(tab.key);
+                                const rect = event.currentTarget.getBoundingClientRect();
+                                setLabelMenuAt({ top: rect.bottom, left: rect.left });
+                            }}
                             sx={{
                                 flex: 1,
                                 minWidth: 0,
@@ -116,13 +149,73 @@ export function MailMobileTop({ scope, onScopeChange, unreadCount, searchOpen, s
                                 fontWeight: selected ? 700 : 500,
                                 color: selected ? "primary.main" : "#64748b",
                                 whiteSpace: "nowrap",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 0.5,
+                                px: 0.5,
                             }}
                         >
-                            {tab.key === "unread" && unreadCount > 0 ? `${tab.label} ${unreadCount}` : tab.label}
+                            {/* 라벨을 골라 두었으면 탭 글자가 그 라벨(색 꼬리표 + 이름)이 된다. */}
+                            {isLabel && selected && pickedLabel ? (
+                                <>
+                                    <MailLabelDot color={labelColor(pickedLabel)} size={18} />
+                                    <Box component="span" sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+                                        {pickedLabel.name}
+                                    </Box>
+                                </>
+                            ) : tab.key === "unread" && unreadCount > 0 ? (
+                                `${tab.label} ${unreadCount}`
+                            ) : (
+                                tab.label
+                            )}
                         </Box>
                     );
                 })}
             </Box>
+            {labels ? (
+                <Menu
+                    open={Boolean(labelMenuAt)}
+                    onClose={() => setLabelMenuAt(null)}
+                    anchorReference="anchorPosition"
+                    anchorPosition={labelMenuAt ?? undefined}
+                    transitionDuration={0}
+                    slotProps={{ paper: { sx: { minWidth: 200, maxHeight: 420 } } }}
+                >
+                    {labels.length === 0 ? (
+                        <Typography sx={{ px: 2, py: 1, fontSize: 15, color: "text.secondary" }}>만든 라벨이 없습니다</Typography>
+                    ) : null}
+                    {labels.map((label) => (
+                        <MenuItem
+                            key={label.seq}
+                            onClick={() => {
+                                setLabelMenuAt(null);
+                                onLabelChange?.(label.seq);
+                            }}
+                            sx={{ fontSize: 15, gap: 1 }}
+                        >
+                            <MailLabelDot color={labelColor(label)} />
+                            <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                {label.name}
+                            </Box>
+                            {label.seq === labelSeq ? <CheckIcon sx={{ fontSize: 20, color: "primary.main" }} /> : null}
+                        </MenuItem>
+                    ))}
+                    {onManageLabels ? <Divider /> : null}
+                    {onManageLabels ? (
+                        <MenuItem
+                            onClick={() => {
+                                setLabelMenuAt(null);
+                                onManageLabels();
+                            }}
+                            sx={{ fontSize: 15, gap: 1 }}
+                        >
+                            <SettingsOutlinedIcon sx={{ fontSize: 20, color: "#475569" }} />
+                            라벨 관리
+                        </MenuItem>
+                    ) : null}
+                </Menu>
+            ) : null}
         </Box>
     );
 }

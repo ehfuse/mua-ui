@@ -1078,8 +1078,20 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         {/* 갈래 탭 + 접히는 검색칸(0.3.130) — 앱이 목록 래퍼를 주입하지 않았을 때만. 주입한 앱은 앱바의 검색 오버레이를 쓴다. */}
                         {inlineMobileTop && (
                             <MailMobileTop
-                                scope={filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all"}
+                                scope={
+                                    filters.labelSeq > 0 && labels.some((l) => l.seq === filters.labelSeq)
+                                        ? "label"
+                                        : filters.unreadOnly
+                                          ? "unread"
+                                          : filters.starredOnly
+                                            ? "starred"
+                                            : "all"
+                                }
                                 onScopeChange={(scope) => state.actions.setFilters({ unreadOnly: scope === "unread", starredOnly: scope === "starred", labelSeq: 0 })}
+                                labels={labelsEnabled ? labels : undefined}
+                                labelSeq={filters.labelSeq}
+                                onLabelChange={(labelSeq) => state.actions.setFilters({ unreadOnly: false, starredOnly: false, labelSeq })}
+                                onManageLabels={() => requestMailManage("labels")}
                                 unreadCount={unreadCount}
                                 searchOpen={searchOverlayOpen}
                                 search={filters.search}
