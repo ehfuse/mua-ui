@@ -947,6 +947,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             loading={loadingDetail}
             // 모바일은 mfd 상세 다이얼로그의 ← 가 닫기를 맡고, 본문 스크롤도 다이얼로그가 소유한다.
             embedded={isMobile}
+            // 상세의 라벨 단추 — 목록 행 단추와 같은 메뉴(달기·떼기·새 라벨·관리)를 그 메일 하나에 띄운다.
+            labels={labelsEnabled ? labels : undefined}
+            onOpenLabelMenu={labelsEnabled ? (position) => detail && setRowLabelMenu({ position, row: detail }) : undefined}
             onClose={() => state.actions.clearSelection()}
             onReply={(mode) => detail && compose.form.actions.openFromMessage(detail, mode, detailAccount)}
             onEditDraft={() => detail && compose.form.actions.openDraft(detail)}

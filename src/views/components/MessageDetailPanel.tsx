@@ -47,9 +47,13 @@ import type {
     MailMoveTargetOption,
     MailTranslation,
     MailReceipt,
+    MailLabel,
 } from "../../models/types";
 import { formatAddressList, formatBytes, formatMailFullDate, sendStateColor, sendStateLabel } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
+import { MailLabelChips, labelColor } from "./MailLabels";
+import LabelIcon from "@mui/icons-material/Label";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 
 interface MessageDetailPanelProps {
     detail: MailMessageDetail | null; // 상세
@@ -76,6 +80,10 @@ interface MessageDetailPanelProps {
      * 자체 세로 스크롤러 대신 내용 높이만큼 늘어나 다이얼로그 스크롤에 맡긴다.
      */
     embedded?: boolean;
+    /** 내 라벨 — 주면 단추줄에 라벨 단추가 생기고 제목 아래에 단 라벨이 칩으로 보인다(라벨을 켠 앱만, 2026-10-16). */
+    labels?: MailLabel[];
+    /** 라벨 단추 — 누른 단추 아래 좌표를 넘긴다(메뉴는 목록 화면이 띄운다: 달기·떼기·새 라벨·관리가 목록과 같은 메뉴다). */
+    onOpenLabelMenu?: (position: { top: number; left: number }) => void;
 }
 
 /** "YYYY-MM-DD HH:mm:ss"(한국 시간) → "10월 11일 12:16" */
@@ -182,6 +190,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         onCreateRule,
         onTranslationShownChange,
         embedded = false,
+        labels,
+        onOpenLabelMenu,
     } = props;
     // 다시 보내기를 누르면 서버가 답하는 대로 "보내는 중" 으로 바꿔 그린다 — 목록은 실시간 알림으로 따로 갱신된다.
     const [resentSeq, setResentSeq] = useState(0);
@@ -393,6 +403,24 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     <Tooltip title="스팸 신고">
                         <IconButton size="small" onClick={(e) => askConfirm("spam", e.currentTarget)}>
                             <ReportGmailerrorredOutlinedIcon />
+                        </IconButton>
+                    </Tooltip>
+                ) : null}
+                {/* 라벨 — 단 라벨이 있으면 첫 라벨 색으로 채운다(목록 행의 라벨 단추와 같은 모양). */}
+                {labels && onOpenLabelMenu && !isDraft ? (
+                    <Tooltip title="라벨">
+                        <IconButton
+                            size="small"
+                            aria-label="라벨"
+                            onClick={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                onOpenLabelMenu({ top: rect.bottom, left: rect.left });
+                            }}
+                        >
+                            {(() => {
+                                const first = labels.find((label) => detail.label_seqs?.includes(label.seq));
+                                return first ? <LabelIcon sx={{ color: labelColor(first) }} /> : <LabelOutlinedIcon />;
+                            })()}
                         </IconButton>
                     </Tooltip>
                 ) : null}
@@ -632,6 +660,12 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             {(showTranslation && translation?.subject) || detail.subject || "(제목 없음)"}
                         </Typography>
                     </Stack>
+                    {/* 단 라벨 — 제목 글자 줄에 맞춰(별표 칸 27px + 간격 6px 만큼 들여) 둔다. */}
+                    {labels && detail.label_seqs && detail.label_seqs.some((seq) => labels.some((l) => l.seq === seq)) ? (
+                        <Box sx={{ mt: 0.75, pl: "31px", display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                            <MailLabelChips seqs={detail.label_seqs} labels={labels} maxWidth={200} />
+                        </Box>
+                    ) : null}
                     <Box
                         sx={{
                             mt: 1,
