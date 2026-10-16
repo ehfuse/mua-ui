@@ -7,6 +7,8 @@ import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import { StarRoundedIcon } from "../../internal/icons";
 import { HighlightText } from "../../internal/HighlightText";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import LabelIcon from "@mui/icons-material/Label";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import type { MailLabel, MailMessageListItem } from "../../models/types";
 import { MailLabelChips } from "../components/MailLabels";
 import { formatCounterpart, formatMailListDate, scheduledPrefix, sendStateColor, sendStateLabel } from "../../utils/format";
@@ -26,7 +28,9 @@ export function getMailColumns(
     selection: MailListSelection,
     search = "",
     showSnippet = true,
-    labels: MailLabel[] = [] // 색상 라벨(config.labels) — 비어 있으면 칩을 그리지 않는다
+    labels: MailLabel[] = [], // 색상 라벨(config.labels) — 비어 있으면 칩을 그리지 않는다
+    // 행의 라벨 단추(0.3.159) — 주면 별표 옆에 라벨 아이콘을 두고 누르면 그 메일의 라벨 메뉴를 연다(지메일처럼 한 통에 바로 단다).
+    onLabelClick?: (row: MailMessageListItem, anchorEl: HTMLElement) => void
 ): DataColumn<MailMessageListItem>[] {
     return [
         {
@@ -59,10 +63,11 @@ export function getMailColumns(
         {
             id: "is_starred",
             text: "",
-            width: 44,
+            width: onLabelClick ? 76 : 44,
             align: "center",
             style: { textAlign: "center" },
             render: (row) => (
+                <Box sx={{ display: "inline-flex", alignItems: "center" }}>
                 <IconButton
                     size="small"
                     aria-label={row.is_starred ? "중요 해제" : "중요 표시"}
@@ -79,6 +84,28 @@ export function getMailColumns(
                         }}
                     />
                 </IconButton>
+                {onLabelClick ? (
+                    <IconButton
+                        size="small"
+                        aria-label="라벨"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onLabelClick(row, event.currentTarget);
+                        }}
+                        sx={{ p: 0.5 }}
+                    >
+                        {/* 단 라벨이 있으면 첫 라벨 색으로 채운다 — 비어 있으면 별표와 같은 회색 테두리. */}
+                        {(() => {
+                            const first = labels.find((label) => row.label_seqs?.includes(label.seq));
+                            return first ? (
+                                <LabelIcon sx={{ fontSize: 20, color: first.color || "#64748b" }} />
+                            ) : (
+                                <LabelOutlinedIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
+                            );
+                        })()}
+                    </IconButton>
+                ) : null}
+                </Box>
             ),
         },
         {

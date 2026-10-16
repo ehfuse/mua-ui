@@ -12,4 +12,5 @@ export interface MailListSelection {
     onToggleAll: () => void;
 }
 /** 목록 컬럼을 만든다. */
-export declare function getMailColumns(onToggleStar: (row: MailMessageListItem) => void, selection: MailListSelection, search?: string, showSnippet?: boolean, labels?: MailLabel[]): DataColumn<MailMessageListItem>[];
+export declare function getMailColumns(onToggleStar: (row: MailMessageListItem) => void, selection: MailListSelection, search?: string, showSnippet?: boolean, labels?: MailLabel[], // 색상 라벨(config.labels) — 비어 있으면 칩을 그리지 않는다
+onLabelClick?: (row: MailMessageListItem, anchorEl: HTMLElement) => void): DataColumn<MailMessageListItem>[];
