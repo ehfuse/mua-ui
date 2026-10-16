@@ -909,6 +909,36 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [hasMore, loadingList, state]);
     // 데스크탑 폴백 — vdt(react-virtuoso) 의 endReached 가 오지 않는 경우를 대비해 표 스크롤러의 scroll 이벤트로도 감지한다.
     const tableWrapRef = useRef<HTMLDivElement | null>(null);
+    /**
+     * 분할 보기는 남은 화면 높이에 맞춘다(2026-10-16) — 앱의 본문 스크롤러는 높이를 정해 주지 않아 "height:100%" 가 내용 높이로 풀렸고,
+     * 긴 메일을 열면 목록·상세가 한 덩어리로 늘어나 본문 스크롤러가 통째로 스크롤됐다(제목·단추줄까지 위로 밀려났다).
+     * 높이를 정해 주면 목록은 표 스크롤러가, 상세는 상세 패널의 본문 영역이 각자 스크롤한다.
+     */
+    const [splitHeight, setSplitHeight] = useState<number | null>(null);
+    useEffect(() => {
+        const wrap = tableWrapRef.current;
+        if (!isSplit || !wrap) {
+            setSplitHeight(null);
+            return;
+        }
+        // 가장 가까운 세로 스크롤 조상 = 앱 본문 스크롤러(없으면 창).
+        let parent: HTMLElement | null = wrap.parentElement;
+        while (parent && !/(auto|scroll)/.test(getComputedStyle(parent).overflowY)) parent = parent.parentElement;
+        const measure = () => {
+            const top = wrap.getBoundingClientRect().top;
+            const viewBottom = parent ? parent.getBoundingClientRect().top + parent.clientHeight : window.innerHeight;
+            // 아래 여백은 본문 위아래 여백과 같게(24px) 둔다 — 붙이면 상세 패널 그림자가 잘린다.
+            setSplitHeight(Math.max(360, Math.floor(viewBottom - top - 24)));
+        };
+        measure();
+        const observer = new ResizeObserver(measure);
+        if (parent) observer.observe(parent);
+        window.addEventListener("resize", measure);
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("resize", measure);
+        };
+    }, [isSplit]);
     useEffect(() => {
         if (isMobile || !hasMore) return;
         const wrap = tableWrapRef.current;
@@ -1340,7 +1370,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         <Box
             ref={tableWrapRef}
             onContextMenu={handleTableContextMenu}
-            sx={{ userSelect: "none", height: "100%", minHeight: 0 }}
+            sx={{ userSelect: "none", height: splitHeight ? `${splitHeight}px` : "100%", minHeight: 0 }}
         >
             <ContextMenu state={rowContextMenu} items={contextMenuItems} />
             <ListLayout

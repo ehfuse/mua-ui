@@ -626,8 +626,17 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
 
             <Box ref={scrollRef} sx={embedded ? { minWidth: 0 } : { flex: 1, minHeight: 0, overflow: "auto" }}>
                 {/* 헤더 */}
-                {/* 첨부 칩이나 외부 이미지 차단 박스가 보일 때는 하단 여백을 좌우 여백(16px)과 같게 */}
-                <Box sx={{ px: 2, pt: 1.5, pb: hasAttachments || (hasRemoteImages && !showRemoteImages) ? 2 : 1 }}>
+                {/* 첨부 칩이나 외부 이미지 차단 박스가 보일 때는 하단 여백을 좌우 여백(16px)과 같게.
+                    분할·드로어(자체 스크롤)에서는 머리(제목·보낸 사람·첨부)를 위에 붙여 두고 본문만 스크롤한다(2026-10-16 —
+                    긴 메일을 내리면 제목과 보낸 사람이 사라져 무슨 메일인지 잃었다). 모바일(embedded)은 화면이 좁아 머리째 스크롤한다. */}
+                <Box
+                    sx={{
+                        px: 2,
+                        pt: 1.5,
+                        pb: hasAttachments || (hasRemoteImages && !showRemoteImages) ? 2 : 1,
+                        ...(embedded ? {} : { position: "sticky", top: 0, zIndex: 1, bgcolor: "background.paper" }),
+                    }}
+                >
                     {/* [별표][제목] — 중요 토글은 제목 왼쪽. 버튼 높이를 제목 첫 줄 높이(27px)와 같게 두고 그 안에서
                         아이콘을 가운데 놓아, 제목이 여러 줄이어도 첫 줄 세로 중앙에 정확히 맞는다(오프셋 계산 불필요). */}
                     <Stack direction="row" alignItems="flex-start" spacing={0.75}>
