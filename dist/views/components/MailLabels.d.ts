@@ -47,9 +47,15 @@ export declare function LabelCheckIcon({ state, color }: {
  * 누르면 바로 달거나 뗀다(모두 달린 것 = 떼기, 그 밖 = 모두에게 달기). 메뉴는 열어 둔 채라 여러 개를 이어 고른다.
  * 맨 아래 "새 라벨 만들기"(만들면 고른 메일에 바로 단다) · "라벨 관리".
  * 애니메이션은 없다(transitionDuration 0) — 누른 자리에서 메뉴가 늦게 따라오는 것처럼 보인다(앱 공통 규칙).
+ * anchorPosition 을 주면 그 좌표에 띄운다 — 목록 행의 단추처럼 메뉴를 여는 순간 다시 그려져 사라지는 단추에 붙이면
+ * MUI 가 기준점을 잃고 화면 왼쪽 위에 띄운다(2026-10-16).
  */
-export declare function MailLabelMenu({ anchorEl, onClose, labels, states, onToggle, onCreate, onManage, }: {
-    anchorEl: HTMLElement | null;
+export declare function MailLabelMenu({ anchorEl, anchorPosition, onClose, labels, states, onToggle, onCreate, onManage, }: {
+    anchorEl?: HTMLElement | null;
+    anchorPosition?: {
+        top: number;
+        left: number;
+    } | null;
     onClose: () => void;
     labels: MailLabel[];
     states: Map<number, LabelCheckState>;

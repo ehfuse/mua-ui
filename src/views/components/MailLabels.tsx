@@ -9,6 +9,7 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import IndeterminateCheckBoxIcon from "@mui/icons-material/IndeterminateCheckBox";
 import AddIcon from "@mui/icons-material/Add";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import LabelIcon from "@mui/icons-material/Label";
 import type { MailLabel } from "../../models/types";
 
 /**
@@ -90,13 +91,9 @@ export function MailLabelChips({
 }
 
 /** 라벨 색 점(탭 · 메뉴 · 관리 목록) */
-export function MailLabelDot({ color, size = 12 }: { color: string; size?: number }) {
-    return (
-        <Box
-            component="span"
-            sx={{ display: "inline-block", width: size, height: size, borderRadius: "50%", bgcolor: color || "#64748b", flexShrink: 0 }}
-        />
-    );
+export function MailLabelDot({ color, size = 20 }: { color: string; size?: number }) {
+    // 원이 아니라 목록 행의 라벨 단추와 같은 꼬리표 모양으로 그린다(2026-10-16) — 탭·메뉴의 원은 "안 읽음 점" 처럼 읽혀 라벨인 줄 몰랐다.
+    return <LabelIcon sx={{ fontSize: size, color: color || "#64748b", flexShrink: 0 }} />;
 }
 
 /** 고른 메일들이 그 라벨을 달고 있는 정도 — 모두 · 일부 · 없음 */
@@ -125,9 +122,12 @@ export function LabelCheckIcon({ state, color }: { state: LabelCheckState; color
  * 누르면 바로 달거나 뗀다(모두 달린 것 = 떼기, 그 밖 = 모두에게 달기). 메뉴는 열어 둔 채라 여러 개를 이어 고른다.
  * 맨 아래 "새 라벨 만들기"(만들면 고른 메일에 바로 단다) · "라벨 관리".
  * 애니메이션은 없다(transitionDuration 0) — 누른 자리에서 메뉴가 늦게 따라오는 것처럼 보인다(앱 공통 규칙).
+ * anchorPosition 을 주면 그 좌표에 띄운다 — 목록 행의 단추처럼 메뉴를 여는 순간 다시 그려져 사라지는 단추에 붙이면
+ * MUI 가 기준점을 잃고 화면 왼쪽 위에 띄운다(2026-10-16).
  */
 export function MailLabelMenu({
     anchorEl,
+    anchorPosition,
     onClose,
     labels,
     states,
@@ -135,7 +135,8 @@ export function MailLabelMenu({
     onCreate,
     onManage,
 }: {
-    anchorEl: HTMLElement | null;
+    anchorEl?: HTMLElement | null;
+    anchorPosition?: { top: number; left: number } | null;
     onClose: () => void;
     labels: MailLabel[];
     states: Map<number, LabelCheckState>;
@@ -145,8 +146,10 @@ export function MailLabelMenu({
 }) {
     return (
         <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
+            {...(anchorPosition
+                ? { anchorReference: "anchorPosition" as const, anchorPosition }
+                : { anchorEl: anchorEl ?? null })}
+            open={Boolean(anchorPosition || anchorEl)}
             onClose={onClose}
             transitionDuration={0}
             slotProps={{ paper: { sx: { minWidth: 220, maxHeight: 420 } } }}

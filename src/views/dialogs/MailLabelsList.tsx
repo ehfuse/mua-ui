@@ -16,7 +16,6 @@ import { TrashIcon } from "../../internal/icons";
 import { Tooltip } from "../../internal/Tooltip";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
-import { MOBILE_FULL_WIDTH_ACTIONS_SX } from "../../internal/mobileActionsSx";
 import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailLabel } from "../../models/types";
 import { LABEL_COLORS, MailLabelChip, labelColor, labelTextColor } from "../components/MailLabels";
@@ -228,13 +227,8 @@ export function MailLabelFormDialog({
     }, [name, color, busy, isEdit, label, onClose, onSaved]);
 
     const preview: MailLabel = { seq: 0, name: name.trim() || "라벨", color, sort_no: 0 };
-    const cancelButton = (
-        <Button variant="outlined" onClick={requestClose} disabled={busy} sx={isMobile ? { flex: 1, minWidth: 0 } : undefined}>
-            취소
-        </Button>
-    );
     const saveButton = (
-        <Button variant="contained" onClick={() => void save()} disabled={busy || !name.trim()} sx={isMobile ? { flex: 1, minWidth: 0 } : undefined}>
+        <Button variant="contained" onClick={() => void save()} disabled={busy || !name.trim()}>
             저장
         </Button>
     );
@@ -243,7 +237,6 @@ export function MailLabelFormDialog({
             fontScaleKey="MailLabelFormDialog"
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
-            sx={isMobile ? MOBILE_FULL_WIDTH_ACTIONS_SX : undefined}
             open={open}
             onClose={requestClose}
             title={{ text: isEdit ? "라벨 수정" : "새 라벨" }}
@@ -272,34 +265,17 @@ export function MailLabelFormDialog({
                                 slotProps={{ htmlInput: { maxLength: 50, style: { fontSize: 15 } } }}
                             />
                             <ColorSwatches value={color} onChange={setColor} />
-                            {/* 고른 색 · 이름이 목록 칩으로 어떻게 보이는지 */}
-                            <Box sx={{ display: "flex" }}>
-                                <MailLabelChip label={preview} maxWidth={300} />
-                            </Box>
                         </Box>
                     ),
                 },
             ]}
             actions={{
                 visible: true,
-                showCancelButton: false,
-                ...(isMobile
-                    ? {
-                          left: (
-                              <Stack direction="row" sx={{ width: "100%", gap: 1.5 }}>
-                                  {cancelButton}
-                                  {saveButton}
-                              </Stack>
-                          ),
-                      }
-                    : {
-                          right: (
-                              <Stack direction="row" spacing={1}>
-                                  {cancelButton}
-                                  {saveButton}
-                              </Stack>
-                          ),
-                      }),
+                // 취소는 mfd 기본 단추를 쓴다(2026-10-16). 고른 색 · 이름이 목록 칩으로 어떻게 보이는지는 액션바 왼쪽에 —
+                // 본문에 따로 줄을 두면 창이 그만큼 길어진다.
+                showCancelButton: true,
+                left: <MailLabelChip label={preview} maxWidth={isMobile ? 140 : 220} />,
+                right: saveButton,
             }}
         />
     );

@@ -587,7 +587,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 머리 [라벨] 메뉴의 대상 = 체크한 메일. "새 라벨 만들기" 로 만든 라벨은 그때 대상 메일에 바로 단다(지메일과 같다).
     const [labelMenuAnchor, setLabelMenuAnchor] = useState<HTMLElement | null>(null);
     // 행의 라벨 단추로 연 메뉴(0.3.159) — 그 한 통만 대상이다(체크와 무관).
-    const [rowLabelMenu, setRowLabelMenu] = useState<{ anchor: HTMLElement; row: MailMessageListItem } | null>(null);
+    // 행 단추는 메뉴를 여는 순간 목록이 다시 그려지며 갈아끼워진다 — 단추 대신 누른 때의 단추 아래 좌표를 쥔다.
+    const [rowLabelMenu, setRowLabelMenu] = useState<{ position: { top: number; left: number }; row: MailMessageListItem } | null>(null);
     const [labelForm, setLabelForm] = useState<{ applyTo: number[] } | null>(null);
     const toggleLabel = useCallback(
         (seqs: number[], label: MailLabel, add: boolean) =>
@@ -859,7 +860,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 // 분할형에서 상세가 열려 목록이 좁아지면 미리보기를 숨겨 제목이 잘 보이게 한다
                 !(isSplit && (Boolean(detail) || loadingDetail)),
                 labels,
-                labelsEnabled ? (row, anchorEl) => setRowLabelMenu({ anchor: anchorEl, row }) : undefined
+                labelsEnabled
+                    ? (row, anchorEl) => {
+                          const rect = anchorEl.getBoundingClientRect();
+                          setRowLabelMenu({ position: { top: rect.bottom, left: rect.left }, row });
+                      }
+                    : undefined
             ),
         [
             handleToggleStar,
@@ -1006,7 +1012,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         onManage={() => requestMailManage("labels")}
                     />
                     <MailLabelMenu
-                        anchorEl={rowLabelMenu?.anchor ?? null}
+                        anchorPosition={rowLabelMenu?.position ?? null}
                         onClose={() => setRowLabelMenu(null)}
                         labels={labels}
                         // 메뉴가 떠 있는 동안 단 라벨이 바뀌면 체크도 따라가게 — 목록의 지금 행에서 읽는다.
