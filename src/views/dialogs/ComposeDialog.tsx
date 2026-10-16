@@ -2,12 +2,12 @@
  * 메일 작성 다이얼로그(mfd) — 보내는 계정 · 받는 사람/참조/숨은참조 · 제목 · 에디터 본문 · 첨부 · [임시저장] [보내기].
  */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Chip, CircularProgress, Stack } from "@mui/material";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
-import { ErrorAlert, WarningAlert } from "@ehfuse/alerts";
+import { ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { ClearTextField, DateTimeTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaComposeEditor, useMuaConfig, useMuaFileUploadBox, useMuaFormDialog, useMuaMobileEditorToolbar } from "../../MuaProvider";
@@ -15,7 +15,7 @@ import { extractSignature } from "../../controllers/composeController";
 import type { ComposeController } from "../../controllers/composeController";
 import type { ComposeAttachment, MailAccount } from "../../models/types";
 import { MAX_ATTACHMENT_MB, readFileAsAttachment } from "../../utils/attachments";
-import { mailApi } from "../../apis/mailApi";
+import { mailApi, unwrap } from "../../apis/mailApi";
 import { useMailController } from "../../controllers/mailController";
 import { formatBytes } from "../../utils/format";
 
@@ -140,6 +140,26 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         lastSyncedSignatureRef.current = signatureHtml;
         signatureEditorRef.current?.setHtml(signatureHtml);
     }, [signatureHtml, modal.isOpen, signatureBelow]);
+    // [기본 서명으로 저장] — 지금 서명 칸을 보내는 계정의 서명으로 저장하고 계정 목록을 다시 읽는다(다음 창이 새 서명으로 열리게).
+    const [savingSignature, setSavingSignature] = useState(false);
+    const saveDefaultSignature = useCallback(async () => {
+        const seq = Number(form.getFormValue("mail_account_seq") ?? 0);
+        if (!(seq > 0)) {
+            WarningAlert({ message: "보내는 계정을 선택하세요." });
+            return;
+        }
+        const raw = String(form.getFormValue("signature_html") ?? "").trim();
+        setSavingSignature(true);
+        try {
+            unwrap(await mailApi.updateSignature(seq, raw === "<p><br></p>" ? "" : raw), "서명을 저장하지 못했습니다.");
+            void state.actions.loadAccounts();
+            SuccessAlert({ message: "보내는 계정의 서명으로 저장했습니다.", delay: 800 });
+        } catch (error) {
+            ErrorAlert({ message: error instanceof Error ? error.message : "서명을 저장하지 못했습니다." });
+        } finally {
+            setSavingSignature(false);
+        }
+    }, [form, state]);
     const signatureEditorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: "서명 없음",
@@ -453,8 +473,15 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             {/* 서명 — 본문 아래 따로(config.signatureBelowEditor). 이 메일에만 쓰는 서명이라 고쳐도 계정 서명은 그대로다. */}
                             {signatureBelow ? (
                                 <Box>
-                                    <Box component="div" sx={{ fontSize: 14, color: "text.secondary", mb: 0.75 }}>
-                                        서명
+                                    {/* 머리 줄 — "서명" 과 [기본 서명으로 저장](0.3.154). 쓰기 창에서 고친 서명은 이 메일에만 쓰이는데,
+                                        계정 설정까지 가지 않고 그대로 보내는 계정의 서명으로 굳힐 수 있게 한다(다음 메일부터 채워진다). */}
+                                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.25 }}>
+                                        <Box component="div" sx={{ fontSize: 14, color: "text.secondary" }}>
+                                            서명
+                                        </Box>
+                                        <Button size="small" disabled={savingSignature} onClick={() => void saveDefaultSignature()} sx={{ fontSize: 14 }}>
+                                            {savingSignature ? <CircularProgress size={14} color="inherit" /> : "기본 서명으로 저장"}
+                                        </Button>
                                     </Box>
                                     <Box sx={{ border: "1px solid", borderColor: "rgba(0,0,0,0.23)", borderRadius: 1, overflow: "hidden" }}>
                                         <Editor ref={signatureEditorRef} defaultValue={signatureHtml} toolbarOptions={toolbarOptions} {...signatureEditorConfig} />

@@ -96,6 +96,9 @@ export const mailApi = {
      */
     updateHostedProfile: (seq: number, body: MailHostedProfileRequest) =>
         entityAppServer.http.patch<ApiOk<MailAccount>>(`/v1/mua/accounts/${seq}`, body),
+    /** 서명만 저장(0.3.154) — 메일 쓰기 창의 [기본 서명으로 저장]. 서버 PATCH /v1/mua/accounts/:seq/signature 가 있어야 한다. */
+    updateSignature: (seq: number, signature: string) =>
+        entityAppServer.http.patch<ApiOk<MailAccount>>(`/v1/mua/accounts/${seq}/signature`, { signature }),
     /** 계정 삭제 */
     deleteAccount: (seq: number) =>
         entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/accounts/${seq}`, {}),

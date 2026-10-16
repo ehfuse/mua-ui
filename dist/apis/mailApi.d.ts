@@ -55,6 +55,8 @@ export declare const mailApi: {
      * 서버가 hosted 전용 경로로 받는다(수신/발신 서버 값은 아예 보내지 않는다).
      */
     updateHostedProfile: (seq: number, body: MailHostedProfileRequest) => Promise<ApiOk<MailAccount>>;
+    /** 서명만 저장(0.3.154) — 메일 쓰기 창의 [기본 서명으로 저장]. 서버 PATCH /v1/mua/accounts/:seq/signature 가 있어야 한다. */
+    updateSignature: (seq: number, signature: string) => Promise<ApiOk<MailAccount>>;
     /** 계정 삭제 */
     deleteAccount: (seq: number) => Promise<ApiOk<{
         deleted: boolean;
