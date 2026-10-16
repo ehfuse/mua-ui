@@ -10,19 +10,21 @@ import { Button, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaFormDialog } from "../../MuaProvider";
-import type { MailAccount, MailRule, MailUserFolder } from "../../models/types";
+import type { MailAccount, MailLabel, MailRule, MailUserFolder } from "../../models/types";
+import { MailLabelFormDialog, MailLabelsList } from "./MailLabelsList";
 import { MailAccountsList } from "./MailAccountsList";
 import { MailFolderFormDialog, MailFoldersList } from "./MailFoldersList";
 import { MailRulesList } from "./MailRulesList";
 
 /** 관리 탭 키 */
-export type MailManageTab = "accounts" | "folders" | "rules";
+export type MailManageTab = "accounts" | "folders" | "rules" | "labels";
 const ADD_LABEL: Record<MailManageTab, string> = {
     accounts: "계정 추가",
     folders: "메일함 만들기",
     rules: "규칙 추가",
+    labels: "라벨 만들기",
 };
-const TITLE: Record<MailManageTab, string> = { accounts: "메일 계정 관리", folders: "메일함 관리", rules: "메일 규칙" };
+const TITLE: Record<MailManageTab, string> = { accounts: "메일 계정 관리", folders: "메일함 관리", rules: "메일 규칙", labels: "라벨 관리" };
 
 interface MailManageDialogProps {
     open: boolean; // 열림
@@ -42,6 +44,8 @@ interface MailManageDialogProps {
     onAddRule: () => void; // 규칙 추가
     onEditRule: (rule: MailRule) => void; // 규칙 수정
     onRulesChanged: () => void; // 규칙 변경 후
+    labels?: MailLabel[]; // 색상 라벨(config.labels — 라벨 목록)
+    onLabelsChanged?: (items?: MailLabel[]) => void; // 라벨 변경 후(items 가 있으면 그 목록이 새 것)
 }
 
 /** 메일 관리 다이얼로그 */
@@ -62,14 +66,18 @@ export function MailManageDialog({
     onAddRule,
     onEditRule,
     onRulesChanged,
+    labels = [],
+    onLabelsChanged,
 }: MailManageDialogProps) {
     // 모바일은 풀스크린 우→좌 슬라이드(서브페이지 위에 한 겹 더 뜬다).
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
     const [folderAddOpen, setFolderAddOpen] = useState(false);
+    const [labelAddOpen, setLabelAddOpen] = useState(false);
     const handleAdd = () => {
         if (tab === "accounts") onAddAccount();
         else if (tab === "folders") setFolderAddOpen(true);
+        else if (tab === "labels") setLabelAddOpen(true);
         else onAddRule();
     };
     const addButton = (
@@ -162,6 +170,13 @@ export function MailManageDialog({
                             />
                         ),
                     },
+                    {
+                        key: "labels" as MailManageTab,
+                        id: "mail-manage-labels",
+                        tabTitle: "라벨",
+                        showTitle: false,
+                        children: <MailLabelsList labels={labels} onChanged={(items) => onLabelsChanged?.(items)} />,
+                    },
                 ]
                     .filter((section) => section.key === tab)
                     .map(({ key: _key, ...section }) => section)}
@@ -189,6 +204,7 @@ export function MailManageDialog({
                 onClose={() => setFolderAddOpen(false)}
                 onChanged={onFoldersChanged}
             />
+            <MailLabelFormDialog open={labelAddOpen} onClose={() => setLabelAddOpen(false)} onSaved={() => onLabelsChanged?.()} />
         </>
     );
 }

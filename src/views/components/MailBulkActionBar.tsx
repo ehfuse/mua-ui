@@ -1,5 +1,5 @@
 /**
- * 목록 복수 선택 액션 바 — [삭제] [스팸 등록] [읽음] [읽지 않음] (휴지통: [복원] [영구 삭제], 스팸함: [스팸 아님] [삭제]).
+ * 목록 복수 선택 액션 바 — [삭제] [스팸 등록] [읽음으로 표시] [읽지 않음으로 표시] [라벨(config.labels)] (휴지통: [복원] [영구 삭제], 스팸함: [스팸 아님] [삭제]).
  * 선택 건수 표시 없이 버튼만 나란히 둔다(전체 선택 체크박스가 해제를 맡는다).
  * 데스크탑은 헤더 왼쪽(새 메일 버튼 옆), 모바일은 목록 위 툴바에 아이콘 버튼으로 그려진다.
  */
@@ -12,6 +12,7 @@ import DraftsOutlinedIcon from "@mui/icons-material/DraftsOutlined";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import type { BulkMessageAction } from "../../apis/mailApi";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { TrashIcon } from "../../internal/icons";
@@ -30,6 +31,7 @@ interface MailBulkActionBarProps {
     canMarkRead?: boolean; // 선택 중 안 읽은 메일이 있음("읽음으로 표시" 활성 조건)
     canMarkUnread?: boolean; // 선택 중 읽은 메일이 있음("읽지 않음으로 표시" 활성 조건)
     onReply?: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전체 답장/전달
+    onLabel?: (anchorEl: HTMLElement) => void; // [라벨] — 고른 메일에 라벨 달기 메뉴(config.labels 를 켰을 때만 넘긴다)
 }
 
 /** 데스크탑 버튼 — 텍스트만, 넉넉한 좌우 여백(메일 서비스 툴바 규격). */
@@ -57,6 +59,7 @@ export function MailBulkActionBar({
     canMarkRead = true,
     canMarkUnread = true,
     onReply,
+    onLabel,
 }: MailBulkActionBarProps) {
     // 넓은 화면도 아이콘으로(config.desktop.iconToolbar) — 단추 일곱 개가 글로 서면 검색칸 오른쪽을 다 차지했다.
     const iconDesktop = Boolean(useMuaConfig().desktop?.iconToolbar) && !compact;
@@ -136,8 +139,10 @@ export function MailBulkActionBar({
             items.push(replyButton("전체 답장", <ReplyAllArrowIcon fontSize="small" />, "replyAll"));
             items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
         }
-        items.push(button("읽음", <DraftsOutlinedIcon fontSize="small" />, "read", canMarkRead));
-        items.push(button("읽지 않음", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread));
+        // 이름은 "읽음으로 표시"(0.3.158) — "읽음" 만으로는 상태 표시인지 단추인지 갈리지 않았다(아이콘 모드의 툴팁도 이 이름이다).
+        items.push(button("읽음으로 표시", <DraftsOutlinedIcon fontSize="small" />, "read", canMarkRead));
+        items.push(button("읽지 않음으로 표시", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread));
+        if (onLabel) items.push(item("label", "라벨", <LabelOutlinedIcon fontSize="small" />, onLabel, disabled));
     }
     return (
         <>

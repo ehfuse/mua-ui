@@ -7,7 +7,8 @@ import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import { StarRoundedIcon } from "../../internal/icons";
 import { HighlightText } from "../../internal/HighlightText";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
-import type { MailMessageListItem } from "../../models/types";
+import type { MailLabel, MailMessageListItem } from "../../models/types";
+import { MailLabelChips } from "../components/MailLabels";
 import { formatCounterpart, formatMailListDate, scheduledPrefix, sendStateColor, sendStateLabel } from "../../utils/format";
 
 /** 복수 선택 상태(체크박스 컬럼) */
@@ -24,7 +25,8 @@ export function getMailColumns(
     onToggleStar: (row: MailMessageListItem) => void,
     selection: MailListSelection,
     search = "",
-    showSnippet = true
+    showSnippet = true,
+    labels: MailLabel[] = [] // 색상 라벨(config.labels) — 비어 있으면 칩을 그리지 않는다
 ): DataColumn<MailMessageListItem>[] {
     return [
         {
@@ -99,6 +101,8 @@ export function getMailColumns(
             text: "제목",
             render: (row) => (
                 <Box sx={{ minWidth: 0, display: "flex", alignItems: "baseline", gap: 1 }}>
+                    {/* 색상 라벨 칩 — 지메일처럼 제목 앞. 칩이 많아도 제목 자리를 다 먹지 않게 칩마다 폭을 묶는다. */}
+                    <MailLabelChips seqs={row.label_seqs} labels={labels} maxWidth={showSnippet ? 120 : 90} />
                     <Typography
                         noWrap
                         sx={{

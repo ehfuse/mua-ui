@@ -7,7 +7,7 @@
  */
 import type { MailAccount, MailRule, MailRuleFormPrefill } from "../models/types";
 /** 관리 다이얼로그 탭 — views/dialogs/MailManageDialog 와 같은 값(그쪽 import 를 피해 여기서도 선언). */
-export type MailManageTab = "accounts" | "folders" | "rules";
+export type MailManageTab = "accounts" | "folders" | "rules" | "labels";
 export type MailManageRequest = {
     kind: "compose";
     to?: string;

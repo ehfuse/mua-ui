@@ -98,6 +98,12 @@ export interface MuaConfig {
         iconToolbar?: boolean;
         scopeTabs?: boolean;
     };
+    /**
+     * 색상 라벨(0.3.158) — 켜면 목록 행에 라벨 칩, 머리 툴바 [라벨] 단추 · 우클릭 "라벨" 하위 메뉴, 갈래 탭 뒤에 라벨마다 탭,
+     * 관리 창의 "라벨" 목록이 생긴다. 서버에 /v1/mua/labels · /v1/mua/messages/labels · 목록 label_seq 거르기가 있어야 한다 —
+     * 없는 앱(서버가 옛 것)은 켜지 않는다. 미지정이면 라벨 API 를 부르지 않고 화면도 그대로다.
+     */
+    labels?: boolean;
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void;
     inboxPath?: string;
     homePath?: string;

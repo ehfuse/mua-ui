@@ -14,6 +14,7 @@ import type {
     MailContactRequest,
     MailFolder,
     MailFolderCounts,
+    MailLabel,
     MailListFolder,
     MailTranslation,
     MailMessageDetail,
@@ -43,6 +44,7 @@ export interface ListMessagesParams {
     search?: string; // 검색어
     unread?: boolean; // 미읽음만
     starred?: boolean; // 중요만
+    label_seq?: number; // 색상 라벨 하나만(0/생략 = 거르지 않음) — 휴지통·스팸함이 아니면 서버가 전 폴더에서 찾는다
 }
 
 /** 목록 응답 */
@@ -151,6 +153,20 @@ export const mailApi = {
             "/v1/mua/preferences",
             body
         ),
+    /** 내 색상 라벨(순서대로) — config.labels 를 켠 앱만 부른다 */
+    listLabels: () => entityAppServer.http.get<ApiOk<{ items: MailLabel[] }>>("/v1/mua/labels"),
+    /** 라벨 만들기(맨 뒤) — 같은 이름이면 ok:false */
+    createLabel: (body: { name: string; color: string }) => entityAppServer.http.post<ApiOk<MailLabel>>("/v1/mua/labels", body),
+    /** 라벨 이름·색 고치기 */
+    updateLabel: (seq: number, body: { name?: string; color?: string }) =>
+        entityAppServer.http.patch<ApiOk<MailLabel>>(`/v1/mua/labels/${seq}`, body),
+    /** 라벨 순서 — 새 목록을 돌려받는다 */
+    reorderLabels: (seqs: number[]) => entityAppServer.http.post<ApiOk<{ items: MailLabel[] }>>("/v1/mua/labels/reorder", { seqs }),
+    /** 라벨 지우기 — 단 메일에서도 떼어진다(메일은 그대로) */
+    deleteLabel: (seq: number) => entityAppServer.http.delete<ApiOk<{ deleted: boolean; detached: number }>>(`/v1/mua/labels/${seq}`, {}),
+    /** 여러 메일에 라벨 달기·떼기 */
+    applyLabels: (seqs: number[], add: number[], remove: number[]) =>
+        entityAppServer.http.post<ApiOk<{ affected: number; changed: number }>>("/v1/mua/messages/labels", { seqs, add, remove }),
     /** 사용자 메일함 목록 */
     listFolders: () => entityAppServer.http.get<ApiOk<{ items: MailUserFolder[] }>>("/v1/mua/folders"),
     /** 메일함 추가 */

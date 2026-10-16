@@ -70,7 +70,7 @@ export function useHeaderConfig({
             control={
                 <Switch
                     checked={filters.unreadOnly}
-                    onChange={(_, checked) => state.actions.setFilters({ unreadOnly: checked, starredOnly: false })}
+                    onChange={(_, checked) => state.actions.setFilters({ unreadOnly: checked, starredOnly: false, labelSeq: 0 })}
                 />
             }
             // 이름은 "안 읽음"(0.3.122) — "안 읽은 메일만" 은 길어 검색칸과 한 줄에 서지 못했다.

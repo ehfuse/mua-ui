@@ -9,7 +9,7 @@
  * 안 읽은 메일은 왼쪽 파란 세로띠로 구분한다.
  */
 import { type MouseEvent } from "react";
-import type { MailMessageListItem } from "../../models/types";
+import type { MailLabel, MailMessageListItem } from "../../models/types";
 interface MailMobileListProps {
     rows: MailMessageListItem[];
     loading: boolean;
@@ -21,7 +21,9 @@ interface MailMobileListProps {
     onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void;
     /** 화면 끝까지 쓰는 띠로 그린다 — 본문 좌우 여백(px). 0 이면 카드 모양. */
     bleed?: number;
+    /** 색상 라벨(config.labels) — 있으면 제목 앞에 칩을 둔다. */
+    labels?: MailLabel[];
 }
 /** 메일 모바일 카드 목록을 렌더링한다. */
-export declare function MailMobileList({ rows, loading, emptyMessage, onSelect, onToggleStar, checkedSeqs, onToggleCheck, onRowContextMenu, bleed, }: MailMobileListProps): import("react").JSX.Element;
+export declare function MailMobileList({ rows, loading, emptyMessage, onSelect, labels, onToggleStar, checkedSeqs, onToggleCheck, onRowContextMenu, bleed, }: MailMobileListProps): import("react").JSX.Element;
 export {};

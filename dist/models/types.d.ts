@@ -92,6 +92,14 @@ export interface MailMessageListItem {
     send_at?: string | null;
     send_state?: string | null;
     translated_subject?: string | null;
+    label_seqs?: number[];
+}
+/** 색상 라벨(사람마다) — 서버 mail_label */
+export interface MailLabel {
+    seq: number;
+    name: string;
+    color: string;
+    sort_no: number;
 }
 /** 상세(본문·첨부 포함) */
 /** AI 번역 결과(제목·본문) — 서버는 저장하지 않으며 화면이 메시지별로 세션 캐시한다. */
@@ -176,6 +184,7 @@ export interface MailFilters {
     search: string;
     unreadOnly: boolean;
     starredOnly: boolean;
+    labelSeq: number;
 }
 /** 페이지 크기 */
 export declare const MAIL_PAGE_SIZE = 50;
@@ -195,6 +204,7 @@ export interface MailState {
     loadingDetail: boolean;
     counts: MailFolderCounts;
     syncingSeqs: number[];
+    labels: MailLabel[];
     lastAccountSeq: number;
     error: string;
 }

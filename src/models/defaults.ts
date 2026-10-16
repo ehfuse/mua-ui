@@ -29,19 +29,24 @@ export const defaultMailFolderCounts: MailFolderCounts = {
 const SCOPE_STORAGE_KEY = "mua.mail.scope";
 
 /** 적어 둔 갈래를 읽는다. 저장소를 못 쓰는 환경(사생활 보호 창 등)에서는 전체다. */
-function readStoredScope(): Pick<MailFilters, "unreadOnly" | "starredOnly"> {
+function readStoredScope(): Pick<MailFilters, "unreadOnly" | "starredOnly" | "labelSeq"> {
     try {
-        const scope = window.sessionStorage.getItem(SCOPE_STORAGE_KEY);
-        return { unreadOnly: scope === "unread", starredOnly: scope === "starred" };
+        const scope = window.sessionStorage.getItem(SCOPE_STORAGE_KEY) ?? "";
+        // 라벨 탭은 "label:<seq>" — 라벨이 지워졌으면 화면이 라벨 목록을 받은 뒤 전체로 되돌린다.
+        const labelSeq = /^label:(\d+)$/.exec(scope)?.[1];
+        return { unreadOnly: scope === "unread", starredOnly: scope === "starred", labelSeq: labelSeq ? Number(labelSeq) : 0 };
     } catch {
-        return { unreadOnly: false, starredOnly: false };
+        return { unreadOnly: false, starredOnly: false, labelSeq: 0 };
     }
 }
 
 /** 고른 갈래를 적어 둔다 — 새로고침해도 보던 탭(별표 등)에 그대로 있게(2026-10-12). */
-export function storeMailScope(filters: Pick<MailFilters, "unreadOnly" | "starredOnly">): void {
+export function storeMailScope(filters: Pick<MailFilters, "unreadOnly" | "starredOnly" | "labelSeq">): void {
     try {
-        window.sessionStorage.setItem(SCOPE_STORAGE_KEY, filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all");
+        window.sessionStorage.setItem(
+            SCOPE_STORAGE_KEY,
+            filters.labelSeq > 0 ? `label:${filters.labelSeq}` : filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all"
+        );
     } catch {
         // 저장소를 못 쓰면 기억하지 않을 뿐이다.
     }
@@ -72,6 +77,7 @@ export const defaultMailState: MailState = {
     loadingDetail: false,
     counts: defaultMailFolderCounts,
     syncingSeqs: [],
+    labels: [],
     lastAccountSeq: 0,
     error: "",
 };

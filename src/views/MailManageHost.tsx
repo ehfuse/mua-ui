@@ -20,7 +20,7 @@ import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailController } from "../controllers/mailController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
 import { useSenderContacts } from "../controllers/senderContacts";
-import type { MailAccount, MailListFolder, MailMessageDetail, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
+import type { MailAccount, MailLabel, MailListFolder, MailMessageDetail, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
 import { useMuaConfig } from "../MuaProvider";
 import { useIsMobile } from "../internal/useIsMobile";
@@ -42,6 +42,7 @@ export function MailManageHost() {
     const allAccounts = state.useValue("accounts") as MailAccount[];
     const allFolders = state.useValue("folders") as MailUserFolder[];
     const rules = state.useValue("rules") as MailRule[];
+    const labels = state.useValue("labels") as MailLabel[];
     const syncingSeqs = state.useValue("syncingSeqs") as number[];
     // 규칙 폼의 이동 대상은 보기 범위 메일함만(메일 화면과 같다).
     const folders = useMemo(() => allFolders.filter((f) => f.in_sidebar !== false), [allFolders]);
@@ -134,6 +135,8 @@ export function MailManageHost() {
             if (((state.getValue("rules") as MailRule[] | undefined) ?? []).length === 0) {
                 void state.actions.loadRules();
             }
+            // 라벨도 메일 화면이 읽어 둔다 — 밖에서 라벨 관리를 열었을 때를 위해 다시 읽는다(작아서 늘 읽어도 싸다).
+            if (tab === "labels") void state.actions.loadLabels();
         },
         [manageModal, state]
     );
@@ -296,6 +299,14 @@ export function MailManageHost() {
                 onAddRule={() => setRuleEditing({ rule: null, prefill: null })}
                 onEditRule={(rule) => setRuleEditing({ rule, prefill: null })}
                 onRulesChanged={refreshRules}
+                labels={labels}
+                onLabelsChanged={(items) => {
+                    // 순서 바꾸기는 새 목록을 돌려받는다 — 그대로 쓰고, 그 밖(만들기·고치기·지우기)은 다시 읽는다.
+                    if (items) state.setValue("labels", items);
+                    else void state.actions.loadLabels();
+                    // 라벨을 지우면 메일 행의 칩도 사라져야 한다 — 메일 화면이 떠 있으면 목록을 다시 읽는다.
+                    if (!items) void requestMailRefresh();
+                }}
             />
             <MailAccountFormDialog controller={accountForm} />
             <MailHostedProfileDialog

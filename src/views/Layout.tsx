@@ -33,6 +33,7 @@ import type {
     MailAccount,
     MailFilters,
     MailFolderCounts,
+    MailLabel,
     MailListFolder,
     MailMessageDetail,
     MailMessageListItem,
@@ -65,6 +66,10 @@ import type { MuaMobileCardListLayoutProps } from "../types/config";
 import { MailMobileList } from "./components/MailMobileList";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import { LabelCheckIcon, MailLabelDot, MailLabelMenu, labelCheckStates, labelColor } from "./components/MailLabels";
+import { MailLabelFormDialog } from "./dialogs/MailLabelsList";
 import { ComposeDialog } from "./dialogs/ComposeDialog";
 import { toRouteFolder } from "../utils/routeFolder";
 
@@ -190,6 +195,13 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const syncing = syncingSeqs.length > 0;
     const error = state.useValue("error") as string;
     const counts = state.useValue("counts") as MailFolderCounts;
+    // 색상 라벨(config.labels) — 켠 앱만 라벨 API 를 부르고 칩 · 탭 · 메뉴를 그린다(서버가 옛 것인 앱은 지금 화면 그대로).
+    const labelsEnabled = Boolean(muaConfig.labels);
+    const storedLabels = state.useValue("labels") as MailLabel[];
+    const labels = useMemo(() => (labelsEnabled ? storedLabels : []), [labelsEnabled, storedLabels]);
+    useEffect(() => {
+        if (labelsEnabled && logined) void state.actions.loadLabels();
+    }, [labelsEnabled, logined, state.actions]);
 
     // 서브페이지 제목바 — 건수 "(N)" 와, 계정별 받은편지함이면 폴더명 대신 계정 이름을 올린다.
     useEffect(() => {
@@ -290,7 +302,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [routeFolder, routeAccountSeq, routeUserFolderSeq, isInboxRoute, state.actions]);
 
     // 필터가 바뀌면 목록·건수 재조회
-    const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}`;
+    const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}`;
     useEffect(() => {
         void state.actions.loadMessages();
         void state.actions.loadCounts();
@@ -571,6 +583,35 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 conditions: [],
         });
     }, []);
+    // ── 색상 라벨 달기 ─────────────────────────────────────────────
+    // 머리 [라벨] 메뉴의 대상 = 체크한 메일. "새 라벨 만들기" 로 만든 라벨은 그때 대상 메일에 바로 단다(지메일과 같다).
+    const [labelMenuAnchor, setLabelMenuAnchor] = useState<HTMLElement | null>(null);
+    const [labelForm, setLabelForm] = useState<{ applyTo: number[] } | null>(null);
+    const toggleLabel = useCallback(
+        (seqs: number[], label: MailLabel, add: boolean) =>
+            void state.actions.applyLabels(seqs, add ? [label.seq] : [], add ? [] : [label.seq]),
+        [state.actions]
+    );
+    /** 라벨 하위 메뉴(우클릭) — 그 메일에 단 라벨은 체크, 누르면 달거나 뗀다. 맨 아래 "새 라벨 만들기". */
+    const labelContextChildren = useCallback(
+        (row: MailMessageListItem): ContextMenuItem<MailMessageListItem>[] => [
+            ...labels.map((label) => {
+                const on = Boolean(row.label_seqs?.includes(label.seq));
+                return {
+                    label: label.name,
+                    icon: <LabelCheckIcon state={on ? "all" : "none"} color={labelColor(label)} />,
+                    onClick: (target: MailMessageListItem) => toggleLabel([target.seq], label, !on),
+                };
+            }),
+            {
+                label: "새 라벨 만들기",
+                icon: <AddIcon fontSize="small" />,
+                dividerBefore: labels.length > 0,
+                onClick: (target: MailMessageListItem) => setLabelForm({ applyTo: [target.seq] }),
+            },
+        ],
+        [labels, toggleLabel]
+    );
     const contextMenuItems = useMemo<ContextMenuItem<MailMessageListItem>[]>(
         () => [
             {
@@ -638,6 +679,13 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 })),
             },
             {
+                label: "라벨",
+                icon: <LabelOutlinedIcon fontSize="small" />,
+                hidden: !labelsEnabled,
+                onClick: () => undefined,
+                children: labelContextChildren,
+            },
+            {
                 label: "규칙 만들기",
                 icon: <RuleOutlinedIcon fontSize="small" />,
                 hidden: isDraftFolder,
@@ -695,6 +743,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             filters.folder,
             moveTargets,
             rowContextMenu.anchor,
+            labelsEnabled,
+            labelContextChildren,
         ]
     );
     // 데스크탑: 항상 보이는 툴바(선택 없으면 비활성) — 헤더 필터 영역. 모바일: 선택 중일 때만 아이콘 바.
@@ -716,6 +766,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 canMarkRead={checkedRows.some((row) => !row.is_read)}
                 canMarkUnread={checkedRows.some((row) => row.is_read)}
                 onReply={(mode) => void handleToolbarReply(mode)}
+                onLabel={labelsEnabled ? (anchorEl) => setLabelMenuAnchor(anchorEl) : undefined}
             />
         ) : null;
 
@@ -804,7 +855,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 },
                 filters.search,
                 // 분할형에서 상세가 열려 목록이 좁아지면 미리보기를 숨겨 제목이 잘 보이게 한다
-                !(isSplit && (Boolean(detail) || loadingDetail))
+                !(isSplit && (Boolean(detail) || loadingDetail)),
+                labels
             ),
         [
             handleToggleStar,
@@ -817,6 +869,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             isSplit,
             detail,
             loadingDetail,
+            labels,
         ]
     );
     const hasMore = messages.length < total;
@@ -937,6 +990,29 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const dialogs = (
         <>
             {!appHostsMailManage && <MailManageHost />}
+            {labelsEnabled ? (
+                <>
+                    <MailLabelMenu
+                        anchorEl={labelMenuAnchor}
+                        onClose={() => setLabelMenuAnchor(null)}
+                        labels={labels}
+                        states={labelCheckStates(checkedRows, labels)}
+                        onToggle={(label, add) => toggleLabel(checkedRows.map((row) => row.seq), label, add)}
+                        onCreate={() => setLabelForm({ applyTo: checkedRows.map((row) => row.seq) })}
+                        onManage={() => requestMailManage("labels")}
+                    />
+                    <MailLabelFormDialog
+                        open={Boolean(labelForm)}
+                        onClose={() => setLabelForm(null)}
+                        onSaved={(label) => {
+                            const applyTo = labelForm?.applyTo ?? [];
+                            void state.actions.loadLabels().then(() => {
+                                if (applyTo.length > 0) void state.actions.applyLabels(applyTo, [label.seq], []);
+                            });
+                        }}
+                    />
+                </>
+            ) : null}
             <ConfirmActionPopper
                 open={Boolean(rowConfirm)}
                 anchorEl={rowConfirmAnchor}
@@ -980,7 +1056,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         {inlineMobileTop && (
                             <MailMobileTop
                                 scope={filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all"}
-                                onScopeChange={(scope) => state.actions.setFilters({ unreadOnly: scope === "unread", starredOnly: scope === "starred" })}
+                                onScopeChange={(scope) => state.actions.setFilters({ unreadOnly: scope === "unread", starredOnly: scope === "starred", labelSeq: 0 })}
                                 unreadCount={unreadCount}
                                 searchOpen={searchOverlayOpen}
                                 search={filters.search}
@@ -1065,6 +1141,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                                         state.actions.setFilters({
                                                             unreadOnly: !filters.unreadOnly,
                                                             starredOnly: false,
+                                                            labelSeq: 0,
                                                         })
                                                     }
                                                     sx={{
@@ -1095,6 +1172,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             onToggleCheck={toggleChecked}
                             onRowContextMenu={handleCardContextMenu}
                             bleed={edgeBleed}
+                            labels={labels}
                         />
                         {/* 무한 스크롤 sentinel — 뷰포트(또는 다이얼로그 스크롤러)에 들어오면 다음 페이지 */}
                         {loadingMore ? <MobileListLoadingMoreSpinner /> : null}
@@ -1165,20 +1243,54 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
 
     // 넓은 화면 목록 위 갈래 탭(전체 · 안 읽음 · 별표) — 폰 머리(MailMobileTop)와 같은 갈래 · 같은 거르기(unreadOnly · starredOnly).
     const desktopScopeTabs = Boolean(muaConfig.desktop?.scopeTabs) && !isMobile;
-    const desktopScope = filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all";
+    // 라벨 탭은 "label:<seq>" — 라벨 목록을 받기 전(또는 지워진 라벨)이면 탭 값이 없어 MUI 가 경고하므로 전체로 둔다.
+    const desktopScope =
+        filters.labelSeq > 0
+            ? labels.some((l) => l.seq === filters.labelSeq)
+                ? `label:${filters.labelSeq}`
+                : "all"
+            : filters.unreadOnly
+              ? "unread"
+              : filters.starredOnly
+                ? "starred"
+                : "all";
     const desktopUnread = filters.folder === "inbox" ? counts.inbox_unread : 0;
     const scopeTabsPanel = desktopScopeTabs ? (
         <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
             <Tabs
                 value={desktopScope}
-                onChange={(_event, value: "all" | "unread" | "starred") =>
-                    state.actions.setFilters({ unreadOnly: value === "unread", starredOnly: value === "starred" })
-                }
+                onChange={(_event, value: string) => {
+                    const labelSeq = value.startsWith("label:") ? Number(value.slice(6)) || 0 : 0;
+                    state.actions.setFilters({ unreadOnly: value === "unread", starredOnly: value === "starred", labelSeq });
+                }}
+                // 라벨이 많으면 탭 줄이 가로로 넘어간다 — 넘칠 때만 양끝에 넘김 단추가 선다.
+                variant="scrollable"
+                scrollButtons="auto"
                 sx={{ minHeight: 44, borderBottom: "1px solid #e2e8f0", flexShrink: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
             >
                 <Tab value="all" label="전체" />
                 <Tab value="unread" label={desktopUnread > 0 ? `안 읽음 ${desktopUnread}` : "안 읽음"} />
-                <Tab value="starred" label="별표" />
+                {/* 별표는 글 대신 노란 별(0.3.158) — 목록 행의 켜진 별과 같은 아이콘 · 같은 노랑이라 무엇을 거르는 탭인지 바로 보인다. */}
+                <Tab
+                    value="starred"
+                    aria-label="별표"
+                    sx={{ minWidth: 56 }}
+                    label={<StarRoundedIcon sx={{ fontSize: 22, color: "#f59e0b", fill: "currentColor" }} />}
+                />
+                {labels.map((label) => (
+                    <Tab
+                        key={label.seq}
+                        value={`label:${label.seq}`}
+                        label={
+                            <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, maxWidth: 160 }}>
+                                <MailLabelDot color={labelColor(label)} />
+                                <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {label.name}
+                                </Box>
+                            </Box>
+                        }
+                    />
+                ))}
             </Tabs>
             <Box sx={{ flex: 1, minHeight: 0 }}>
                 <VirtualDataTable {...listTableProps} />

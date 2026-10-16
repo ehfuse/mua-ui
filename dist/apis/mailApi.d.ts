@@ -1,7 +1,7 @@
 /**
  * 메일(MUA) API 래퍼 — AS /v1/mua/* (entityAppServer 직접 호출, 오류는 throw).
  */
-import type { ComposeRequest, MailAccount, MailAccountRequest, MailHostedProfileRequest, MailAccountSecrets, MailConnectionTestResult, MailContact, MailContactRequest, MailFolder, MailFolderCounts, MailListFolder, MailTranslation, MailMessageDetail, MailMessageListItem, MailMoveTarget, MailReceipt, MailRule, MailRuleRequest, MailSyncResult, MailUserFolder } from "../models/types";
+import type { ComposeRequest, MailAccount, MailAccountRequest, MailHostedProfileRequest, MailAccountSecrets, MailConnectionTestResult, MailContact, MailContactRequest, MailFolder, MailFolderCounts, MailLabel, MailListFolder, MailTranslation, MailMessageDetail, MailMessageListItem, MailMoveTarget, MailReceipt, MailRule, MailRuleRequest, MailSyncResult, MailUserFolder } from "../models/types";
 /** AS 표준 응답 */
 interface ApiOk<T> {
     ok: boolean;
@@ -18,6 +18,7 @@ export interface ListMessagesParams {
     search?: string;
     unread?: boolean;
     starred?: boolean;
+    label_seq?: number;
 }
 /** 목록 응답 */
 export interface ListMessagesResponse {
@@ -102,6 +103,34 @@ export declare const mailApi: {
     }) => Promise<ApiOk<{
         view_mode: "list" | "split";
         last_account_seq: number;
+    }>>;
+    /** 내 색상 라벨(순서대로) — config.labels 를 켠 앱만 부른다 */
+    listLabels: () => Promise<ApiOk<{
+        items: MailLabel[];
+    }>>;
+    /** 라벨 만들기(맨 뒤) — 같은 이름이면 ok:false */
+    createLabel: (body: {
+        name: string;
+        color: string;
+    }) => Promise<ApiOk<MailLabel>>;
+    /** 라벨 이름·색 고치기 */
+    updateLabel: (seq: number, body: {
+        name?: string;
+        color?: string;
+    }) => Promise<ApiOk<MailLabel>>;
+    /** 라벨 순서 — 새 목록을 돌려받는다 */
+    reorderLabels: (seqs: number[]) => Promise<ApiOk<{
+        items: MailLabel[];
+    }>>;
+    /** 라벨 지우기 — 단 메일에서도 떼어진다(메일은 그대로) */
+    deleteLabel: (seq: number) => Promise<ApiOk<{
+        deleted: boolean;
+        detached: number;
+    }>>;
+    /** 여러 메일에 라벨 달기·떼기 */
+    applyLabels: (seqs: number[], add: number[], remove: number[]) => Promise<ApiOk<{
+        affected: number;
+        changed: number;
     }>>;
     /** 사용자 메일함 목록 */
     listFolders: () => Promise<ApiOk<{

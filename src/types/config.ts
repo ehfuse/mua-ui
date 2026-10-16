@@ -114,6 +114,12 @@ export interface MuaConfig {
      * scopeTabs: 목록 위에 전체 · 안 읽음 · 별표 탭(폰 머리와 같은 갈래) — 켜면 머리의 "안 읽음" 스위치는 감춘다(같은 일을 한다).
      */
     desktop?: { iconToolbar?: boolean; scopeTabs?: boolean };
+    /**
+     * 색상 라벨(0.3.158) — 켜면 목록 행에 라벨 칩, 머리 툴바 [라벨] 단추 · 우클릭 "라벨" 하위 메뉴, 갈래 탭 뒤에 라벨마다 탭,
+     * 관리 창의 "라벨" 목록이 생긴다. 서버에 /v1/mua/labels · /v1/mua/messages/labels · 목록 label_seq 거르기가 있어야 한다 —
+     * 없는 앱(서버가 옛 것)은 켜지 않는다. 미지정이면 라벨 API 를 부르지 않고 화면도 그대로다.
+     */
+    labels?: boolean;
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)

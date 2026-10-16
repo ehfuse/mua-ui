@@ -4,9 +4,9 @@
  * 이제 사이드바 메일 ⋮ 메뉴가 "메일 계정 관리 / 메일함 관리 / 메일 규칙" 을 따로 고르고, 창은 고른 목록만 보인다(탭 없음).
  * 액션바 왼쪽 [+ …]는 그 목록에 맞춰 바뀌고(계정 추가 / 메일함 만들기 / 규칙 추가), 오른쪽은 [닫기].
  */
-import type { MailAccount, MailRule, MailUserFolder } from "../../models/types";
+import type { MailAccount, MailLabel, MailRule, MailUserFolder } from "../../models/types";
 /** 관리 탭 키 */
-export type MailManageTab = "accounts" | "folders" | "rules";
+export type MailManageTab = "accounts" | "folders" | "rules" | "labels";
 interface MailManageDialogProps {
     open: boolean;
     tab: MailManageTab;
@@ -25,7 +25,9 @@ interface MailManageDialogProps {
     onAddRule: () => void;
     onEditRule: (rule: MailRule) => void;
     onRulesChanged: () => void;
+    labels?: MailLabel[];
+    onLabelsChanged?: (items?: MailLabel[]) => void;
 }
 /** 메일 관리 다이얼로그 */
-export declare function MailManageDialog({ open, tab, onClose, accounts, syncingSeqs, folders, rules, onAddAccount, onEditAccount, onDeleteAccount, onSyncAccount, onReorderAccounts, onFoldersChanged, onAddRule, onEditRule, onRulesChanged, }: MailManageDialogProps): import("react").JSX.Element;
+export declare function MailManageDialog({ open, tab, onClose, accounts, syncingSeqs, folders, rules, onAddAccount, onEditAccount, onDeleteAccount, onSyncAccount, onReorderAccounts, onFoldersChanged, onAddRule, onEditRule, onRulesChanged, labels, onLabelsChanged, }: MailManageDialogProps): import("react").JSX.Element;
 export {};

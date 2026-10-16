@@ -15,7 +15,8 @@ import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { StarRoundedIcon } from "../../internal/icons";
 import { mfs } from "../../internal/mobileFontScale";
 import { MobileChip, MobileListLoadingSpinner, MobilePlainList } from "../../internal/mobileParts";
-import type { MailMessageListItem } from "../../models/types";
+import type { MailLabel, MailMessageListItem } from "../../models/types";
+import { MailLabelChips } from "./MailLabels";
 import { formatCounterpart, formatMailListDate, scheduledPrefix, sendStateColor, sendStateLabel } from "../../utils/format";
 
 interface MailMobileListProps {
@@ -30,6 +31,8 @@ interface MailMobileListProps {
     onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void;
     /** 화면 끝까지 쓰는 띠로 그린다 — 본문 좌우 여백(px). 0 이면 카드 모양. */
     bleed?: number;
+    /** 색상 라벨(config.labels) — 있으면 제목 앞에 칩을 둔다. */
+    labels?: MailLabel[];
 }
 
 /** 메일 모바일 카드 목록을 렌더링한다. */
@@ -38,6 +41,7 @@ export function MailMobileList({
     loading,
     emptyMessage,
     onSelect,
+    labels = [],
     onToggleStar,
     checkedSeqs,
     onToggleCheck,
@@ -183,6 +187,12 @@ export function MailMobileList({
                                         wordBreak: "break-word",
                                     }}
                                 >
+                                    {/* 색상 라벨 칩 — 제목 앞(넓은 화면 표와 같은 자리). 제목 줄과 함께 줄을 바꾼다. */}
+                                    {row.label_seqs && row.label_seqs.length > 0 && labels.length > 0 ? (
+                                        <Box component="span" sx={{ display: "inline-flex", flexWrap: "wrap", gap: 0.5, mr: 0.75, verticalAlign: "middle" }}>
+                                            <MailLabelChips seqs={row.label_seqs} labels={labels} maxWidth={140} />
+                                        </Box>
+                                    ) : null}
                                     {scheduledPrefix(row.send_at)}
                                     {/* 뒤에서 보내는 메일 — 보내는 중 · 발송 실패를 제목 앞에 세운다. */}
                                     {sendStateLabel(row.send_state) ? (

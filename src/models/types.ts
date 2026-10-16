@@ -99,6 +99,15 @@ export interface MailMessageListItem {
     send_state?: string | null; // 뒤에서 보내는 메일의 상태(보낸편지함) — sending(보내는 중) · failed(발송 실패) · partial(일부 실패). 다 보냈으면 비어 있다
     // 번역본 보기 상태일 때의 번역 제목(목록 응답 — 서버가 translation_shown 일 때만 채운다). null/없음이면 원문 제목.
     translated_subject?: string | null;
+    label_seqs?: number[]; // 내가 단 색상 라벨(mail_label seq) — 라벨을 켠 앱의 서버만 싣는다
+}
+
+/** 색상 라벨(사람마다) — 서버 mail_label */
+export interface MailLabel {
+    seq: number; // 라벨 seq
+    name: string; // 이름
+    color: string; // 칩 바탕색 #rrggbb
+    sort_no: number; // 순서
 }
 
 /** 상세(본문·첨부 포함) */
@@ -177,6 +186,7 @@ export interface MailFilters {
     search: string; // 검색어
     unreadOnly: boolean; // 미읽음만
     starredOnly: boolean; // 중요만
+    labelSeq: number; // 색상 라벨 하나만(0 = 거르지 않음) — 갈래 탭의 라벨 탭
 }
 
 /** 페이지 크기 */
@@ -198,6 +208,7 @@ export interface MailState {
     loadingDetail: boolean; // 상세 로딩
     counts: MailFolderCounts; // 폴더 건수(현재 계정 범위)
     syncingSeqs: number[]; // 동기화 중인 메일 계정 seq 목록(계정별 표시)
+    labels: MailLabel[]; // 내 색상 라벨(config.labels 를 켰을 때만 읽는다)
     lastAccountSeq: number; // 마지막으로 고른 보내는 계정(mail_preference.last_account_seq 사본 — 새 메일 기본값)
     error: string; // 목록 오류
 }

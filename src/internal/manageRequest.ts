@@ -8,7 +8,7 @@
 import type { MailAccount, MailRule, MailRuleFormPrefill } from "../models/types";
 
 /** 관리 다이얼로그 탭 — views/dialogs/MailManageDialog 와 같은 값(그쪽 import 를 피해 여기서도 선언). */
-export type MailManageTab = "accounts" | "folders" | "rules";
+export type MailManageTab = "accounts" | "folders" | "rules" | "labels";
 
 export type MailManageRequest =
     // 새 메일 작성(사이드바 "새 메일" — 메일 화면 밖에서도 그 자리에서 열린다). to 는 받는 사람, draft 는 제목·본문 미리 채우기

@@ -28,6 +28,8 @@ export function useMailController() {
             syncNow: Actions.syncNow(),
             loadFolders: Actions.loadFolders(),
             loadRules: Actions.loadRules(),
+            loadLabels: Actions.loadLabels(),
+            applyLabels: Actions.applyLabels(),
         },
     });
     return { state };

@@ -3,7 +3,7 @@
  */
 import type { ActionContext } from "@ehfuse/forma";
 import { type BulkMessageAction } from "../apis/mailApi";
-import { type MailAccount, type MailFilters, type MailMoveTarget, type MailRule, type MailState, type MailUserFolder } from "../models/types";
+import { type MailAccount, type MailFilters, type MailLabel, type MailMoveTarget, type MailRule, type MailState, type MailUserFolder } from "../models/types";
 /** 내 메일 계정 목록을 읽는다. */
 export declare const loadAccounts: () => (context: ActionContext<MailState>) => Promise<MailAccount[]>;
 /** 필터를 바꾼다(목록 재조회는 Layout 의 effect 가 필터 변화를 보고 호출한다). */
@@ -27,5 +27,12 @@ export declare const applyMessageAction: () => (context: ActionContext<MailState
 export declare const syncNow: () => (context: ActionContext<MailState>, mailAccountSeq: number) => Promise<void>;
 /** 사용자 메일함 목록을 읽는다. */
 export declare const loadFolders: () => (context: ActionContext<MailState>) => Promise<MailUserFolder[]>;
+/** 내 색상 라벨을 읽는다(config.labels 를 켠 화면만 부른다). 보던 라벨 탭의 라벨이 지워졌으면 전체로 되돌린다. */
+export declare const loadLabels: () => (context: ActionContext<MailState>) => Promise<MailLabel[]>;
+/**
+ * 메일들에 라벨을 달고 뗀다 — 성공하면 목록 행의 label_seqs 를 바로 고친다(다시 읽지 않는다).
+ * 라벨 탭을 보던 중에 그 라벨을 뗀 메일은 목록에서 뺀다(그 탭에 더는 속하지 않는다).
+ */
+export declare const applyLabels: () => (context: ActionContext<MailState>, seqs: number[], add: number[], remove: number[]) => Promise<boolean>;
 /** 규칙 목록을 읽는다. */
 export declare const loadRules: () => (context: ActionContext<MailState>) => Promise<MailRule[]>;

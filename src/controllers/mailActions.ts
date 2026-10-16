@@ -11,6 +11,7 @@ import {
     type MailAccount,
     type MailFilters,
     type MailFolderCounts,
+    type MailLabel,
     type MailMessageDetail,
     type MailMessageListItem,
     type MailMoveTarget,
@@ -59,10 +60,12 @@ export const setFilters =
             current.mailFolderSeq === next.mailFolderSeq &&
             current.search === next.search &&
             current.unreadOnly === next.unreadOnly &&
-            current.starredOnly === next.starredOnly;
+            current.starredOnly === next.starredOnly &&
+            current.labelSeq === next.labelSeq;
         if (same) return;
         context.setValue("filters", next);
-        if (current.unreadOnly !== next.unreadOnly || current.starredOnly !== next.starredOnly) storeMailScope(next);
+        if (current.unreadOnly !== next.unreadOnly || current.starredOnly !== next.starredOnly || current.labelSeq !== next.labelSeq)
+            storeMailScope(next);
         // 폴더/계정이 바뀌면 선택 상세는 의미가 없어진다.
         if (
             current.folder !== next.folder ||
@@ -101,6 +104,7 @@ export const loadMessages =
                     search: filters.search,
                     unread: filters.unreadOnly,
                     starred: filters.starredOnly,
+                    label_seq: filters.labelSeq > 0 ? filters.labelSeq : undefined,
                 }),
                 "메일 목록을 불러오지 못했습니다."
             );
@@ -354,6 +358,60 @@ export const loadFolders =
         } catch {
             return context.getValue("folders") as MailUserFolder[];
         }
+    };
+
+/** 내 색상 라벨을 읽는다(config.labels 를 켠 화면만 부른다). 보던 라벨 탭의 라벨이 지워졌으면 전체로 되돌린다. */
+export const loadLabels =
+    () =>
+    async (context: ActionContext<MailState>): Promise<MailLabel[]> => {
+        try {
+            const data = unwrap(await mailApi.listLabels(), "라벨을 불러오지 못했습니다.");
+            const items = Array.isArray(data.items) ? data.items : [];
+            context.setValue("labels", items);
+            const filters = context.getValue("filters") as MailFilters;
+            if (filters.labelSeq > 0 && !items.some((l) => l.seq === filters.labelSeq)) {
+                const next = { ...filters, labelSeq: 0 };
+                context.setValue("filters", next);
+                storeMailScope(next);
+            }
+            return items;
+        } catch {
+            // 라벨은 보조 기능 — 못 읽어도 메일 목록은 그대로 쓴다.
+            return context.getValue("labels") as MailLabel[];
+        }
+    };
+
+/**
+ * 메일들에 라벨을 달고 뗀다 — 성공하면 목록 행의 label_seqs 를 바로 고친다(다시 읽지 않는다).
+ * 라벨 탭을 보던 중에 그 라벨을 뗀 메일은 목록에서 뺀다(그 탭에 더는 속하지 않는다).
+ */
+export const applyLabels =
+    () =>
+    async (context: ActionContext<MailState>, seqs: number[], add: number[], remove: number[]): Promise<boolean> => {
+        const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
+        if (targets.length === 0 || (add.length === 0 && remove.length === 0)) return false;
+        try {
+            unwrap(await mailApi.applyLabels(targets, add, remove), "라벨을 바꾸지 못했습니다.");
+        } catch (error) {
+            ErrorAlert({ message: messageOf(error, "라벨을 바꾸지 못했습니다.") });
+            return false;
+        }
+        const rows = context.getValue("messages") as MailMessageListItem[];
+        for (const seq of targets) {
+            const row = rows.find((r) => r.seq === seq);
+            const current = row?.label_seqs ?? [];
+            const next = [...current.filter((l) => !remove.includes(l)), ...add.filter((l) => !current.includes(l))];
+            patchLocalMessage(context, seq, { label_seqs: next });
+        }
+        const filters = context.getValue("filters") as MailFilters;
+        if (filters.labelSeq > 0 && remove.includes(filters.labelSeq)) {
+            const remove2 = new Set(targets);
+            const list = context.getValue("messages") as MailMessageListItem[];
+            const next = list.filter((row) => !remove2.has(row.seq));
+            context.setValue("messages", next);
+            context.setValue("total", Math.max(0, (Number(context.getValue("total")) || 0) - (list.length - next.length)));
+        }
+        return true;
     };
 
 /** 규칙 목록을 읽는다. */

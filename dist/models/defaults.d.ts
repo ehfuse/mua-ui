@@ -5,7 +5,7 @@ import type { MailContactForm, ComposeForm, MailAccountForm, MailFilters, MailFo
 /** 폴더 건수 기본값 */
 export declare const defaultMailFolderCounts: MailFolderCounts;
 /** 고른 갈래를 적어 둔다 — 새로고침해도 보던 탭(별표 등)에 그대로 있게(2026-10-12). */
-export declare function storeMailScope(filters: Pick<MailFilters, "unreadOnly" | "starredOnly">): void;
+export declare function storeMailScope(filters: Pick<MailFilters, "unreadOnly" | "starredOnly" | "labelSeq">): void;
 /** 필터 기본값 — 갈래만 새로고침 전에 보던 것을 잇는다. */
 export declare const defaultMailFilters: MailFilters;
 /** 상태 기본값 */
