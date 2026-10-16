@@ -24,7 +24,10 @@ export declare function useComposeController({ onSent, onDraftSaved }?: ComposeC
     modal: MuaModalControl;
     sending: boolean;
     savingDraft: boolean;
-    saveDraft: () => Promise<void>;
+    saveDraft: (options?: {
+        silent?: boolean;
+    }) => Promise<boolean>;
+    sentRef: import("react").RefObject<boolean>;
 };
 /** 컨트롤러 타입 */
 export type ComposeController = ReturnType<typeof useComposeController>;

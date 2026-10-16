@@ -104,6 +104,11 @@ export interface MuaConfig {
      * 보내기 · 임시저장 때 본문에 다시 넣는다(답장 · 전달은 인용문 앞에). 고친 서명은 이 메일에만 쓴다. 미지정이면 지금처럼 본문 안에 있다.
      */
     signatureBelowEditor?: boolean;
+    /**
+     * 메일 쓰기 자동 임시저장(0.3.155) — 켜면 [임시저장] 단추 대신 내용이 바뀌고 잠시 입력이 멈추면 조용히 임시보관함에 저장하고,
+     * 보내지 않고 창을 닫을 때도 한 번 저장한다. 예약해 둔 메일은 자동 저장하지 않는다(임시저장이 예약을 풀기 때문).
+     */
+    autoSaveDraft?: boolean;
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)

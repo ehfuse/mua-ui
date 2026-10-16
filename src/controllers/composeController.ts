@@ -2,7 +2,7 @@
  * 메일 작성 다이얼로그 컨트롤러 — 새 메일/답장/전체답장/전달/임시보관 열기, 발송, 임시저장.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useGlobalForm, useModal, type ActionContext } from "@ehfuse/forma";
 import { ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../apis/mailApi";
@@ -283,6 +283,8 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
     const modal: MuaModalControl = useModal({ modalId: "mail-compose-dialog" });
     const [sending, setSending] = useState(false);
     const [savingDraft, setSavingDraft] = useState(false);
+    // 방금 보냈는가 — 보내고 닫힐 때 자동 저장이 보낸 메일을 임시보관함에 다시 남기지 않게(0.3.155).
+    const sentRef = useRef(false);
 
     const form = useGlobalForm<ComposeForm>({
         formId: "mail-compose-form",
@@ -321,6 +323,7 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                     SuccessAlert(
                         sent.scheduled ? `${values.send_at} 에 보내도록 예약했습니다.` : sent.pending ? "메일을 보내고 있습니다. 보낸편지함에서 확인할 수 있습니다." : "메일을 보냈습니다."
                     );
+                sentRef.current = true;
                 modal.close();
                 onSent?.();
                 return true;
@@ -339,12 +342,16 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
         },
     });
 
-    /** 임시보관함에 저장한다(성공 시 seq 를 폼에 반영해 이후 저장은 갱신이 된다). */
-    const saveDraft = useCallback(async () => {
+    /**
+     * 임시보관함에 저장한다(성공 시 seq 를 폼에 반영해 이후 저장은 갱신이 된다).
+     * silent(자동 저장, 0.3.155) — 알림 창을 띄우지 않고 성공 여부만 돌려준다.
+     */
+    const saveDraft = useCallback(async (options: { silent?: boolean } = {}): Promise<boolean> => {
+        const silent = Boolean(options.silent);
         const values = form.getFormValues();
         if (!(values.mail_account_seq > 0)) {
-            WarningAlert({ message: "보내는 계정을 선택하세요." });
-            return;
+            if (!silent) WarningAlert({ message: "보내는 계정을 선택하세요." });
+            return false;
         }
         setSavingDraft(true);
         try {
@@ -356,21 +363,24 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
                 "attachments",
                 (saved.attachments ?? []).map((a) => ({ uuid: a.uuid, name: a.name, mime: a.mime, size: a.size }))
             );
+            onDraftSaved?.();
+            if (silent) return true;
             // 임시저장은 예약을 푼다(서버) — 예약해 둔 메일을 고쳐 저장했으면 그 사실을 알린다.
             SuccessAlert(
                 values.mode === "draft" && values.scheduled
                     ? "예약을 풀고 임시보관함에 저장했습니다. 다시 예약하려면 [예약] 을 누르세요."
                     : "임시보관함에 저장했습니다."
             );
-            onDraftSaved?.();
+            return true;
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "임시저장하지 못했습니다." });
+            if (!silent) ErrorAlert({ message: error instanceof Error ? error.message : "임시저장하지 못했습니다." });
+            return false;
         } finally {
             setSavingDraft(false);
         }
     }, [form, onDraftSaved]);
 
-    return { form, modal, sending, savingDraft, saveDraft };
+    return { form, modal, sending, savingDraft, saveDraft, sentRef };
 }
 
 /** 컨트롤러 타입 */
