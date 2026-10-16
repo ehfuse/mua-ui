@@ -29,5 +29,7 @@ export declare function useMuaIsAdmin(): boolean;
 export declare function useMuaFormDialog(): ComponentType<any>;
 /** 첨부 선택 박스(미주입 시 패키지 기본 드롭존). */
 export declare function useMuaFileUploadBox(): ComponentType<MuaFileUploadBoxProps>;
+/** 좁은 화면에서 메일 에디터 툴바를 보일지(config.mobileEditorToolbar — 미지정이면 숨김). */
+export declare function useMuaMobileEditorToolbar(): boolean;
 /** 파일 저장 함수(미주입 시 앵커 다운로드). */
 export declare function useMuaSaveBlob(): (blob: Blob, filename: string) => Promise<boolean>;

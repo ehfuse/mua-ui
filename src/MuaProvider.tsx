@@ -98,6 +98,18 @@ export function useMuaFileUploadBox(): ComponentType<MuaFileUploadBoxProps> {
     return useMuaConfig().FileUploadBoxComponent ?? DefaultFileUploadBox;
 }
 
+/** 좁은 화면에서 메일 에디터 툴바를 보일지(config.mobileEditorToolbar — 미지정이면 숨김). */
+export function useMuaMobileEditorToolbar(): boolean {
+    const mode = useMuaConfig().mobileEditorToolbar ?? "never";
+    if (mode === "always") return true;
+    if (mode !== "pwa" || typeof window === "undefined") return false;
+    try {
+        return window.matchMedia("(display-mode: standalone)").matches;
+    } catch {
+        return false;
+    }
+}
+
 /** 파일 저장 함수(미주입 시 앵커 다운로드). */
 export function useMuaSaveBlob(): (blob: Blob, filename: string) => Promise<boolean> {
     const custom = useMuaConfig().saveBlob;

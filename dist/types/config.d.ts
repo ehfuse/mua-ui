@@ -68,6 +68,12 @@ export interface MuaConfig {
     isAdmin?: boolean;
     FormDialogComponent?: ComponentType<any>;
     FileUploadBoxComponent?: ComponentType<MuaFileUploadBoxProps>;
+    /**
+     * 좁은 화면에서 메일 쓰기 에디터의 서식 툴바를 보일지(0.3.151) — "never"(기본 · 지금 동작): 숨김 /
+     * "pwa": 홈 화면에 설치한 웹앱(display-mode: standalone)에서만 보임 / "always": 늘 보임.
+     * 앱(WebView)은 standalone 이 아니라 "pwa" 로 두어도 지금처럼 숨는다.
+     */
+    mobileEditorToolbar?: "never" | "pwa" | "always";
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void;
     inboxPath?: string;
     homePath?: string;

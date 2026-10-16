@@ -10,7 +10,7 @@ import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
 import { ErrorAlert, WarningAlert } from "@ehfuse/alerts";
 import { ClearTextField, DateTimeTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaFileUploadBox, useMuaFormDialog } from "../../MuaProvider";
+import { useMuaFileUploadBox, useMuaFormDialog, useMuaMobileEditorToolbar } from "../../MuaProvider";
 import type { ComposeController } from "../../controllers/composeController";
 import type { ComposeAttachment, MailAccount } from "../../models/types";
 import { MAX_ATTACHMENT_MB, readFileAsAttachment } from "../../utils/attachments";
@@ -30,6 +30,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const { state } = useMailController();
     // 모바일은 풀스크린 우→좌 슬라이드(다른 모바일 상세/등록 다이얼로그와 동일).
     const isMobile = useIsMobile();
+    // 좁은 화면이어도 서식 툴바를 보이는 환경(설치한 웹앱 등 — config.mobileEditorToolbar).
+    const mobileToolbar = useMuaMobileEditorToolbar();
     const FormDialog = useMuaFormDialog();
     const FileUploadBox = useMuaFileUploadBox();
     const bodyHtml = String(form.useFormValue("body_html") ?? "");
@@ -79,7 +81,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             placeholder: "내용을 입력하세요",
             // 모바일은 서식 편집이 사실상 어려워 툴바를 감추고 내용 높이에 맞춰 늘린다(업무함 내용 편집기와 같은 규칙).
             minHeight: isMobile ? 240 : 320,
-            showToolbar: !isMobile,
+            showToolbar: !isMobile || mobileToolbar,
             autoHeight: isMobile,
             locale: "ko",
             onChange: (html: string) => {
@@ -90,7 +92,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         }),
         // isMobile 이 바뀌면(회전 등) 에디터 설정도 다시 만든다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [form, isMobile]
+        [form, isMobile, mobileToolbar]
     );
 
     // 폼 → 에디터 동기화(열기/모드 전환 시)

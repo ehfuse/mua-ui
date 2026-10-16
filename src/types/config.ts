@@ -87,6 +87,12 @@ export interface MuaConfig {
     isAdmin?: boolean; // 라이선스 관리자 여부(미지정 시 account.rbac_role === "admin")
     FormDialogComponent?: ComponentType<any>; // 앱 공통 FormDialog(폰트 배율 등) — 미지정 시 mfd 기본
     FileUploadBoxComponent?: ComponentType<MuaFileUploadBoxProps>; // 첨부 선택 박스 — 미지정 시 패키지 기본 드롭존
+    /**
+     * 좁은 화면에서 메일 쓰기 에디터의 서식 툴바를 보일지(0.3.151) — "never"(기본 · 지금 동작): 숨김 /
+     * "pwa": 홈 화면에 설치한 웹앱(display-mode: standalone)에서만 보임 / "always": 늘 보임.
+     * 앱(WebView)은 standalone 이 아니라 "pwa" 로 두어도 지금처럼 숨는다.
+     */
+    mobileEditorToolbar?: "never" | "pwa" | "always";
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)
