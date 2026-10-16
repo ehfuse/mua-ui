@@ -11,6 +11,8 @@ import { Box, Button, Checkbox, Drawer, Fab, Stack, Typography } from "@mui/mate
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
+import { VirtualDataTable } from "@ehfuse/mui-virtual-data-table";
+import { Tab, Tabs } from "@mui/material";
 import { ConfirmDialog, ErrorAlert, WarningAlert } from "@ehfuse/alerts";
 import type { BulkMessageAction } from "../apis/mailApi";
 import { useIsMobile } from "../internal/useIsMobile";
@@ -169,6 +171,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const logined = useMuaLogined();
     // 모바일 셸(카드 목록 래퍼·상세 다이얼로그)은 앱이 주입하면 그것을, 없으면 패키지 기본을 쓴다.
     const { mobile: mobileConfig, appHostsMailManage } = useMuaConfig();
+    const muaConfig = useMuaConfig();
     const MobileCardListLayout = mobileConfig?.CardListLayout ?? DefaultMobileCardListLayout;
     const MobileDetailDialog = mobileConfig?.DetailDialog ?? DefaultMobileDetailDialog;
 
@@ -1139,6 +1142,50 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         );
     }
 
+    // 표 설정 — ListLayout 이 그리는 표와 갈래 탭 아래 직접 그리는 표가 같은 값을 쓴다.
+    const listTableProps = {
+        columns,
+        data: messages,
+        totalCount: total,
+        getRowId: (row: MailMessageListItem) => row.seq,
+        rowHeight: 44,
+        loading: loadingList,
+        selectedRowId: selectedSeq || null,
+        selectedRowSx: { backgroundColor: "#dbeafe", boxShadow: "inset 3px 0 0 #3b82f6" },
+        onRowClick: (row: MailMessageListItem) => void state.actions.selectMessage(row.seq),
+        emptyMessage,
+        // 스크롤이 끝에 가까워지면 다음 페이지를 이어 붙인다(더 보기 버튼 없음).
+        onLoadMore: hasMore
+            ? () => {
+                  console.log("[mua:loadMore] vdt onLoadMore");
+                  handleLoadMore();
+              }
+            : undefined,
+    };
+
+    // 넓은 화면 목록 위 갈래 탭(전체 · 안 읽음 · 별표) — 폰 머리(MailMobileTop)와 같은 갈래 · 같은 거르기(unreadOnly · starredOnly).
+    const desktopScopeTabs = Boolean(muaConfig.desktop?.scopeTabs) && !isMobile;
+    const desktopScope = filters.unreadOnly ? "unread" : filters.starredOnly ? "starred" : "all";
+    const desktopUnread = filters.folder === "inbox" ? counts.inbox_unread : 0;
+    const scopeTabsPanel = desktopScopeTabs ? (
+        <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+            <Tabs
+                value={desktopScope}
+                onChange={(_event, value: "all" | "unread" | "starred") =>
+                    state.actions.setFilters({ unreadOnly: value === "unread", starredOnly: value === "starred" })
+                }
+                sx={{ minHeight: 44, borderBottom: "1px solid #e2e8f0", flexShrink: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
+            >
+                <Tab value="all" label="전체" />
+                <Tab value="unread" label={desktopUnread > 0 ? `안 읽음 ${desktopUnread}` : "안 읽음"} />
+                <Tab value="starred" label="별표" />
+            </Tabs>
+            <Box sx={{ flex: 1, minHeight: 0 }}>
+                <VirtualDataTable {...listTableProps} />
+            </Box>
+        </Box>
+    ) : null;
+
     return (
         <Box
             ref={tableWrapRef}
@@ -1149,25 +1196,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             <ListLayout
                 storageKey="mail-list-layout"
                 header={headerConfig}
-                tableProps={{
-                    columns,
-                    data: messages,
-                    totalCount: total,
-                    getRowId: (row: MailMessageListItem) => row.seq,
-                    rowHeight: 44,
-                    loading: loadingList,
-                    selectedRowId: selectedSeq || null,
-                    selectedRowSx: { backgroundColor: "#dbeafe", boxShadow: "inset 3px 0 0 #3b82f6" },
-                    onRowClick: (row: MailMessageListItem) => void state.actions.selectMessage(row.seq),
-                    emptyMessage,
-                    // 스크롤이 끝에 가까워지면 다음 페이지를 이어 붙인다(더 보기 버튼 없음).
-                    onLoadMore: hasMore
-                        ? () => {
-                              console.log("[mua:loadMore] vdt onLoadMore");
-                              handleLoadMore();
-                          }
-                        : undefined,
-                }}
+                // 목록 위 갈래 탭(config.desktop.scopeTabs) — 표 위에 탭을 두려면 표를 직접 그려 leftPanel 로 넘긴다(ListLayout 에 표 위 자리가 없다).
+                {...(desktopScopeTabs ? { leftPanel: scopeTabsPanel } : {})}
+                tableProps={listTableProps}
                 onEscape={() => state.actions.clearSelection()}
                 rightConfig={
                     isSplit ? { visible: Boolean(detail) || loadingDetail, ratio: 0.5, minWidth: 420 } : undefined

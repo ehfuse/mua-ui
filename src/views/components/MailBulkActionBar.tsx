@@ -17,6 +17,7 @@ import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActio
 import { TrashIcon } from "../../internal/icons";
 import { ConfirmActionPopper } from "@ehfuse/mui-confirm-action";
 import type { MailListFolder } from "../../models/types";
+import { useMuaConfig } from "../../MuaProvider";
 
 interface MailBulkActionBarProps {
     count: number; // 선택 건수(0 이면 버튼 비활성)
@@ -57,6 +58,8 @@ export function MailBulkActionBar({
     canMarkUnread = true,
     onReply,
 }: MailBulkActionBarProps) {
+    // 넓은 화면도 아이콘으로(config.desktop.iconToolbar) — 단추 일곱 개가 글로 서면 검색칸 오른쪽을 다 차지했다.
+    const iconDesktop = Boolean(useMuaConfig().desktop?.iconToolbar) && !compact;
     const isTrash = folder === "trash";
     const isSpam = folder === "spam";
     const disabled = count === 0;
@@ -77,11 +80,11 @@ export function MailBulkActionBar({
         onClick: (anchorEl: HTMLElement) => void,
         isDisabled: boolean
     ) =>
-        compact ? (
+        compact || iconDesktop ? (
             <Tooltip title={label} key={key}>
                 <span>
                     <IconButton
-                        size="small"
+                        size={iconDesktop ? "medium" : "small"}
                         onClick={(e) => onClick(e.currentTarget)}
                         aria-label={label}
                         disabled={isDisabled}
@@ -140,7 +143,7 @@ export function MailBulkActionBar({
         <>
             <Stack
                 direction="row"
-                spacing={compact ? 0.5 : 1.5}
+                spacing={compact || iconDesktop ? 0.5 : 1.5}
                 alignItems="center"
                 sx={{ flexWrap: "wrap", rowGap: 0.5, minWidth: 0 }}
             >

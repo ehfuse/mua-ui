@@ -31,6 +31,8 @@ export function useHeaderConfig({
 }: HeaderConfigProps): NonNullable<ListLayoutProps["header"]> {
     // 모바일 검색칸 폭(앱 주입값). 기본은 "안 읽음" 스위치가 **같은 줄 오른쪽**에 서도록 그만큼 뺀 폭이다(0.3.122) —
     // 전체 폭(100%)이면 스위치가 다음 줄로 밀려 검색 상자가 두 줄을 차지했다.
+    // 목록 위 갈래 탭을 쓰면(config.desktop.scopeTabs) 머리의 "안 읽음" 스위치는 감춘다 — 탭과 같은 일을 두 곳에서 하면 어느 쪽이 켜졌는지 헷갈린다.
+    const scopeTabs = Boolean(useMuaConfig().desktop?.scopeTabs);
     const mobileSearchWidth = useMuaConfig().mobile?.searchWidth ?? `calc(100% - ${MOBILE_UNREAD_SWITCH_WIDTH}px)`;
     const { state } = controller;
     const loadingList = state.useValue("loadingList") as boolean;
@@ -92,7 +94,7 @@ export function useHeaderConfig({
         right
     ) : (
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
-            {unreadSwitch}
+            {scopeTabs ? null : unreadSwitch}
             {right}
         </Stack>
     );

@@ -109,6 +109,11 @@ export interface MuaConfig {
      * 보내지 않고 창을 닫을 때도 한 번 저장한다. 예약해 둔 메일은 자동 저장하지 않는다(임시저장이 예약을 풀기 때문).
      */
     autoSaveDraft?: boolean;
+    /**
+     * 넓은 화면 목록 머리(0.3.157) — iconToolbar: 검색칸 오른쪽 단추(삭제 · 스팸 · 답장 · 전달 · 읽음 …)를 글 대신 아이콘으로(이름은 툴팁).
+     * scopeTabs: 목록 위에 전체 · 안 읽음 · 별표 탭(폰 머리와 같은 갈래) — 켜면 머리의 "안 읽음" 스위치는 감춘다(같은 일을 한다).
+     */
+    desktop?: { iconToolbar?: boolean; scopeTabs?: boolean };
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)
