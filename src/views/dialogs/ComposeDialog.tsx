@@ -18,6 +18,7 @@ import { MAX_ATTACHMENT_MB, readFileAsAttachment } from "../../utils/attachments
 import { mailApi, unwrap } from "../../apis/mailApi";
 import { useMailController } from "../../controllers/mailController";
 import { formatBytes } from "../../utils/format";
+import { RecipientField } from "../components/RecipientField";
 
 interface ComposeDialogProps {
     controller: ComposeController; // 컨트롤러
@@ -26,7 +27,7 @@ interface ComposeDialogProps {
 
 /** 작성 다이얼로그 컴포넌트 */
 export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
-    const { form, modal, sending, savingDraft, saveDraft } = controller;
+    const { form, modal, sending, savingDraft, saveDraft, sentRef } = controller;
     // 고른 보내는 계정을 기억해 두는 자리(전역 메일 상태) — 다음 창의 기본값이 된다.
     const { state } = useMailController();
     // 모바일은 풀스크린 우→좌 슬라이드(다른 모바일 상세/등록 다이얼로그와 동일).
@@ -39,6 +40,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const Editor = (injected.Editor ?? EhfuseEditor) as typeof EhfuseEditor;
     const toolbarOptions = (injected.toolbarOptions ?? minimalToolbarOptions) as typeof minimalToolbarOptions;
     const signatureBelow = Boolean(useMuaConfig().signatureBelowEditor);
+    const autoSave = Boolean(useMuaConfig().autoSaveDraft);
     const signatureHtml = String(form.useFormValue("signature_html") ?? "");
     const FileUploadBox = useMuaFileUploadBox();
     const bodyHtml = String(form.useFormValue("body_html") ?? "");
@@ -140,6 +142,76 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         lastSyncedSignatureRef.current = signatureHtml;
         signatureEditorRef.current?.setHtml(signatureHtml);
     }, [signatureHtml, modal.isOpen, signatureBelow]);
+    // ── 자동 임시저장(config.autoSaveDraft, 0.3.155) ──
+    // 저장할 내용의 지문 — 이게 마지막 저장 때와 다르면 저장할 것이 있다. 첨부는 이름 · 크기로만 본다(base64 를 비교하지 않게).
+    const watched = {
+        a: form.useFormValue("mail_account_seq"),
+        t: form.useFormValue("to"),
+        c: form.useFormValue("cc"),
+        b: form.useFormValue("bcc"),
+        s: form.useFormValue("subject"),
+        h: bodyHtml,
+        g: signatureHtml,
+        f: attachments.map((x) => `${x.name}:${x.size ?? 0}`).join("|"),
+    };
+    const fingerprint = JSON.stringify(watched);
+    const savedPrintRef = useRef<string | null>(null);
+    const [autoSavedAt, setAutoSavedAt] = useState("");
+    const [autoSaveFailed, setAutoSaveFailed] = useState(false);
+    /** 받는 사람 · 제목 · 본문 글자 · 첨부가 모두 비었으면 저장하지 않는다(창만 열었다 닫은 것). */
+    const hasContent = () => {
+        const v = form.getFormValues();
+        const text = String(v.body_html ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+        return Boolean(String(v.to ?? "").trim() || String(v.subject ?? "").trim() || text || (v.attachments ?? []).length > 0);
+    };
+    /** 예약해 둔 메일은 자동 저장하지 않는다 — 서버의 임시저장이 예약을 풀어 버린다(사람이 [예약] 으로 다시 걸어야 한다). */
+    const autoSaveBlocked = () => {
+        const v = form.getFormValues();
+        return v.mode === "draft" && Boolean(v.scheduled);
+    };
+    const runAutoSave = useCallback(async () => {
+        if (sending || savingDraft || sentRef.current || autoSaveBlocked() || !hasContent()) return;
+        const print = fingerprint;
+        const okSaved = await saveDraft({ silent: true });
+        if (okSaved) {
+            savedPrintRef.current = print;
+            const now = new Date();
+            setAutoSavedAt(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+            setAutoSaveFailed(false);
+        } else setAutoSaveFailed(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fingerprint, sending, savingDraft, saveDraft]);
+    // 창이 열리면 그때의 내용을 "저장된 것" 으로 친다(열자마자 저장하지 않게) — 서명 꺼내기 · 에디터 정리가 끝난 뒤(0.8초)의 값으로.
+    useEffect(() => {
+        if (!autoSave) return;
+        if (!modal.isOpen) {
+            savedPrintRef.current = null;
+            setAutoSavedAt("");
+            setAutoSaveFailed(false);
+            return;
+        }
+        sentRef.current = false;
+        const timer = setTimeout(() => {
+            if (savedPrintRef.current === null) savedPrintRef.current = fingerprintRef.current;
+        }, 800);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [modal.isOpen, autoSave]);
+    const fingerprintRef = useRef(fingerprint);
+    fingerprintRef.current = fingerprint;
+    // 바뀌고 3초 동안 손을 멈추면 저장한다.
+    useEffect(() => {
+        if (!autoSave || !modal.isOpen || savedPrintRef.current === null || savedPrintRef.current === fingerprint) return;
+        const timer = setTimeout(() => void runAutoSave(), 3000);
+        return () => clearTimeout(timer);
+    }, [autoSave, modal.isOpen, fingerprint, runAutoSave]);
+    /** 닫기 — 저장 안 된 바뀜이 있으면 한 번 저장하고 닫는다(보내지 않고 나가도 쓴 것이 남게). */
+    const closeWithSave = useCallback(() => {
+        if (autoSave && savedPrintRef.current !== null && savedPrintRef.current !== fingerprintRef.current) void runAutoSave();
+        modal.close();
+    }, [autoSave, modal, runAutoSave]);
+    const autoSaveStatus = savingDraft ? "저장 중…" : autoSaveFailed ? "자동 저장 실패" : autoSavedAt ? `자동 저장됨 ${autoSavedAt}` : "";
+
     // [기본 서명으로 저장] — 지금 서명 칸을 보내는 계정의 서명으로 저장하고 계정 목록을 다시 읽는다(다음 창이 새 서명으로 열리게).
     const [savingSignature, setSavingSignature] = useState(false);
     const saveDefaultSignature = useCallback(async () => {
@@ -233,7 +305,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             fontScaleKey="MailComposeDialog"
             backdropClick={false}
             open={modal.isOpen}
-            onClose={modal.close}
+            onClose={closeWithSave}
             title={{ text: titleText }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
@@ -297,15 +369,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         void mailApi.updatePreferences({ last_account_seq: seq }).catch(() => undefined);
                                     }}
                                 />
-                                <ClearTextField
-                                    name="to"
-                                    label="받는 사람"
-                                    form={form}
-                                    inputRef={toInputRef}
-                                    fullWidth
-                                    placeholder="주소를 쉼표로 구분해 입력"
-                                    autoComplete="off"
-                                />
+                                {/* 치면 주소록에서 이름 · 주소 · 소속이 맞는 사람이 뜬다(2026-10-16). */}
+                                <RecipientField name="to" label="받는 사람" form={form} inputRef={toInputRef} placeholder="이름이나 주소 — 여럿은 쉼표로" />
                             </Box>
                             <Box
                                 sx={{
@@ -317,20 +382,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             >
                                 {showCcBcc ? (
                                     <>
-                                        <ClearTextField
-                                            name="cc"
-                                            label="참조"
-                                            form={form}
-                                            fullWidth
-                                            autoComplete="off"
-                                        />
-                                        <ClearTextField
-                                            name="bcc"
-                                            label="숨은참조"
-                                            form={form}
-                                            fullWidth
-                                            autoComplete="off"
-                                        />
+                                        <RecipientField name="cc" label="참조" form={form} />
+                                        <RecipientField name="bcc" label="숨은참조" form={form} />
                                     </>
                                 ) : null}
                                 {/* 참조 토글 줄 — 왼쪽이 비어 있던 자리에 보내기 옵션 스위치를 둔다(2026-10-11): 예약 발송 · 수신확인 · 보안메일.
@@ -501,18 +554,25 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                           left: (
                               // 간격은 mfd 액션바 슬롯과 같은 gap 1rem — Stack spacing(margin)은 액션바가 버튼 margin 을 지워 버튼이 붙었다.
                               <Box sx={{ display: "flex", gap: "1rem", width: "100%" }}>
-                                  <Button
-                                      variant="outlined"
-                                      onClick={() => void saveDraft()}
-                                      disabled={sending || savingDraft}
-                                      sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
-                                  >
-                                      {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
-                                  </Button>
+                                  {autoSave ? (
+                                      // 자동 저장이면 [임시저장] 자리에 저장 상태를 보인다(단추와 같은 칸 폭).
+                                      <Box sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
+                                          {autoSaveStatus}
+                                      </Box>
+                                  ) : (
+                                      <Button
+                                          variant="outlined"
+                                          onClick={() => void saveDraft()}
+                                          disabled={sending || savingDraft}
+                                          sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
+                                      >
+                                          {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
+                                      </Button>
+                                  )}
                                   <Button
                                       variant="outlined"
                                       color="inherit"
-                                      onClick={modal.close}
+                                      onClick={closeWithSave}
                                       disabled={sending || savingDraft}
                                       sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
@@ -531,7 +591,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                           ),
                       }
                     : {
-                          left: (
+                          left: autoSave ? (
+                              <Box sx={{ fontSize: 14, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>{autoSaveStatus}</Box>
+                          ) : (
                               <Button
                                   variant="outlined"
                                   onClick={() => void saveDraft()}
