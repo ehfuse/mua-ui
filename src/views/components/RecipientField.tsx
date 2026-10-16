@@ -4,7 +4,7 @@
  * 칸은 그대로 쉼표로 이어 쓰는 글자 칸이다(ClearTextField) — 고르면 지금 치던 조각(마지막 쉼표 뒤)을 `이름 <주소>, ` 로 바꿔 끼운다.
  * 칩 입력으로 바꾸지 않은 이유: 붙여 넣기·답장으로 채워지는 "이름 <주소>, …" 글자와 저장(splitAddressInput)이 모두 이 꼴이라, 칸의 꼴을 바꾸면 그 길이 다 바뀐다.
  * 주소록은 창을 열고 처음 칸에 들어올 때 한 번 읽는다(조직 공용 + 개인, 최대 500 — 화면 목록과 같은 한도).
- * 키보드: ↓↑ 고르기 · Enter/Tab 넣기 · Esc 닫기. 목록을 눌러도 칸의 포커스를 잃지 않는다(mousedown 을 막는다).
+ * 키보드: ↓↑ 고르기 · Enter/Tab 넣기 · Esc 닫기. 목록은 누르는 순간(mousedown) 넣고, 칸의 포커스를 잃지 않는다.
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Box, MenuItem, MenuList, Paper, Popper, Typography } from "@mui/material";
@@ -153,9 +153,12 @@ export function RecipientField({ name, label, form, placeholder, inputRef }: Rec
                             <MenuItem
                                 key={contact.seq}
                                 selected={index === active}
-                                // 누르는 순간 칸이 포커스를 잃어 목록이 닫히지 않게 한다.
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => pick(contact)}
+                                // 누르는 순간(mousedown)에 넣는다 — click 까지 기다리면 그사이 칸이 포커스를 잃어 목록이 먼저 닫히고 아무것도 안 들어갔다(0.3.156).
+                                // preventDefault 로 칸의 포커스를 지킨다(넣은 뒤 이어서 친다).
+                                onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    pick(contact);
+                                }}
                                 onMouseEnter={() => setActive(index)}
                                 sx={{ display: "block", py: 1 }}
                             >
