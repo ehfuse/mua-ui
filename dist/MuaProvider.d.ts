@@ -31,5 +31,10 @@ export declare function useMuaFormDialog(): ComponentType<any>;
 export declare function useMuaFileUploadBox(): ComponentType<MuaFileUploadBoxProps>;
 /** 좁은 화면에서 메일 에디터 툴바를 보일지(config.mobileEditorToolbar — 미지정이면 숨김). */
 export declare function useMuaMobileEditorToolbar(): boolean;
+/** 메일 쓰기 에디터(미주입 시 null — 부르는 쪽이 기본 에디터를 쓴다)와 툴바 구성. */
+export declare function useMuaComposeEditor(): {
+    Editor: ComponentType<any> | null;
+    toolbarOptions: unknown;
+};
 /** 파일 저장 함수(미주입 시 앵커 다운로드). */
 export declare function useMuaSaveBlob(): (blob: Blob, filename: string) => Promise<boolean>;

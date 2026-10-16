@@ -10,7 +10,8 @@ import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
 import { ErrorAlert, WarningAlert } from "@ehfuse/alerts";
 import { ClearTextField, DateTimeTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaFileUploadBox, useMuaFormDialog, useMuaMobileEditorToolbar } from "../../MuaProvider";
+import { useMuaComposeEditor, useMuaConfig, useMuaFileUploadBox, useMuaFormDialog, useMuaMobileEditorToolbar } from "../../MuaProvider";
+import { extractSignature } from "../../controllers/composeController";
 import type { ComposeController } from "../../controllers/composeController";
 import type { ComposeAttachment, MailAccount } from "../../models/types";
 import { MAX_ATTACHMENT_MB, readFileAsAttachment } from "../../utils/attachments";
@@ -33,6 +34,12 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     // 좁은 화면이어도 서식 툴바를 보이는 환경(설치한 웹앱 등 — config.mobileEditorToolbar).
     const mobileToolbar = useMuaMobileEditorToolbar();
     const FormDialog = useMuaFormDialog();
+    // 에디터 바꿔 끼우기(config.ComposeEditorComponent — 표가 되는 editor-pro 등)와 본문 아래 서명 칸(config.signatureBelowEditor).
+    const injected = useMuaComposeEditor();
+    const Editor = (injected.Editor ?? EhfuseEditor) as typeof EhfuseEditor;
+    const toolbarOptions = (injected.toolbarOptions ?? minimalToolbarOptions) as typeof minimalToolbarOptions;
+    const signatureBelow = Boolean(useMuaConfig().signatureBelowEditor);
+    const signatureHtml = String(form.useFormValue("signature_html") ?? "");
     const FileUploadBox = useMuaFileUploadBox();
     const bodyHtml = String(form.useFormValue("body_html") ?? "");
     const showCcBcc = Boolean(form.useFormValue("showCcBcc"));
@@ -107,6 +114,47 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     useEffect(() => {
         if (!modal.isOpen) lastSyncedHtmlRef.current = null;
     }, [modal.isOpen]);
+
+    // 본문 아래 서명 칸 — 창이 열릴 때 한 번 본문의 서명을 꺼내 서명 칸으로 옮긴다(새 메일 · 답장 · 임시보관 모두 같은 길).
+    // 보낼 때 컨트롤러가 다시 넣는다(toComposeRequest → mergeSignature). 열린 동안 다시 꺼내지 않는다(본문에 서명을 손으로 붙여도 그대로).
+    const signatureEditorRef = useRef<EhfuseEditorRef>(null);
+    const lastSyncedSignatureRef = useRef<string | null>(null);
+    const extractedRef = useRef(false);
+    useEffect(() => {
+        if (!modal.isOpen) {
+            extractedRef.current = false;
+            lastSyncedSignatureRef.current = null;
+            return;
+        }
+        if (!signatureBelow || extractedRef.current) return;
+        extractedRef.current = true;
+        const values = form.getFormValues();
+        const { body, signature, place } = extractSignature(String(values.body_html ?? ""));
+        form.setFormValue("signature_place", place);
+        form.setFormValue("signature_html", signature);
+        if (body !== values.body_html) form.setFormValue("body_html", body);
+    }, [modal.isOpen, signatureBelow, form]);
+    useEffect(() => {
+        if (!modal.isOpen || !signatureBelow) return;
+        if (lastSyncedSignatureRef.current === signatureHtml) return;
+        lastSyncedSignatureRef.current = signatureHtml;
+        signatureEditorRef.current?.setHtml(signatureHtml);
+    }, [signatureHtml, modal.isOpen, signatureBelow]);
+    const signatureEditorConfig = useMemo<EditorConfig>(
+        () => ({
+            placeholder: "서명 없음",
+            minHeight: 80,
+            showToolbar: false,
+            autoHeight: true,
+            locale: "ko",
+            onChange: (html: string) => {
+                lastSyncedSignatureRef.current = html;
+                form.setFormValue("signature_html", html);
+            },
+            styles: { borderWidth: 0 },
+        }),
+        [form]
+    );
 
     /** 드롭존 스테이징 파일을 base64 첨부로 읽어 폼에 추가한다(기존 uuid 첨부는 유지). */
     const handleAttachedFilesChange = useCallback(
@@ -217,6 +265,15 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         if (!(seq > 0)) return;
                                         // 전역 상태에도 넣는다 — 다음 새 메일 창은 서버에 다시 묻지 않고 이 값으로 연다.
                                         state.setValue("lastAccountSeq", seq);
+                                        // 서명 칸을 쓰면 계정을 바꿀 때 그 계정의 서명으로 바꾼다 — 고치지 않은(앞 계정 그대로인) 서명만.
+                                        if (signatureBelow) {
+                                            const before = accounts.find((a) => a.seq === Number(form.getFormValue("mail_account_seq") ?? 0));
+                                            const next = accounts.find((a) => a.seq === seq);
+                                            const current = String(form.getFormValue("signature_html") ?? "").trim();
+                                            if (!current || current === String(before?.signature ?? "").trim()) {
+                                                form.setFormValue("signature_html", String(next?.signature ?? ""));
+                                            }
+                                        }
                                         void mailApi.updatePreferences({ last_account_seq: seq }).catch(() => undefined);
                                     }}
                                 />
@@ -386,13 +443,24 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     "& .ehfuse-editor-container": { flex: 1, minHeight: 0 },
                                 }}
                             >
-                                <EhfuseEditor
+                                <Editor
                                     ref={editorRef}
                                     defaultValue={bodyHtml || ""}
-                                    toolbarOptions={minimalToolbarOptions}
+                                    toolbarOptions={toolbarOptions}
                                     {...editorConfig}
                                 />
                             </Box>
+                            {/* 서명 — 본문 아래 따로(config.signatureBelowEditor). 이 메일에만 쓰는 서명이라 고쳐도 계정 서명은 그대로다. */}
+                            {signatureBelow ? (
+                                <Box>
+                                    <Box component="div" sx={{ fontSize: 14, color: "text.secondary", mb: 0.75 }}>
+                                        서명
+                                    </Box>
+                                    <Box sx={{ border: "1px solid", borderColor: "rgba(0,0,0,0.23)", borderRadius: 1, overflow: "hidden" }}>
+                                        <Editor ref={signatureEditorRef} defaultValue={signatureHtml} toolbarOptions={toolbarOptions} {...signatureEditorConfig} />
+                                    </Box>
+                                </Box>
+                            ) : null}
                         </Box>
                     ),
                 },

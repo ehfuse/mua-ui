@@ -93,6 +93,17 @@ export interface MuaConfig {
      * 앱(WebView)은 standalone 이 아니라 "pwa" 로 두어도 지금처럼 숨는다.
      */
     mobileEditorToolbar?: "never" | "pwa" | "always";
+    /**
+     * 메일 쓰기 에디터 바꿔 끼우기(0.3.153) — 미지정이면 @ehfuse/editor(기본). 표 등 더 많은 기능이 든 에디터(@ehfuse/editor-pro)를
+     * 쓰려는 앱이 그 EhfuseEditor 와 툴바 구성을 넘긴다. 같은 EhfuseEditor 꼴(ref · defaultValue · toolbarOptions · EditorConfig)이어야 한다.
+     */
+    ComposeEditorComponent?: ComponentType<any>;
+    composeToolbarOptions?: unknown;
+    /**
+     * 서명을 본문 아래 따로 두고 고치기(0.3.153) — 켜면 열 때 본문의 서명(div.mail-signature)을 꺼내 에디터 아래 "서명" 칸에 두고,
+     * 보내기 · 임시저장 때 본문에 다시 넣는다(답장 · 전달은 인용문 앞에). 고친 서명은 이 메일에만 쓴다. 미지정이면 지금처럼 본문 안에 있다.
+     */
+    signatureBelowEditor?: boolean;
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)

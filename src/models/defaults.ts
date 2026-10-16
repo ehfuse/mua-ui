@@ -125,6 +125,8 @@ export const defaultComposeForm: ComposeForm = {
     secure: false,
     secure_password: "",
     secure_hint: "",
+    signature_html: "",
+    signature_place: "",
 };
 
 /** 연락처 폼 기본값 */

@@ -71,6 +71,53 @@ function toScheduleInput(value: string | null | undefined): string {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** 서명 블록 HTML — 비면 빈 글. */
+function wrapSignature(html: string): string {
+    const sig = String(html ?? "").trim();
+    return sig && sig !== "<p><br></p>" ? `<div class="mail-signature">${sig}</div>` : "";
+}
+
+/**
+ * 본문에서 서명을 꺼낸다(config.signatureBelowEditor) — 서명 칸에 따로 두고 보낼 때 다시 넣으려고.
+ * 서명 뒤에 인용문(blockquote)이 있으면 답장 · 전달이라 그 앞에 다시 넣을 자리로 기억한다. 서명이 없으면 끝에 넣을 빈 서명.
+ */
+export function extractSignature(bodyHtml: string): { body: string; signature: string; place: "end" | "before_quote" } {
+    if (typeof DOMParser === "undefined") return { body: bodyHtml, signature: "", place: "end" };
+    const doc = new DOMParser().parseFromString(`<div id="mua-root">${bodyHtml}</div>`, "text/html");
+    const root = doc.getElementById("mua-root");
+    if (!root) return { body: bodyHtml, signature: "", place: "end" };
+    const quoted = Boolean(root.querySelector("blockquote"));
+    const sigEl = root.querySelector(".mail-signature");
+    if (!sigEl) return { body: bodyHtml, signature: "", place: quoted ? "before_quote" : "end" };
+    const signature = sigEl.innerHTML;
+    // 서명 앞에 붙여 둔 빈 줄(<p><br></p>)도 함께 뺀다 — 남기면 꺼낼 때마다 빈 줄이 하나씩 쌓인다.
+    const prev = sigEl.previousElementSibling;
+    if (prev && prev.tagName === "P" && prev.textContent?.trim() === "" && prev.innerHTML.replace(/\s/g, "") === "<br>") prev.remove();
+    sigEl.remove();
+    return { body: root.innerHTML || "<p><br></p>", signature, place: quoted ? "before_quote" : "end" };
+}
+
+/** 서명 칸의 서명을 본문에 다시 넣는다 — 답장 · 전달이면 인용 머리(blockquote 바로 앞 줄) 앞에, 아니면 끝에. */
+function mergeSignature(values: ComposeForm): string {
+    if (!values.signature_place) return values.body_html;
+    const block = wrapSignature(values.signature_html);
+    if (!block) return values.body_html;
+    if (values.signature_place === "before_quote" && typeof DOMParser !== "undefined") {
+        const doc = new DOMParser().parseFromString(`<div id="mua-root">${values.body_html}</div>`, "text/html");
+        const root = doc.getElementById("mua-root");
+        const quote = root?.querySelector("blockquote");
+        if (root && quote) {
+            // 인용 머리("…님이 작성:" · "전달된 메일") 줄이 blockquote 바로 앞에 있다 — 그 앞에 넣어야 서명이 인용 밖에 선다.
+            const anchor = quote.previousElementSibling ?? quote;
+            const holder = doc.createElement("div");
+            holder.innerHTML = `<p><br></p>${block}`;
+            for (const node of Array.from(holder.childNodes)) anchor.parentNode?.insertBefore(node, anchor);
+            return root.innerHTML;
+        }
+    }
+    return `${values.body_html}<p><br></p>${block}`;
+}
+
 /** 폼 값을 요청 본문으로 변환한다. 수신확인·보안메일은 보낼 때만 싣는다(임시저장은 내용만 둔다). */
 export function toComposeRequest(values: ComposeForm, forSend = false): ComposeRequest {
     return {
@@ -85,7 +132,7 @@ export function toComposeRequest(values: ComposeForm, forSend = false): ComposeR
         cc: splitAddressInput(values.cc),
         bcc: splitAddressInput(values.bcc),
         subject: values.subject,
-        body_html: values.body_html,
+        body_html: mergeSignature(values),
         attachments: values.attachments.map((a) => ({
             uuid: a.uuid,
             name: a.name,

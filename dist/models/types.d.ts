@@ -258,6 +258,12 @@ export interface ComposeForm {
     secure: boolean;
     secure_password: string;
     secure_hint: string;
+    /**
+     * 본문 아래 서명 칸(config.signatureBelowEditor, 0.3.153) — signature_place 가 비면 쓰지 않는다(서명은 본문 안에 그대로).
+     * "end" = 본문 끝에, "before_quote" = 답장 · 전달의 인용문 앞에 다시 넣는다.
+     */
+    signature_html: string;
+    signature_place: "" | "end" | "before_quote";
 }
 /** 발송/임시저장 요청 본문 */
 export interface ComposeRequest {
