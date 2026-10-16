@@ -377,7 +377,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     // 에디터는 autoHeight 가 아니면 내용 영역에 `.fixed-height { flex:1; height:0; min-height:0 }`
                                     // 를 걸고 높이를 부모에서 받는다 — 부모(여기)에 높이가 없으면 한 줄 높이로 눌린다.
                                     // 그래서 config.minHeight 를 아무리 키워도 소용이 없었다. 상자에 높이를 주고 안쪽을 채우게 한다.
-                                    height: { xs: 260, sm: 380 },
+                                    // 폰은 에디터가 autoHeight 라 내용만큼 늘어나야 한다 — 상자 높이를 260 으로 묶으면 늘어난 만큼
+                                    // 툴바가 위로 밀려 잘렸다(0.3.152, 설치한 웹앱에서 툴바를 켜며 드러남). 폰은 최소 높이만 준다.
+                                    ...(isMobile ? { minHeight: 260 } : { height: { xs: 260, sm: 380 } }),
                                     display: "flex",
                                     flexDirection: "column",
                                     "& > div": { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
