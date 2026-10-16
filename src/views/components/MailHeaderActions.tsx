@@ -34,7 +34,9 @@ export function MailHeaderActions({
 }: MailHeaderActionsProps) {
     const hasError = accounts.some((a) => a.last_error);
     return (
-        <Stack direction="row" spacing={1} alignItems="center">
+        // 간격은 gap 으로 준다(2026-10-16) — Stack spacing 은 둘째 칸부터 margin-left 를 덮어써 토글의 mx 가 왼쪽에서 먹지 않았고,
+        // 새로고침 단추와 보기 토글이 붙어 보였다. 토글 양옆은 gap + mx 로 한 단계 더 띄운다.
+        <Stack direction="row" alignItems="center" sx={{ columnGap: 1 }}>
             <Tooltip title="새로고침 (새 메일 받기)">
                 <span>
                     <IconButton

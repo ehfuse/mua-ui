@@ -4,10 +4,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, Fab, IconButton, Typography } from "@mui/material";
+import { Box, Button, Fab, IconButton, Tab, Tabs, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import type { DataColumn } from "@ehfuse/mui-virtual-data-table";
+import { VirtualDataTable, type DataColumn } from "@ehfuse/mui-virtual-data-table";
 import { ListLayout, type ListLayoutProps } from "@ehfuse/mui-dashboard-layout";
 import { ErrorAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../apis/mailApi";
@@ -73,6 +73,8 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const [contacts, setContacts] = useState<MailContact[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
+    // 목록 위 갈래 탭(2026-10-16) — 메일 목록처럼 전체 · 별표. 주소록은 한 번에 다 읽으므로 별표는 화면에서 거른다.
+    const [scope, setScope] = useState<"all" | "favorite">("all");
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // 모바일: 서브페이지 제목바 돋보기 ↔ 검색 오버레이
@@ -180,8 +182,27 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
         defaultCollapsed: true,
     };
 
+    /** 칸 글자 — 넘치면 말줄임(표 칸의 기본 글자 크기를 그대로 쓴다). */
+    const cellText = (text: string, secondary = false) => (
+        <Box
+            component="span"
+            sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", ...(secondary ? { color: "text.secondary" } : {}) }}
+        >
+            {text}
+        </Box>
+    );
+
+    // 열 모양은 고객 목록(CustomerListPage)과 같다(2026-10-16) — 번호 · 굵은 이름(15px) · 짧은 값은 가운데 · 덜 중요한 값은 회색.
     const columns = useMemo<DataColumn<MailContact>[]>(
         () => [
+            {
+                // 줄 번호 — 지금 보는 목록에서 몇 번째인가. 연락처의 고유 번호가 아니다.
+                id: "no",
+                text: "번호",
+                width: 64,
+                align: "center",
+                render: (_row, index) => cellText(String(index + 1), true),
+            },
             {
                 id: "is_favorite",
                 text: "",
@@ -206,65 +227,37 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                 id: "name",
                 text: "이름",
                 width: "18%",
+                style: { fontSize: 15 },
                 render: (row) => (
-                    <Typography noWrap sx={{ fontSize: "14px", fontWeight: 600 }}>
+                    <Box component="span" sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {row.name || "-"}
-                    </Typography>
+                    </Box>
                 ),
             },
             {
                 id: "scope",
                 text: "구분",
-                width: 72,
+                width: 80,
                 align: "center",
                 style: { textAlign: "center" },
                 render: (row) => <ScopeChip shared={row.scope === "shared"} />,
             },
-            {
-                id: "email",
-                text: "메일 주소",
-                width: "28%",
-                render: (row) => (
-                    <Typography noWrap sx={{ fontSize: "14px" }}>
-                        {row.email}
-                    </Typography>
-                ),
-            },
-            {
-                id: "organization",
-                text: "소속",
-                width: "16%",
-                render: (row) => (
-                    <Typography noWrap sx={{ fontSize: "14px" }}>
-                        {row.organization || ""}
-                    </Typography>
-                ),
-            },
-            {
-                id: "phone",
-                text: "전화번호",
-                width: 130,
-                render: (row) => (
-                    <Typography noWrap sx={{ fontSize: "14px" }}>
-                        {row.phone || ""}
-                    </Typography>
-                ),
-            },
-            {
-                id: "memo",
-                text: "메모",
-                render: (row) => (
-                    <Typography noWrap sx={{ fontSize: "13.5px", color: "#475569" }}>
-                        {row.memo || ""}
-                    </Typography>
-                ),
-            },
+            { id: "email", text: "메일 주소", width: "26%", render: (row) => cellText(row.email) },
+            { id: "organization", text: "소속", width: "16%", render: (row) => cellText(row.organization || "") },
+            { id: "phone", text: "전화번호", width: 150, align: "center", render: (row) => cellText(row.phone || "") },
+            { id: "memo", text: "메모", render: (row) => cellText(row.memo || "", true) },
         ],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         [toggleFavorite]
     );
 
+    const shown = useMemo(() => (scope === "favorite" ? contacts.filter((c) => c.is_favorite) : contacts), [scope, contacts]);
+    const favoriteCount = useMemo(() => contacts.filter((c) => c.is_favorite).length, [contacts]);
+
     const emptyMessage = search
         ? "검색 결과가 없습니다."
+        : scope === "favorite"
+          ? "별표한 연락처가 없습니다. 연락처 줄의 별을 누르면 여기에 모입니다."
         : "등록된 연락처가 없습니다. 연락처를 추가하거나 메일 상세의 보낸 사람 옆 주소록 아이콘을 누르세요.";
 
     const dialogs = (
@@ -283,14 +276,47 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                     storageKey="mail-contacts-mobile"
                     inDialog={embedded}
                 >
+                    {/* 갈래 탭 — 메일 목록의 폰 탭(MailMobileTop)과 같은 모양: 칸이 폭을 똑같이 나누고 고른 칸만 파란 굵은 글자 + 밑줄. */}
+                    <Box role="tablist" aria-label="주소록 보기" sx={{ display: "flex", mx: "-16px", mt: "-16px", mb: 1.5, bgcolor: "#fff", borderBottom: "1px solid #e2e8f0" }}>
+                        {(["all", "favorite"] as const).map((key) => {
+                            const selected = scope === key;
+                            return (
+                                <Box
+                                    component="button"
+                                    type="button"
+                                    role="tab"
+                                    key={key}
+                                    aria-selected={selected}
+                                    onClick={() => setScope(key)}
+                                    sx={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        height: 48,
+                                        cursor: "pointer",
+                                        border: "none",
+                                        borderBottom: "2px solid",
+                                        borderBottomColor: selected ? "primary.main" : "transparent",
+                                        mb: "-1px",
+                                        bgcolor: "transparent",
+                                        font: "inherit",
+                                        fontSize: mfs(15),
+                                        fontWeight: selected ? 700 : 500,
+                                        color: selected ? "primary.main" : "#64748b",
+                                    }}
+                                >
+                                    {key === "all" ? "전체" : favoriteCount > 0 ? `별표 ${favoriteCount}` : "별표"}
+                                </Box>
+                            );
+                        })}
+                    </Box>
                     {loading && contacts.length === 0 ? <MobileListLoadingSpinner /> : null}
-                    {!loading && contacts.length === 0 ? (
+                    {!loading && shown.length === 0 ? (
                         <Typography sx={{ fontSize: mfs(15), color: "#475569", textAlign: "center", py: 4 }}>
                             {emptyMessage}
                         </Typography>
                     ) : (
                         <MobileCardStack>
-                            {contacts.map((contact) => (
+                            {shown.map((contact) => (
                                 <Box
                                     key={contact.seq}
                                     onClick={() => openEdit(contact)}
@@ -366,21 +392,45 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
         );
     }
 
+    const tableProps = {
+        // 노션풍 — 고객·거래처·업무함 목록표와 같은 모양(2026-10-16).
+        variant: "notion" as const,
+        columns,
+        data: shown,
+        totalCount: shown.length,
+        getRowId: (row: MailContact) => row.seq,
+        rowHeight: 48,
+        loading,
+        onRowClick: (row: MailContact) => openEdit(row),
+        emptyMessage,
+    };
+
     return (
         <Box sx={{ userSelect: "none", height: "100%", minHeight: 0 }}>
             <ListLayout
                 storageKey="mail-contacts-layout"
                 header={headerConfig}
-                tableProps={{
-                    columns,
-                    data: contacts,
-                    totalCount: contacts.length,
-                    getRowId: (row: MailContact) => row.seq,
-                    rowHeight: 48,
-                    loading,
-                    onRowClick: (row: MailContact) => openEdit(row),
-                    emptyMessage,
-                }}
+                // 표 위 갈래 탭(전체 · 별표) — 메일 목록의 탭과 같은 모양. ListLayout 에 표 위 자리가 없어 표를 직접 그려 넘긴다.
+                leftPanel={
+                    <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+                        <Tabs
+                            value={scope}
+                            onChange={(_event, value: "all" | "favorite") => setScope(value)}
+                            sx={{ minHeight: 44, borderBottom: "1px solid #e2e8f0", flexShrink: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
+                        >
+                            <Tab value="all" label="전체" />
+                            <Tab
+                                value="favorite"
+                                aria-label="별표"
+                                sx={{ minWidth: 56 }}
+                                label={<StarRoundedIcon sx={{ fontSize: 22, color: "#f59e0b", fill: "currentColor" }} />}
+                            />
+                        </Tabs>
+                        <Box sx={{ flex: 1, minHeight: 0 }}>
+                            <VirtualDataTable {...tableProps} />
+                        </Box>
+                    </Box>
+                }
             />
             {dialogs}
         </Box>
