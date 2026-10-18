@@ -87,6 +87,7 @@ export function MailMobileOwnScroll({
         if (!box) return;
         const root = document.documentElement;
         let hidden = 0;
+        let written = 0; // 마지막으로 적은 값(기기 픽셀에 맞춘 것)
         const tops = new WeakMap<EventTarget, number>();
         const onScroll = (e: Event) => {
             const t = e.target as HTMLElement | null;
@@ -94,10 +95,16 @@ export function MailMobileOwnScroll({
             const y = t.scrollTop;
             const delta = y - (tops.get(t) ?? 0);
             tops.set(t, y);
+            // 계산은 소수 그대로 쌓고, 적는 값만 기기 픽셀에 맞춘다 — 소수 배율(2.6 등) 폰에서 천천히 밀면 스크롤 위치가 12.38px 처럼 와서
+            // 덮개를 그대로 옮기면 글자가 프레임마다 픽셀 경계에 붙었다 떨어지며 1px 씩 떨렸다(0.3.169, 2026-10-19 사용자 지적)
             const next = y <= 0 ? 0 : Math.min(topRef.current, Math.max(0, hidden + delta));
             if (next === hidden) return;
             hidden = next;
-            root.style.setProperty(HIDDEN_VAR, `${hidden}px`);
+            const dpr = window.devicePixelRatio || 1;
+            const shown = Math.round(hidden * dpr) / dpr;
+            if (shown === written) return;
+            written = shown;
+            root.style.setProperty(HIDDEN_VAR, `${shown}px`);
         };
         box.addEventListener("scroll", onScroll, { passive: true, capture: true });
         return () => {
@@ -165,6 +172,8 @@ export function MailMobileOwnScroll({
                     pt: 2,
                     bgcolor: config.background,
                     transform: `translateY(calc(-1 * var(${HIDDEN_VAR}, 0px)))`,
+                    // 움직이는 동안 글자를 다시 그리지 않게 GPU 층에 둔다(1px 떨림 — 위 주석)
+                    willChange: "transform",
                 }}
             >
                 {head}

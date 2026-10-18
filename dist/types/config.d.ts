@@ -1,4 +1,5 @@
 /** MuaProvider 주입 설정 타입이다. */
+import type { VirtualDataTableProps } from "@ehfuse/mui-virtual-data-table";
 import type { ComponentType, ReactNode } from "react";
 import type { ListLayoutProps } from "@ehfuse/mui-dashboard-layout";
 import type { FormDialogProps } from "@ehfuse/mui-form-dialog";
@@ -55,6 +56,20 @@ export interface MuaMobileConfig {
     searchOverlayStateId?: string;
     searchWidth?: string;
     subPage?: MuaSubPageBridge;
+    ownScroll?: MuaMobileOwnScroll;
+}
+/**
+ * 하단 탭(페이지 모드) 메일 목록의 자기 스크롤(0.3.168) — 받은 메일을 모두 그리던 카드 목록 대신 VDT 가상 목록으로 그리고,
+ * 탭 · 계정 줄은 위에 겹쳐 띄워 목록을 민 만큼(1:1) 앱바와 함께 접는다. 앱 셸이 이 방식을 받쳐 줘야 한다:
+ * ① useOwnScroll() 이 불리는 동안 셸은 앱바를 본문 위에 겹쳐 띄우고(자리 0) 본문 여백 · 당김 · 맨 위로 · 자기 접기를 끈다
+ * ② 셸은 화면이 쓸 높이를 heightVar 에 적는다 ③ 앱바는 문서 루트의 --appbar-hidden 을 min(값, appBarHeight) 만큼 따라 올라간다.
+ */
+export interface MuaMobileOwnScroll {
+    useOwnScroll: () => void;
+    appBarHeight: number;
+    background: string;
+    heightVar?: string;
+    scrollbars?: VirtualDataTableProps<unknown>["scrollbars"];
 }
 /** 공용(shared) 범위 후보 팀 1건 — 앱(업무함)의 팀 개념을 주입받는다. */
 export interface MuaTeamOption {

@@ -26,4 +26,17 @@ interface MailMobileListProps {
 }
 /** 메일 모바일 카드 목록을 렌더링한다. */
 export declare function MailMobileList({ rows, loading, emptyMessage, onSelect, labels, onToggleStar, checkedSeqs, onToggleCheck, onRowContextMenu, bleed, }: MailMobileListProps): import("react").JSX.Element;
+/** 메일 카드 한 줄 속성 — 목록(MailMobileList)과 가상 목록(MailMobileOwnScroll)이 함께 쓴다(0.3.168) */
+export interface MailMobileRowProps {
+    row: MailMessageListItem;
+    labels: MailLabel[];
+    checked: boolean;
+    onSelect: (row: MailMessageListItem) => void;
+    onToggleStar: (row: MailMessageListItem) => void;
+    onToggleCheck: (seq: number) => void;
+    onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void;
+    bleed: number;
+}
+/** 메일 카드 한 줄 — 1줄 체크 · 별 · 상대 · 일시 / 2줄 제목(+첨부) / 3줄 미리보기 */
+export declare function MailMobileRow({ row, labels, checked, onSelect, onToggleStar, onToggleCheck, onRowContextMenu, bleed, }: MailMobileRowProps): import("react").JSX.Element;
 export {};
