@@ -18,6 +18,9 @@
  *  · 0.3.177(같은 날 사용자 지적 "스크롤 올라갈 때 머리 안 열림"): 머리(앱바 + 탭)가 화면 밖으로 다 나가면 같은 머리를 위에 숨겨 띄우고
  *    올리는 만큼 내려 보인다(내리면 숨긴다). 맨 위로 돌아와 띄운 머리와 목록 안 머리의 자리가 같아지는 순간(스크롤 0) 목록 안으로 돌려준다 —
  *    앱바는 하나라 자리(appBarSlot)만 옮긴다. 맨 위 구간은 그대로 목록과 함께 굴러간다(늦음 없음).
+ *  · 0.3.178(같은 날 사용자 지적 "메일로 갈 때 머리 깜빡임 · 전체 선택 행까지 머리에"): 머리에 계정 줄(전체 선택)까지 넣는다(띄운 머리도 셋이 함께).
+ *    가상 목록은 처음 몇 프레임 줄을 그리지 않아(크기를 먼저 잰다) 목록 안 머리가 없는 틈에 머리가 통째로 사라졌다 — 그동안은 띄운 머리를 맨 위(숨김 0)에 둔다.
+ *    메일을 고른 동안(pinToolbar)은 띄운 머리가 계정 줄까지는 숨지 않는다(일괄 작업 단추).
  *
  * 끝에 닿으면 다음 쪽을 읽는다 — 읽는 중에 끝 알림이 오면 기억했다가 읽기가 끝나면 바로 읽는다(가상 목록은 같은 길이에서 끝 알림을 한 번만 준다).
  */
@@ -149,10 +152,22 @@ export function MailMobileOwnScroll({
     // 앱바 자리 둘 — 목록 안 · 띄운 머리. 셸에는 지금 쓰는 자리 하나만 알린다(앱바는 하나)
     const [inListSlot, setInListSlot] = useState<HTMLElement | null>(null);
     const [floatSlot, setFloatSlot] = useState<HTMLElement | null>(null);
+    // 목록 안 머리가 아직 없으면(가상 목록 첫 프레임) 띄운 머리를 맨 위에 둔다 — 머리가 통째로 사라지는 틈이 없게(0.3.178)
+    const showFloat = inList && (floating || !inListSlot);
+    // 고른 메일이 있으면 띄운 머리는 계정 줄까지는 숨지 않는다
+    const pinRef = useRef(pinToolbar);
+    pinRef.current = pinToolbar;
+    // 고르기 시작했는데 띄운 머리가 계정 줄까지 숨어 있으면 계정 줄이 보이게 내린다
+    useLayoutEffect(() => {
+        if (!pinToolbar || !floatingRef.current || !Number.isFinite(toolbarAtRef.current)) return;
+        if (hiddenRef.current <= toolbarAtRef.current) return;
+        hiddenRef.current = toolbarAtRef.current;
+        if (floatRef.current) floatRef.current.style.transform = `translate3d(0, ${-hiddenRef.current}px, 0)`;
+    }, [pinToolbar]);
     const appBarSlot = config.appBarSlot;
     useLayoutEffect(() => {
-        appBarSlot?.(floating ? floatSlot : inListSlot);
-    }, [appBarSlot, floating, floatSlot, inListSlot]);
+        appBarSlot?.(showFloat ? floatSlot : inListSlot);
+    }, [appBarSlot, showFloat, floatSlot, inListSlot]);
     useLayoutEffect(() => () => appBarSlot?.(null), [appBarSlot]);
     // 첫 줄(계정 줄)이 탭 밑으로 지나갔나 — 고른 메일이 있으면 탭 아래에 붙여 보인다
     const [passed, setPassed] = useState(false);
@@ -250,15 +265,18 @@ export function MailMobileOwnScroll({
             if (inList) {
                 // 머리가 목록 안에 있다 — 맨 위 구간은 목록과 함께 굴러가고, 다 나간 뒤에만 띄운 머리를 쓴다(0.3.177)
                 const H = headBlockH.current;
+                // 숨는 최대 양 — 고른 동안은 계정 줄 시작까지(계정 줄은 맨 위에 남는다)
+                const cap = pinRef.current && Number.isFinite(toolbarAtRef.current) ? Math.min(H, toolbarAtRef.current) : H;
                 if (!floatingRef.current) {
-                    if (H > 0 && y > H) {
-                        hiddenRef.current = H;
+                    // 목록 안 머리가 cap 만큼 지나간 순간 — 띄운 머리를 같은 자리(−cap)에 놓아 바뀌는 것이 보이지 않는다
+                    if (H > 0 && y > cap) {
+                        hiddenRef.current = cap;
                         floatingRef.current = true;
                         setFloating(true);
                     }
                     return;
                 }
-                const h = Math.min(H, Math.max(0, hiddenRef.current + delta));
+                const h = Math.min(cap, Math.max(0, hiddenRef.current + delta));
                 // 띄운 머리와 목록 안 머리의 자리(−h · −y)가 같아지면 목록 안으로 돌려준다 — 올리는 동안 둘의 차이는 그대로라 스크롤 0 에서 만난다
                 if (y <= 0 || h >= y) {
                     hiddenRef.current = 0;
@@ -348,8 +366,8 @@ export function MailMobileOwnScroll({
                 <Box ref={measureHeadBlock}>
                     {inList && <Box ref={setInListSlot} sx={{ mx: `-${BLEED}px`, minHeight: config.appBarHeight }} />}
                     {listHead}
+                    <Box ref={measureToolbar}>{listToolbar}</Box>
                 </Box>
-                <Box ref={measureToolbar}>{listToolbar}</Box>
             </Box>
         ) : r.seq === MORE_SEQ ? (
             loadingMore ? (
@@ -412,7 +430,7 @@ export function MailMobileOwnScroll({
                 )}
             </Box>
             {/* 띄운 머리(0.3.177) — 목록 안 머리가 다 나간 뒤 위에 숨겨 두고, 올리는 만큼 내린다. 고른 메일이 있으면 계정 줄을 그 밑에 붙인다 */}
-            {inList && floating && (
+            {showFloat && (
                 <Box
                     ref={floatRef}
                     style={{ transform: `translate3d(0, ${-hiddenRef.current}px, 0)` }}
@@ -420,9 +438,7 @@ export function MailMobileOwnScroll({
                 >
                     <Box ref={setFloatSlot} sx={{ mx: `-${BLEED}px`, minHeight: config.appBarHeight }} />
                     {listHead}
-                    {pinToolbar && passed && listToolbar && (
-                        <Box sx={{ position: "absolute", top: "100%", left: 0, right: 0, px: `${BLEED}px`, bgcolor: config.background }}>{listToolbar}</Box>
-                    )}
+                    {listToolbar}
                 </Box>
             )}
             {/* 목록 칸 — 화면 맨 위부터 끝까지(크기 · 자리 고정) */}
