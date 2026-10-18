@@ -64,6 +64,7 @@ import { MailMobileTop } from "./components/MailMobileTop";
 import type { ComponentType, ReactNode } from "react";
 import type { MuaMobileCardListLayoutProps } from "../types/config";
 import { MailMobileList } from "./components/MailMobileList";
+import { MailMobileOwnScroll } from "./components/MailMobileOwnScroll";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
@@ -1097,17 +1098,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         // 화면 끝까지 쓰는 띠 모양(2026-10-12) — 탭 띠를 쓰는 페이지 모드에서만. 계정 줄은 탭에 붙은 흰 띠가 되고, 목록은 그 아래 간격을 두고 화면 폭을 다 쓴다.
         // 다이얼로그 안(서브페이지)은 좌우 여백을 다이얼로그가 주므로 카드 모양 그대로다.
         const edgeBleed = inlineMobileTop && !(isEmbedded && !isInline) ? 16 : 0;
-        return (
+        // 하단 탭(페이지 모드) 메일은 자기 스크롤 가상 목록(0.3.168) — 앱이 mobile.ownScroll 을 줬고 목록 래퍼를 주입하지 않았을 때만
+        const mobileOwnScroll = isInline && inlineMobileTop ? mobileConfig?.ownScroll : undefined;
+        // 목록 위 — 갈래 탭 · 접히는 검색칸 · 계정 줄(툴바). 자기 스크롤 목록은 덮개로, 예전 목록은 목록 위에 그대로 그린다
+        const mobileHead = (
             <>
-                <MobileListShell
-                    inlineTop={inlineMobileTop}
-                    Layout={MobileCardListLayout}
-                    header={headerConfig}
-                    searchOverlayOpen={searchOverlayOpen}
-                    // 서브페이지 다이얼로그 안에서는 좌우 여백·폭을 다이얼로그가 이미 준다(두 번 들어가지 않게). 페이지 모드는 페이지 여백.
-                    inDialog={isEmbedded && !isInline}
-                >
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: edgeBleed ? 0 : 1.5, minWidth: 0 }}>
                         {/* 갈래 탭 + 접히는 검색칸(0.3.130) — 앱이 목록 래퍼를 주입하지 않았을 때만. 주입한 앱은 앱바의 검색 오버레이를 쓴다. */}
                         {inlineMobileTop && (
                             <MailMobileTop
@@ -1230,6 +1225,43 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                 </>
                             )}
                         </Box>
+            </>
+        );
+        return (
+            <>
+                {mobileOwnScroll ? (
+                    // 하단 탭 메일 — 자기 스크롤 가상 목록 + 1:1 머리 접기(0.3.168). 앱이 mobile.ownScroll 을 줬을 때만
+                    <MailMobileOwnScroll
+                        config={mobileOwnScroll}
+                        head={
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 0 }}>
+                                {mobileHead}
+                            </Box>
+                        }
+                        rows={messages}
+                        loading={loadingList}
+                        loadingMore={loadingMore}
+                        hasMore={hasMore}
+                        onLoadMore={handleLoadMore}
+                        emptyMessage={emptyMessage}
+                        onSelect={(row) => void state.actions.selectMessage(row.seq)}
+                        onToggleStar={handleToggleStar}
+                        checkedSeqs={checkedSeqs}
+                        onToggleCheck={toggleChecked}
+                        onRowContextMenu={handleCardContextMenu}
+                        labels={labels}
+                    />
+                ) : (
+                <MobileListShell
+                    inlineTop={inlineMobileTop}
+                    Layout={MobileCardListLayout}
+                    header={headerConfig}
+                    searchOverlayOpen={searchOverlayOpen}
+                    // 서브페이지 다이얼로그 안에서는 좌우 여백·폭을 다이얼로그가 이미 준다(두 번 들어가지 않게). 페이지 모드는 페이지 여백.
+                    inDialog={isEmbedded && !isInline}
+                >
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: edgeBleed ? 0 : 1.5, minWidth: 0 }}>
+                        {mobileHead}
                         <MailMobileList
                             rows={messages}
                             loading={loadingList}
@@ -1247,6 +1279,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         {hasMore ? <Box ref={sentinelRef} sx={{ height: 1 }} /> : null}
                     </Box>
                 </MobileListShell>
+                )}
                 {/* 새 메일 — 업무함 새 업무 FAB 와 같은 자리(우·하단 24). 다이얼로그(portal) 안에서는 하단 바 변수가 0 이라
                     바가 있는 라우트 화면에서만 그 높이만큼 올라간다. 계정이 없으면 계정 등록 창이 열린다(handleCompose). */}
                 <Fab

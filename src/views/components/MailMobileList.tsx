@@ -48,8 +48,6 @@ export function MailMobileList({
     onRowContextMenu,
     bleed = 0,
 }: MailMobileListProps) {
-    // 길게 눌러 메뉴를 연 직후 손을 떼면 click 이 이어져 상세가 함께 열린다 — 그 한 번만 삼킨다.
-    const suppressClickRef = useRef(false);
     if (rows.length === 0) {
         return loading ? (
             <MobileListLoadingSpinner />
@@ -60,174 +58,211 @@ export function MailMobileList({
 
     return (
         <MobilePlainList bleed={bleed}>
-            {rows.map((row) => {
-                const unread = !row.is_read;
-                return (
-                    // 목록형(2026-10-08) — 바탕·모서리·줄 사이 구분선은 MobilePlainList 가 그린다. 여기서는 줄 안쪽만 그린다.
-                    <Box
-                        key={row.seq}
+            {rows.map((row) => (
+                <MailMobileRow
+                    key={row.seq}
+                    row={row}
+                    labels={labels}
+                    checked={checkedSeqs.has(row.seq)}
+                    onSelect={onSelect}
+                    onToggleStar={onToggleStar}
+                    onToggleCheck={onToggleCheck}
+                    onRowContextMenu={onRowContextMenu}
+                    bleed={bleed}
+                />
+            ))}
+        </MobilePlainList>
+    );
+}
+
+/** 메일 카드 한 줄 속성 — 목록(MailMobileList)과 가상 목록(MailMobileOwnScroll)이 함께 쓴다(0.3.168) */
+export interface MailMobileRowProps {
+    row: MailMessageListItem; // 메일
+    labels: MailLabel[]; // 색상 라벨
+    checked: boolean; // 복수 선택됨
+    onSelect: (row: MailMessageListItem) => void; // 카드 탭 — 상세 열기
+    onToggleStar: (row: MailMessageListItem) => void; // 별 탭 — 중요 토글
+    onToggleCheck: (seq: number) => void; // 체크박스 토글
+    onRowContextMenu?: (row: MailMessageListItem, event: MouseEvent) => void; // 길게 누르기 메뉴
+    bleed: number; // 화면 끝까지 쓰는 띠(본문 좌우 여백 px) — 0 이면 카드 모양
+}
+
+/** 메일 카드 한 줄 — 1줄 체크 · 별 · 상대 · 일시 / 2줄 제목(+첨부) / 3줄 미리보기 */
+export function MailMobileRow({
+    row,
+    labels,
+    checked,
+    onSelect,
+    onToggleStar,
+    onToggleCheck,
+    onRowContextMenu,
+    bleed,
+}: MailMobileRowProps) {
+    // 길게 눌러 메뉴를 연 직후 손을 떼면 click 이 이어져 상세가 함께 열린다 — 그 한 번만 삼킨다.
+    const suppressClickRef = useRef(false);
+    const unread = !row.is_read;
+    return (
+        // 목록형(2026-10-08) — 바탕·모서리·줄 사이 구분선은 MobilePlainList 가 그린다. 여기서는 줄 안쪽만 그린다.
+        <Box
                         onClick={() => {
-                            // 방금 길게 눌러 메뉴를 연 것이면 상세를 열지 않는다.
-                            if (suppressClickRef.current) {
-                                suppressClickRef.current = false;
-                                return;
-                            }
-                            onSelect(row);
-                        }}
-                        // 폰에서 카드를 길게 누르면 브라우저가 contextmenu 를 쏜다 — 그 자리에 팝업 메뉴를 띄운다.
-                        // 기본 동작(텍스트 선택 핸들·브라우저 메뉴)은 핸들러 안에서 막는다.
-                        onContextMenu={
-                            onRowContextMenu
-                                ? (event) => {
-                                      suppressClickRef.current = true;
-                                      onRowContextMenu(row, event);
-                                  }
-                                : undefined
-                        }
+                // 방금 길게 눌러 메뉴를 연 것이면 상세를 열지 않는다.
+                if (suppressClickRef.current) {
+                    suppressClickRef.current = false;
+                    return;
+                }
+                onSelect(row);
+            }}
+            // 폰에서 카드를 길게 누르면 브라우저가 contextmenu 를 쏜다 — 그 자리에 팝업 메뉴를 띄운다.
+            // 기본 동작(텍스트 선택 핸들·브라우저 메뉴)은 핸들러 안에서 막는다.
+            onContextMenu={
+                onRowContextMenu
+                    ? (event) => {
+                          suppressClickRef.current = true;
+                          onRowContextMenu(row, event);
+                      }
+                    : undefined
+            }
+            sx={{
+                display: "flex",
+                flexDirection: "column",
+                minWidth: 0,
+                width: "100%",
+                boxSizing: "border-box",
+                cursor: "pointer",
+                userSelect: "none",
+                // iOS 사파리는 길게 누르면 링크/이미지 콜아웃을 띄운다 — 팝업 메뉴와 겹치지 않게 끈다.
+                WebkitTouchCallout: "none",
+                // 위는 체크박스 · 별 단추의 안쪽 여백(6px)이 더해져 보이므로, 아래를 그만큼 더 준다 — 위아래 여백이 같아 보이게(2026-10-12 지적).
+                pt: 1,
+                pb: 1.5,
+                pr: 1.75,
+                pl: 0.5,
+                // 안 읽은 메일 — 왼쪽 파란 띠(목록 표의 굵은 글씨에 대응).
+                // 화면 폭을 끝까지 쓰는 띠 목록(bleed)에서는 띠를 화면 끝에서 살짝 띄운다(0.3.149) — 화면 테두리에 딱 붙어 잘린 것처럼 보였다.
+                // 띄우는 폭은 호스트 앱이 --mobile-edge-band-inset 에 적는다(없으면 0). 띠 자리(4px)는 투명 테두리로 늘 잡아 두고, 띄운 만큼 내용도 들인다.
+                borderLeft: "4px solid transparent",
+                position: "relative",
+                ...(bleed ? { ml: 0, pl: "calc(4px + var(--mobile-edge-band-inset, 0px))" } : {}),
+                ...(unread
+                    ? {
+                          "&::before": {
+                              content: '""',
+                              position: "absolute",
+                              top: 0,
+                              bottom: 0,
+                              left: bleed ? "calc(-4px + var(--mobile-edge-band-inset, 0px))" : "-4px",
+                              width: 4,
+                              bgcolor: "#3b82f6",
+                          },
+                      }
+                    : {}),
+            }}
+        >
+            {/* 1행: 체크박스(복수 선택) · 중요 토글 · 상대 · 일시 — 체크/별은 카드 클릭(상세 열기)과 분리한다. */}
+            <Box sx={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+                <Checkbox
+                    size="medium"
+                    checked={checked}
+                    onChange={() => onToggleCheck(row.seq)}
+                    onClick={(event) => event.stopPropagation()}
+                    sx={{ p: 0.75 }}
+                    inputProps={{ "aria-label": "선택" }}
+                />
+                <IconButton
+                    size="small"
+                    aria-label={row.is_starred ? "중요 해제" : "중요 표시"}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleStar(row);
+                    }}
+                    sx={{ p: 0.75 }}
+                >
+                    <StarRoundedIcon
                         sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            minWidth: 0,
-                            width: "100%",
-                            boxSizing: "border-box",
-                            cursor: "pointer",
-                            userSelect: "none",
-                            // iOS 사파리는 길게 누르면 링크/이미지 콜아웃을 띄운다 — 팝업 메뉴와 겹치지 않게 끈다.
-                            WebkitTouchCallout: "none",
-                            // 위는 체크박스 · 별 단추의 안쪽 여백(6px)이 더해져 보이므로, 아래를 그만큼 더 준다 — 위아래 여백이 같아 보이게(2026-10-12 지적).
-                            pt: 1,
-                            pb: 1.5,
-                            pr: 1.75,
-                            pl: 0.5,
-                            // 안 읽은 메일 — 왼쪽 파란 띠(목록 표의 굵은 글씨에 대응).
-                            // 화면 폭을 끝까지 쓰는 띠 목록(bleed)에서는 띠를 화면 끝에서 살짝 띄운다(0.3.149) — 화면 테두리에 딱 붙어 잘린 것처럼 보였다.
-                            // 띄우는 폭은 호스트 앱이 --mobile-edge-band-inset 에 적는다(없으면 0). 띠 자리(4px)는 투명 테두리로 늘 잡아 두고, 띄운 만큼 내용도 들인다.
-                            borderLeft: "4px solid transparent",
-                            position: "relative",
-                            ...(bleed ? { ml: 0, pl: "calc(4px + var(--mobile-edge-band-inset, 0px))" } : {}),
-                            ...(unread
-                                ? {
-                                      "&::before": {
-                                          content: '""',
-                                          position: "absolute",
-                                          top: 0,
-                                          bottom: 0,
-                                          left: bleed ? "calc(-4px + var(--mobile-edge-band-inset, 0px))" : "-4px",
-                                          width: 4,
-                                          bgcolor: "#3b82f6",
-                                      },
-                                  }
-                                : {}),
+                            fontSize: 24,
+                            ...(row.is_starred
+                                ? { color: "#f59e0b", fill: "currentColor" }
+                                : { color: "#94a3b8" }),
+                        }}
+                    />
+                </IconButton>
+                <Typography
+                    sx={{
+                        flex: 1,
+                        width: 0,
+                        ml: 0.5,
+                        // 아래 제목과 같은 크기 — 제목만 줄이면 보낸사람이 제목보다 커 보인다.
+                        fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
+                        fontWeight: unread ? 700 : 500,
+                        color: "#111827",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                    }}
+                >
+                    {formatCounterpart(row)}
+                </Typography>
+                <MobileChip tone={unread ? "blue" : "default"} bold={unread}>
+                    {formatMailListDate(row.date_time) || "-"}
+                </MobileChip>
+            </Box>
+            {/* 2·3행: 제목(+첨부)·미리보기 — 별표 오른쪽이 아니라 아래 행에 전폭으로. */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0, pl: 1, pt: 0.25 }}>
+                {/* 2줄: 제목 + 첨부 */}
+                {/* 제목은 말줄임하지 않고 줄을 바꿔 다 보인다(0.3.105) — 한 줄로 자르면 앞머리 말머리만 남아 무슨 메일인지 몰랐다. */}
+                <Box sx={{ display: "flex", alignItems: "flex-start", columnGap: 0.5, minWidth: 0 }}>
+                    <Typography
+                        sx={{
+                            flex: 1,
+                            width: 0,
+                            // 17→16(2026-10-08 지시) — 목록형으로 바뀌어 줄이 촘촘해진 만큼 제목·내용을 1px 씩 줄였다.
+                            // 카드 제목은 --card-title-shrink 만큼 줄인다(2026-10-12) — 호스트 앱이 PWA(독립 창)로 열렸을 때만 1px 을 넣는다. 변수가 없으면 0 이라 그대로다.
+                            fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
+                            fontWeight: unread ? 700 : 500,
+                            color: "#0f172a",
+                            // 줄 간격은 아래 미리보기 줄과 같은 값.
+                            lineHeight: 1.4,
+                            wordBreak: "break-word",
                         }}
                     >
-                        {/* 1행: 체크박스(복수 선택) · 중요 토글 · 상대 · 일시 — 체크/별은 카드 클릭(상세 열기)과 분리한다. */}
-                        <Box sx={{ display: "flex", alignItems: "center", minWidth: 0 }}>
-                            <Checkbox
-                                size="medium"
-                                checked={checkedSeqs.has(row.seq)}
-                                onChange={() => onToggleCheck(row.seq)}
-                                onClick={(event) => event.stopPropagation()}
-                                sx={{ p: 0.75 }}
-                                inputProps={{ "aria-label": "선택" }}
-                            />
-                            <IconButton
-                                size="small"
-                                aria-label={row.is_starred ? "중요 해제" : "중요 표시"}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    onToggleStar(row);
-                                }}
-                                sx={{ p: 0.75 }}
-                            >
-                                <StarRoundedIcon
-                                    sx={{
-                                        fontSize: 24,
-                                        ...(row.is_starred
-                                            ? { color: "#f59e0b", fill: "currentColor" }
-                                            : { color: "#94a3b8" }),
-                                    }}
-                                />
-                            </IconButton>
-                            <Typography
-                                sx={{
-                                    flex: 1,
-                                    width: 0,
-                                    ml: 0.5,
-                                    // 아래 제목과 같은 크기 — 제목만 줄이면 보낸사람이 제목보다 커 보인다.
-                                    fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
-                                    fontWeight: unread ? 700 : 500,
-                                    color: "#111827",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                }}
-                            >
-                                {formatCounterpart(row)}
-                            </Typography>
-                            <MobileChip tone={unread ? "blue" : "default"} bold={unread}>
-                                {formatMailListDate(row.date_time) || "-"}
-                            </MobileChip>
-                        </Box>
-                        {/* 2·3행: 제목(+첨부)·미리보기 — 별표 오른쪽이 아니라 아래 행에 전폭으로. */}
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, minWidth: 0, pl: 1, pt: 0.25 }}>
-                            {/* 2줄: 제목 + 첨부 */}
-                            {/* 제목은 말줄임하지 않고 줄을 바꿔 다 보인다(0.3.105) — 한 줄로 자르면 앞머리 말머리만 남아 무슨 메일인지 몰랐다. */}
-                            <Box sx={{ display: "flex", alignItems: "flex-start", columnGap: 0.5, minWidth: 0 }}>
-                                <Typography
-                                    sx={{
-                                        flex: 1,
-                                        width: 0,
-                                        // 17→16(2026-10-08 지시) — 목록형으로 바뀌어 줄이 촘촘해진 만큼 제목·내용을 1px 씩 줄였다.
-                                        // 카드 제목은 --card-title-shrink 만큼 줄인다(2026-10-12) — 호스트 앱이 PWA(독립 창)로 열렸을 때만 1px 을 넣는다. 변수가 없으면 0 이라 그대로다.
-                                        fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
-                                        fontWeight: unread ? 700 : 500,
-                                        color: "#0f172a",
-                                        // 줄 간격은 아래 미리보기 줄과 같은 값.
-                                        lineHeight: 1.4,
-                                        wordBreak: "break-word",
-                                    }}
-                                >
-                                    {/* 색상 라벨 칩 — 제목 앞(넓은 화면 표와 같은 자리). 제목 줄과 함께 줄을 바꾼다. */}
-                                    {row.label_seqs && row.label_seqs.length > 0 && labels.length > 0 ? (
-                                        <Box component="span" sx={{ display: "inline-flex", flexWrap: "wrap", gap: 0.5, mr: 0.75, verticalAlign: "middle" }}>
-                                            <MailLabelChips seqs={row.label_seqs} labels={labels} maxWidth={140} />
-                                        </Box>
-                                    ) : null}
-                                    {scheduledPrefix(row.send_at)}
-                                    {/* 뒤에서 보내는 메일 — 보내는 중 · 발송 실패를 제목 앞에 세운다. */}
-                                    {sendStateLabel(row.send_state) ? (
-                                        <Box component="span" sx={{ color: sendStateColor(row.send_state), fontWeight: 700, mr: 0.75 }}>
-                                            {sendStateLabel(row.send_state)}
-                                        </Box>
-                                    ) : null}
-                                    {row.translated_subject || row.subject || "(제목 없음)"}
-                                </Typography>
-                                {row.has_attachment ? (
-                                    <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0, mt: 0.25 }} />
-                                ) : null}
+                        {/* 색상 라벨 칩 — 제목 앞(넓은 화면 표와 같은 자리). 제목 줄과 함께 줄을 바꾼다. */}
+                        {row.label_seqs && row.label_seqs.length > 0 && labels.length > 0 ? (
+                            <Box component="span" sx={{ display: "inline-flex", flexWrap: "wrap", gap: 0.5, mr: 0.75, verticalAlign: "middle" }}>
+                                <MailLabelChips seqs={row.label_seqs} labels={labels} maxWidth={140} />
                             </Box>
-                            {/* 3줄: 미리보기 — 15→14(2026-10-01): 제목과 차이를 벌려 제목이 먼저 읽히게.
-                                14→13(2026-10-08 사용자 지시 — 제목과 함께 1px 씩). 앱 규칙(14px 미만 금지)의 예외라 여기서 더 줄이지 않는다. */}
-                            {row.snippet ? (
-                                <Typography
-                                    sx={{
-                                        fontSize: mfs(13),
-                                        color: "#475569",
-                                        lineHeight: 1.4,
-                                        display: "-webkit-box",
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: "vertical",
-                                        overflow: "hidden",
-                                        wordBreak: "break-word",
-                                    }}
-                                >
-                                    {row.snippet}
-                                </Typography>
-                            ) : null}
-                        </Box>
-                    </Box>
-                );
-            })}
-        </MobilePlainList>
+                        ) : null}
+                        {scheduledPrefix(row.send_at)}
+                        {/* 뒤에서 보내는 메일 — 보내는 중 · 발송 실패를 제목 앞에 세운다. */}
+                        {sendStateLabel(row.send_state) ? (
+                            <Box component="span" sx={{ color: sendStateColor(row.send_state), fontWeight: 700, mr: 0.75 }}>
+                                {sendStateLabel(row.send_state)}
+                            </Box>
+                        ) : null}
+                        {row.translated_subject || row.subject || "(제목 없음)"}
+                    </Typography>
+                    {row.has_attachment ? (
+                        <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0, mt: 0.25 }} />
+                    ) : null}
+                </Box>
+                {/* 3줄: 미리보기 — 15→14(2026-10-01): 제목과 차이를 벌려 제목이 먼저 읽히게.
+                    14→13(2026-10-08 사용자 지시 — 제목과 함께 1px 씩). 앱 규칙(14px 미만 금지)의 예외라 여기서 더 줄이지 않는다. */}
+                {row.snippet ? (
+                    <Typography
+                        sx={{
+                            fontSize: mfs(13),
+                            color: "#475569",
+                            lineHeight: 1.4,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                            wordBreak: "break-word",
+                        }}
+                    >
+                        {row.snippet}
+                    </Typography>
+                ) : null}
+            </Box>
+        </Box>
     );
 }

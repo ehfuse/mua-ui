@@ -1,5 +1,6 @@
 /** MuaProvider 주입 설정 타입이다. */
 
+import type { VirtualDataTableProps } from "@ehfuse/mui-virtual-data-table";
 import type { ComponentType, ReactNode } from "react";
 import type { ListLayoutProps } from "@ehfuse/mui-dashboard-layout";
 import type { FormDialogProps } from "@ehfuse/mui-form-dialog";
@@ -72,6 +73,21 @@ export interface MuaMobileConfig {
     searchOverlayStateId?: string; // 앱바 돋보기 ↔ 검색 오버레이 forma 전역 상태 id(기본 "dashboard-mobile-search-overlay")
     searchWidth?: string; // 모바일 검색칸 폭(기본 "100%")
     subPage?: MuaSubPageBridge; // 서브페이지 브리지
+    ownScroll?: MuaMobileOwnScroll; // 하단 탭 메일 목록이 자기 스크롤을 갖는다(0.3.168) — 없으면 예전처럼 셸 본문과 함께 굴러간다
+}
+
+/**
+ * 하단 탭(페이지 모드) 메일 목록의 자기 스크롤(0.3.168) — 받은 메일을 모두 그리던 카드 목록 대신 VDT 가상 목록으로 그리고,
+ * 탭 · 계정 줄은 위에 겹쳐 띄워 목록을 민 만큼(1:1) 앱바와 함께 접는다. 앱 셸이 이 방식을 받쳐 줘야 한다:
+ * ① useOwnScroll() 이 불리는 동안 셸은 앱바를 본문 위에 겹쳐 띄우고(자리 0) 본문 여백 · 당김 · 맨 위로 · 자기 접기를 끈다
+ * ② 셸은 화면이 쓸 높이를 heightVar 에 적는다 ③ 앱바는 문서 루트의 --appbar-hidden 을 min(값, appBarHeight) 만큼 따라 올라간다.
+ */
+export interface MuaMobileOwnScroll {
+    useOwnScroll: () => void; // 셸에 "이 화면이 스스로 스크롤한다" 고 알리는 훅(마운트 동안)
+    appBarHeight: number; // 셸 앱바 높이(px) — 목록 첫머리를 이만큼 더 비운다
+    background: string; // 셸 본문 바탕색 — 덮개(탭 · 계정 줄)를 이 색으로 칠한다
+    heightVar?: string; // 화면 높이 CSS 변수(기본 "--shell-own-height")
+    scrollbars?: VirtualDataTableProps<unknown>["scrollbars"]; // 목록 스크롤 설정(당겨서 새로고침 · 맨 위로 FAB — 셸과 같은 값을 준다)
 }
 
 /** 공용(shared) 범위 후보 팀 1건 — 앱(업무함)의 팀 개념을 주입받는다. */
