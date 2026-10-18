@@ -1100,8 +1100,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         const edgeBleed = inlineMobileTop && !(isEmbedded && !isInline) ? 16 : 0;
         // 하단 탭(페이지 모드) 메일은 자기 스크롤 가상 목록(0.3.168) — 앱이 mobile.ownScroll 을 줬고 목록 래퍼를 주입하지 않았을 때만
         const mobileOwnScroll = isInline && inlineMobileTop ? mobileConfig?.ownScroll : undefined;
-        // 목록 위 — 갈래 탭 · 접히는 검색칸 · 계정 줄(툴바). 자기 스크롤 목록은 덮개로, 예전 목록은 목록 위에 그대로 그린다
-        const mobileHead = (
+        // 목록 위 — 갈래 탭 · 접히는 검색칸 · 계정 줄(툴바). 자기 스크롤 목록은 탭을 덮개로 · 계정 줄을 목록 첫 줄로(0.3.174), 예전 목록은 목록 위에 그대로 그린다
+        const mobileTabs = (
             <>
                         {/* 갈래 탭 + 접히는 검색칸(0.3.130) — 앱이 목록 래퍼를 주입하지 않았을 때만. 주입한 앱은 앱바의 검색 오버레이를 쓴다. */}
                         {inlineMobileTop && (
@@ -1126,6 +1126,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                 onSearch={(keyword) => state.actions.setFilters({ search: keyword })}
                             />
                         )}
+            </>
+        );
+        const mobileToolbar = (
+            <>
                         {/* 툴바 — 현재 계정 범위(+받은편지함 미읽음) · 동기화 · 계정 관리 */}
                         <Box
                             sx={{
@@ -1227,6 +1231,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         </Box>
             </>
         );
+        const mobileHead = (
+            <>
+                {mobileTabs}
+                {mobileToolbar}
+            </>
+        );
         return (
             <>
                 {mobileOwnScroll ? (
@@ -1235,9 +1245,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         config={mobileOwnScroll}
                         head={
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 0 }}>
-                                {mobileHead}
+                                {mobileTabs}
                             </Box>
                         }
+                        // 계정 줄(전체 선택)은 목록 첫 줄 — 메일과 함께 굴러간다. 고른 동안은 지나가도 탭 아래에 붙는다(일괄 작업 단추)
+                        listHead={mobileToolbar}
+                        pinListHead={checkedSeqs.size > 0}
                         rows={messages}
                         loading={loadingList}
                         loadingMore={loadingMore}

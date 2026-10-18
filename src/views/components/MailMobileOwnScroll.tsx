@@ -6,6 +6,11 @@
  * 목록 첫머리는 [앱바 + 덮개] 높이만큼 비우고, 목록을 민 만큼(0 ~ 그 높이) 둘을 함께 올린다 — 올리면 그만큼 내려온다.
  * 칸 크기가 바뀌지 않아 짧은 목록에서도 떨리지 않는다. 접힌 양은 문서 루트의 --appbar-hidden 에 적는다(셸 앱바가 읽는다).
  *
+ * 0.3.174(2026-10-19 사용자 지정 "앱바만 접히고 탭은 고정되고 전체 선택부터 목록은 스크롤되면 좋겠다"):
+ *  · 덮개(head)에는 탭만 둔다 — 접히는 양은 앱바 높이까지라 앱바가 다 접히면 탭은 화면 맨 위에 붙어 선다.
+ *  · 계정 줄(전체 선택 · 툴바, listHead)은 가상 목록의 첫 줄로 그려 메일과 함께 브라우저가 직접 굴린다(머리 접기 늦음이 없다).
+ *  · 메일을 고른 동안(pinListHead) 그 줄이 탭 밑으로 지나가면 같은 줄을 탭 아래에 붙여 보인다 — 일괄 작업 단추가 사라지지 않게.
+ *
  * 끝에 닿으면 다음 쪽을 읽는다 — 읽는 중에 끝 알림이 오면 기억했다가 읽기가 끝나면 바로 읽는다(가상 목록은 같은 길이에서 끝 알림을 한 번만 준다).
  */
 
@@ -47,14 +52,18 @@ const TOP_VAR = "--mua-mail-list-top";
 const BLEED = 16;
 /** 끝 줄(더 읽는 중) 표식 — 메일 seq 와 겹치지 않는 값 */
 const MORE_SEQ = -1;
-/** 표 줄 — 메일이거나 끝 줄 */
-type Row = MailMessageListItem | { seq: typeof MORE_SEQ };
+/** 첫 줄(계정 줄 · 전체 선택) 표식 */
+const HEAD_SEQ = -2;
+/** 표 줄 — 메일이거나 첫 줄 · 끝 줄 */
+type Row = MailMessageListItem | { seq: typeof MORE_SEQ | typeof HEAD_SEQ };
 /** 표 열 — 카드 한 칸으로 그리므로 하나면 된다(VDT 는 열이 있어야 한다) */
 const COLUMNS: DataColumn<Row>[] = [{ id: "subject", text: "메일" }];
 
 interface MailMobileOwnScrollProps {
     config: MuaMobileOwnScroll; // 앱 셸 설정
-    head: ReactNode; // 덮개 — 탭 · 검색칸 · 계정 줄
+    head: ReactNode; // 덮개 — 탭 · 검색칸(앱바와 함께 앱바 높이만큼 접히고 그 뒤로는 맨 위에 선다)
+    listHead?: ReactNode; // 목록 첫 줄 — 계정 줄 · 전체 선택(메일과 함께 굴러간다, 0.3.174)
+    pinListHead?: boolean; // 첫 줄이 지나간 뒤에도 탭 아래에 붙여 보인다(메일을 고른 동안 — 일괄 작업 단추)
     rows: MailMessageListItem[]; // 목록(누적 쪽)
     loading: boolean; // 목록 읽는 중
     loadingMore: boolean; // 다음 쪽 읽는 중
@@ -73,6 +82,8 @@ interface MailMobileOwnScrollProps {
 export function MailMobileOwnScroll({
     config,
     head,
+    listHead,
+    pinListHead = false,
     rows,
     loading,
     loadingMore,
@@ -98,9 +109,14 @@ export function MailMobileOwnScroll({
         ro.observe(el);
         return () => ro.disconnect();
     }, []);
-    const top = config.appBarHeight + headH; // 목록 첫머리 빈 높이 = 접히는 최대 양
-    const topRef = useRef(top);
-    topRef.current = top;
+    const top = config.appBarHeight + headH; // 목록 첫머리 빈 높이(앱바 + 탭)
+    // 접히는 최대 양 = 앱바 높이(0.3.174 — 탭은 접히지 않고 맨 위에 선다)
+    const collapse = config.appBarHeight;
+    const topRef = useRef(collapse);
+    topRef.current = collapse;
+    // 첫 줄(계정 줄)이 탭 밑으로 지나갔나 — 고른 메일이 있으면 탭 아래에 붙여 보인다
+    const [passed, setPassed] = useState(false);
+    const passedRef = useRef(false);
 
     /*
      * 머리 접기(0.3.170, 2026-10-19 사용자 지적 "스크롤을 내리면 머리가 바로 안 접히고 살짝 차이 · 천천히 내리면 계단식").
@@ -166,6 +182,11 @@ export function MailMobileOwnScroll({
             const y = t.scrollTop;
             const delta = y - (tops.get(t) ?? 0);
             tops.set(t, y);
+            const past = y > topRef.current + 4;
+            if (past !== passedRef.current) {
+                passedRef.current = past;
+                setPassed(past);
+            }
             if (cssLinked) {
                 if (y <= 0) {
                     dir = 0;
@@ -202,7 +223,10 @@ export function MailMobileOwnScroll({
     }, [cssLinked]);
 
     // 끝 줄을 붙인 표 데이터
-    const data = useMemo<Row[]>(() => (hasMore ? [...rows, { seq: MORE_SEQ }] : rows), [rows, hasMore]);
+    const data = useMemo<Row[]>(
+        () => [...(listHead ? [{ seq: HEAD_SEQ } as Row] : []), ...rows, ...(hasMore ? [{ seq: MORE_SEQ } as Row] : [])],
+        [rows, hasMore, listHead]
+    );
     // 읽는 중에 끝에 닿았다 — 기억했다가 읽기가 끝나면 바로 다음 쪽
     const pending = useRef(false);
     useEffect(() => {
@@ -213,7 +237,10 @@ export function MailMobileOwnScroll({
 
     /** 줄 하나 — 띠(흰 바탕 + 아래 간격) 안의 메일 카드, 또는 끝 줄 */
     const renderRow = (r: Row) =>
-        r.seq === MORE_SEQ ? (
+        r.seq === HEAD_SEQ ? (
+            // 계정 줄 — 덮개와 같은 좌우 여백(띠는 음수 여백으로 끝까지 나간다)
+            <Box sx={{ px: `${BLEED}px` }}>{listHead}</Box>
+        ) : r.seq === MORE_SEQ ? (
             loadingMore ? (
                 <MobileListLoadingMoreSpinner />
             ) : (
@@ -252,7 +279,7 @@ export function MailMobileOwnScroll({
             <Box
                 ref={headRef}
                 data-own-scroll-move=""
-                style={{ ["--own-dist" as string]: `${top}px` }}
+                style={{ ["--own-dist" as string]: `${collapse}px` }}
                 sx={{
                     position: "absolute",
                     top: config.appBarHeight,
@@ -268,11 +295,16 @@ export function MailMobileOwnScroll({
                 }}
             >
                 {head}
+                {/* 고른 메일이 있는데 첫 줄이 지나갔으면 탭 아래에 붙인다 — 덮개 높이(목록 첫머리 여백)는 바꾸지 않게 겹쳐 띄운다 */}
+                {pinListHead && passed && listHead && (
+                    <Box sx={{ position: "absolute", top: "100%", left: 0, right: 0, px: `${BLEED}px`, bgcolor: config.background }}>{listHead}</Box>
+                )}
             </Box>
             {/* 목록 칸 — 화면 맨 위부터 끝까지(크기 · 자리 고정) */}
             <Box ref={listRef} sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
                 {rows.length === 0 ? (
                     <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pt: `${top}px` }}>
+                        {listHead && <Box sx={{ px: `${BLEED}px` }}>{listHead}</Box>}
                         {loading ? (
                             <MobileListLoadingSpinner />
                         ) : (
