@@ -137,6 +137,7 @@ export interface MuaConfig {
      */
     labels?: boolean;
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void; // 첨부 저장(앱 WebView 브리지 등) — 미지정 시 앵커 다운로드
+    previewAttachment?: (file: { name: string; mime: string; size: number; blob: Blob }) => void; // 첨부 미리 보기(앱의 파일 뷰어, 0.3.170) — 주면 첨부를 누를 때 내려받지 않고 뷰어로 연다(내려받기는 뷰어 안에서)
     inboxPath?: string; // 받은편지함 라우트 경로(기본 "/codemarket/mail") — 계정별 경로·모바일 복귀 경로의 기준
     homePath?: string; // 모바일에서 서브페이지를 연 뒤 replace 이동할 경로(기본 inboxPath 의 상위)
     /**

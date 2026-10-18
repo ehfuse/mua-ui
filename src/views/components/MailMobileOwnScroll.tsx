@@ -10,13 +10,40 @@
  */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { Box } from "@mui/material";
+import { Box, GlobalStyles } from "@mui/material";
 import { VirtualDataTable, type DataColumn } from "@ehfuse/mui-virtual-data-table";
 import { mfs } from "../../internal/mobileFontScale";
 import { MOBILE_EDGE_GAP, MobileListLoadingMoreSpinner, MobileListLoadingSpinner } from "../../internal/mobileParts";
 import type { MailLabel, MailMessageListItem } from "../../models/types";
 import type { MuaMobileOwnScroll } from "../../types/config";
 import { MailMobileRow } from "./MailMobileList";
+
+/** 목록 중간에서 머리가 보이고 숨는 움직임(ms) */
+const PEEK_MS = 200;
+/** CSS 스크롤 연동 애니메이션(+ 타임라인 이름 열기)을 쓸 수 있나 — 안드로이드 크롬 · WebView 116+ */
+const OWN_SCROLL_CSS_OK =
+    typeof CSS !== "undefined" &&
+    typeof CSS.supports === "function" &&
+    CSS.supports("animation-timeline: scroll()") &&
+    CSS.supports("timeline-scope: --a");
+/**
+ * 스크롤 연동 머리 접기 규칙 — data-own-scroll-move 요소(덮개 · 셸 앱바)가 목록 스크롤 0 ~ --own-dist 구간에서 그만큼 올라간다.
+ * 애니메이션은 인라인 transform(예전 방식의 --appbar-hidden)보다 앞서므로 셸은 속성 두 개만 달면 된다.
+ */
+const OWN_SCROLL_STYLES = `
+@keyframes mua-own-scroll-move { from { transform: translateY(0); } to { transform: translateY(calc(-1 * var(--own-dist, 0px))); } }
+@keyframes mua-own-scroll-peek-in { from { transform: translateY(calc(-1 * var(--own-dist, 0px))); } to { transform: translateY(0); } }
+@keyframes mua-own-scroll-peek-out { from { transform: translateY(0); } to { transform: translateY(calc(-1 * var(--own-dist, 0px))); } }
+:root[data-own-scroll] { timeline-scope: --mua-own-scroll; }
+.mua-mail-own-scroll [data-virtuoso-scroller] { scroll-timeline: --mua-own-scroll y; }
+:root[data-own-scroll] [data-own-scroll-move] {
+    animation: mua-own-scroll-move linear both;
+    animation-timeline: --mua-own-scroll;
+    animation-range: 0px var(--own-dist, 0px);
+}
+:root[data-own-scroll][data-own-scroll-peek="show"] [data-own-scroll-move] { animation: mua-own-scroll-peek-in ${PEEK_MS}ms ease both; }
+:root[data-own-scroll][data-own-scroll-peek="hide"] [data-own-scroll-move] { animation: mua-own-scroll-peek-out ${PEEK_MS}ms ease both; }
+`;
 
 /** 접힌 양 CSS 변수 — 셸 앱바가 읽는다 */
 const HIDDEN_VAR = "--appbar-hidden";
@@ -81,22 +108,60 @@ export function MailMobileOwnScroll({
     const topRef = useRef(top);
     topRef.current = top;
 
-    // 스크롤과 1:1 머리 접기 — 민 만큼 접고 올린 만큼 편다(맨 위면 다 편다). 높이는 ref 로 읽어 다시 걸지 않는다
+    /*
+     * 머리 접기(0.3.170, 2026-10-19 사용자 지적 "스크롤을 내리면 머리가 바로 안 접히고 살짝 차이 · 천천히 내리면 계단식").
+     * 스크롤은 화면 합성 쪽(별도 스레드)이 바로 움직이고 스크롤 이벤트는 다음 프레임에 JS 로 온다 — JS 로 옮기면 한 박자 늦고 띄엄띄엄 움직였다.
+     * 그래서 지원하는 브라우저는 **CSS 스크롤 연동 애니메이션**으로 머리 위치를 스크롤에 묶는다(ownScrollCss — 아래 GlobalStyles):
+     *  · 목록 스크롤러에 타임라인(--mua-own-scroll)을 붙이고 문서 루트에서 이름을 연다(timeline-scope).
+     *  · data-own-scroll-move 가 달린 요소(덮개 · 셸 앱바)는 스크롤 0 ~ 제 거리(--own-dist) 구간에서 합성 쪽이 직접 밀어 올린다.
+     *  · 목록 중간에서 위로 올리면(머리가 다 숨은 뒤) data-own-scroll-peek="show" — 0.2초 미끄러져 보이고, 다시 내리면 "hide" 로 0.2초 숨는다.
+     *    이 부분만 1:1 이 아니다(스크롤 위치 = 머리 위치라 중간에서 1:1 로 되돌릴 수 없다 — 사용자가 고름).
+     * 지원하지 않는 브라우저는 예전 방식(JS 로 --appbar-hidden 을 적는다 — 셸 앱바 · 덮개가 그 값을 따른다).
+     */
+    const cssLinked = OWN_SCROLL_CSS_OK;
+    useEffect(() => {
+        if (!cssLinked) return;
+        const root = document.documentElement;
+        root.setAttribute("data-own-scroll", "");
+        return () => {
+            root.removeAttribute("data-own-scroll");
+            root.removeAttribute("data-own-scroll-peek");
+        };
+    }, [cssLinked]);
     useEffect(() => {
         const box = listRef.current;
         if (!box) return;
         const root = document.documentElement;
-        let hidden = 0;
-        let written = 0; // 마지막으로 적은 값(기기 픽셀에 맞춘 것)
         const tops = new WeakMap<EventTarget, number>();
+        // 스크롤 연동 — 목록 중간에서 위로 올리면 보이고(show) 다시 내리면 숨는다(hide → 움직임이 끝나면 스크롤 연동으로 돌아간다)
+        let peek: "" | "show" | "hide" = "";
+        let timer = 0;
+        const setPeek = (v: typeof peek) => {
+            peek = v;
+            window.clearTimeout(timer);
+            if (v) root.setAttribute("data-own-scroll-peek", v);
+            else root.removeAttribute("data-own-scroll-peek");
+            if (v === "hide") timer = window.setTimeout(() => peek === "hide" && setPeek(""), PEEK_MS + 20);
+        };
+        // 예전 방식(JS) — 민 만큼 접고 올린 만큼 편다. 적는 값은 기기 픽셀에 맞춘다(소수 배율 폰에서 1px 떨림, 0.3.169)
+        let hidden = 0;
+        let written = 0;
         const onScroll = (e: Event) => {
             const t = e.target as HTMLElement | null;
             if (!t || typeof t.scrollTop !== "number") return;
             const y = t.scrollTop;
             const delta = y - (tops.get(t) ?? 0);
             tops.set(t, y);
-            // 계산은 소수 그대로 쌓고, 적는 값만 기기 픽셀에 맞춘다 — 소수 배율(2.6 등) 폰에서 천천히 밀면 스크롤 위치가 12.38px 처럼 와서
-            // 덮개를 그대로 옮기면 글자가 프레임마다 픽셀 경계에 붙었다 떨어지며 1px 씩 떨렸다(0.3.169, 2026-10-19 사용자 지적)
+            if (cssLinked) {
+                if (y <= 0) return void (peek && setPeek(""));
+                if (delta < -2 && peek !== "show" && y > topRef.current) setPeek("show");
+                else if (delta > 2 && peek === "show") {
+                    // 머리 높이 안쪽이면 스크롤 연동 자리로 바로(다 숨기는 움직임은 다 숨은 자리에서만 맞는다)
+                    if (y > topRef.current) setPeek("hide");
+                    else setPeek("");
+                }
+                return;
+            }
             const next = y <= 0 ? 0 : Math.min(topRef.current, Math.max(0, hidden + delta));
             if (next === hidden) return;
             hidden = next;
@@ -109,9 +174,10 @@ export function MailMobileOwnScroll({
         box.addEventListener("scroll", onScroll, { passive: true, capture: true });
         return () => {
             box.removeEventListener("scroll", onScroll, { capture: true });
+            window.clearTimeout(timer);
             root.style.removeProperty(HIDDEN_VAR);
         };
-    }, []);
+    }, [cssLinked]);
 
     // 끝 줄을 붙인 표 데이터
     const data = useMemo<Row[]>(() => (hasMore ? [...rows, { seq: MORE_SEQ }] : rows), [rows, hasMore]);
@@ -159,9 +225,12 @@ export function MailMobileOwnScroll({
                 "& .overlay-scrollbar-pull-indicator": { marginTop: `var(${TOP_VAR}, 0px)` },
             }}
         >
+            {cssLinked && <GlobalStyles styles={OWN_SCROLL_STYLES} />}
             {/* 덮개 — 앱바 밑에 겹쳐 띄우고 목록을 민 만큼 함께 올라간다. 좌우 여백은 예전 페이지 여백(띠는 음수 여백으로 끝까지 나간다) */}
             <Box
                 ref={headRef}
+                data-own-scroll-move=""
+                style={{ ["--own-dist" as string]: `${top}px` }}
                 sx={{
                     position: "absolute",
                     top: config.appBarHeight,

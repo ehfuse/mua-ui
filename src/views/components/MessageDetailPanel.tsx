@@ -38,7 +38,7 @@ import { StarRoundedIcon, TrashIcon } from "../../internal/icons";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import { ErrorAlert } from "@ehfuse/alerts";
-import { useMuaSaveBlob } from "../../MuaProvider";
+import { useMuaConfig, useMuaSaveBlob } from "../../MuaProvider";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import type {
     MailAttachment,
@@ -115,21 +115,28 @@ function isNoReplyAddress(address: string): boolean {
     return /no[-_.]?reply|do[-_.]?not[-_.]?reply/i.test(address);
 }
 
-/** 첨부 칩 — 클릭 시 다운로드 */
+/** 첨부 칩 — 클릭 시 앱이 미리 보기(파일 뷰어)를 주면 뷰어로, 아니면 다운로드 */
 function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
     const [downloading, setDownloading] = useState(false);
     const saveBlob = useMuaSaveBlob();
+    // 앱의 파일 뷰어(0.3.170, 2026-10-19 사용자 지적 "PDF 인데도 뷰어로 안 열리고 바로 다운로드") — 받은 뒤 뷰어로 연다
+    const previewAttachment = useMuaConfig().previewAttachment;
     const handleClick = useCallback(async () => {
         setDownloading(true);
         try {
             const bytes = await mailApi.downloadAttachment(attachment.uuid);
-            await saveBlob(new Blob([bytes], { type: attachment.mime || "application/octet-stream" }), attachment.name);
+            const blob = new Blob([bytes], { type: attachment.mime || "application/octet-stream" });
+            if (previewAttachment) {
+                previewAttachment({ name: attachment.name, mime: attachment.mime || "", size: attachment.size, blob });
+                return;
+            }
+            await saveBlob(blob, attachment.name);
         } catch (error) {
             ErrorAlert({ message: error instanceof Error ? error.message : "첨부를 내려받지 못했습니다." });
         } finally {
             setDownloading(false);
         }
-    }, [attachment, saveBlob]);
+    }, [attachment, saveBlob, previewAttachment]);
     return (
         <Chip
             icon={
@@ -143,7 +150,8 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
             variant="outlined"
             onClick={() => void handleClick()}
             disabled={downloading}
-            sx={{ fontSize: "13.5px", color: "#111", maxWidth: 360, pl: 0.75, "& .MuiChip-icon": { ml: 0.5 } }}
+            // 최대 폭은 줄 폭까지(100%) — 360px 로 박혀 있어 폰(남는 폭 약 343px)에서 긴 파일명이 화면을 밀어냈다(0.3.170). 넘치면 말줄임
+            sx={{ fontSize: "13.5px", color: "#111", maxWidth: "min(360px, 100%)", pl: 0.75, "& .MuiChip-icon": { ml: 0.5 } }}
         />
     );
 }
@@ -832,7 +840,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         ) : null}
                     </Box>
                     {detail.attachments.length > 0 ? (
-                        <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1.5, flexWrap: "wrap" }}>
+                        <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1.5, flexWrap: "wrap", minWidth: 0 }}>
                             {detail.attachments.map((att) => (
                                 <AttachmentChip key={att.uuid} attachment={att} />
                             ))}

@@ -120,6 +120,12 @@ export interface MuaConfig {
      */
     labels?: boolean;
     saveBlob?: (blob: Blob, filename: string) => Promise<boolean> | boolean | void;
+    previewAttachment?: (file: {
+        name: string;
+        mime: string;
+        size: number;
+        blob: Blob;
+    }) => void;
     inboxPath?: string;
     homePath?: string;
     /**

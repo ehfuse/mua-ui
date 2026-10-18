@@ -135,8 +135,11 @@ export function MailBulkActionBar({
         if (folder === "inbox")
             items.push(button("스팸 등록", <ReportGmailerrorredOutlinedIcon fontSize="small" />, "spam"));
         if (folder !== "draft") {
-            items.push(replyButton("답장", <ReplyArrowIcon fontSize="small" />, "reply"));
-            items.push(replyButton("전체 답장", <ReplyAllArrowIcon fontSize="small" />, "replyAll"));
+            // 폰(아이콘만)에서 답장 · 전체 답장을 못 쓰는 때(여러 통을 고름)는 숨긴다 — 흐린 아이콘이 자리만 차지해 줄이 넘어갔다
+            // (0.3.170, 2026-10-19 사용자 지적 "전체 선택 개수가 많아지면 아이콘이 개행"). 전달은 여러 통도 되니 남긴다
+            if (!compact || replyEnabled) items.push(replyButton("답장", <ReplyArrowIcon fontSize="small" />, "reply"));
+            if (!compact || replyAllEnabled)
+                items.push(replyButton("전체 답장", <ReplyAllArrowIcon fontSize="small" />, "replyAll"));
             items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
         }
         // 이름은 "읽음으로 표시"(0.3.158) — "읽음" 만으로는 상태 표시인지 단추인지 갈리지 않았다(아이콘 모드의 툴팁도 이 이름이다).
@@ -150,7 +153,12 @@ export function MailBulkActionBar({
                 direction="row"
                 spacing={compact || iconDesktop ? 0.5 : 1.5}
                 alignItems="center"
-                sx={{ flexWrap: "wrap", rowGap: 0.5, minWidth: 0 }}
+                // 폰은 한 줄로 — 좁으면 줄을 바꾸지 않고 옆으로 민다(줄이 바뀌면 계정 줄이 두 줄로 커져 목록이 밀렸다)
+                sx={
+                    compact
+                        ? { flexWrap: "nowrap", minWidth: 0, overflowX: "auto", scrollbarWidth: "none", "& > *": { flexShrink: 0 } }
+                        : { flexWrap: "wrap", rowGap: 0.5, minWidth: 0 }
+                }
             >
                 {items}
             </Stack>
