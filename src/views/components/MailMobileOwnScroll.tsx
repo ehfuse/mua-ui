@@ -18,8 +18,6 @@ import type { MailLabel, MailMessageListItem } from "../../models/types";
 import type { MuaMobileOwnScroll } from "../../types/config";
 import { MailMobileRow } from "./MailMobileList";
 
-/** 목록 중간에서 머리가 보이고 숨는 움직임(ms) */
-const PEEK_MS = 200;
 /** CSS 스크롤 연동 애니메이션(+ 타임라인 이름 열기)을 쓸 수 있나 — 안드로이드 크롬 · WebView 116+ */
 const OWN_SCROLL_CSS_OK =
     typeof CSS !== "undefined" &&
@@ -32,17 +30,13 @@ const OWN_SCROLL_CSS_OK =
  */
 const OWN_SCROLL_STYLES = `
 @keyframes mua-own-scroll-move { from { transform: translateY(0); } to { transform: translateY(calc(-1 * var(--own-dist, 0px))); } }
-@keyframes mua-own-scroll-peek-in { from { transform: translateY(calc(-1 * var(--own-dist, 0px))); } to { transform: translateY(0); } }
-@keyframes mua-own-scroll-peek-out { from { transform: translateY(0); } to { transform: translateY(calc(-1 * var(--own-dist, 0px))); } }
 :root[data-own-scroll] { timeline-scope: --mua-own-scroll; }
 .mua-mail-own-scroll [data-virtuoso-scroller] { scroll-timeline: --mua-own-scroll y; }
 :root[data-own-scroll] [data-own-scroll-move] {
     animation: mua-own-scroll-move linear both;
     animation-timeline: --mua-own-scroll;
-    animation-range: 0px var(--own-dist, 0px);
+    animation-range: var(--own-start, 0px) calc(var(--own-start, 0px) + var(--own-dist, 0px));
 }
-:root[data-own-scroll][data-own-scroll-peek="show"] [data-own-scroll-move] { animation: mua-own-scroll-peek-in ${PEEK_MS}ms ease both; }
-:root[data-own-scroll][data-own-scroll-peek="hide"] [data-own-scroll-move] { animation: mua-own-scroll-peek-out ${PEEK_MS}ms ease both; }
 `;
 
 /** 접힌 양 CSS 변수 — 셸 앱바가 읽는다 */
@@ -114,8 +108,7 @@ export function MailMobileOwnScroll({
      * 그래서 지원하는 브라우저는 **CSS 스크롤 연동 애니메이션**으로 머리 위치를 스크롤에 묶는다(ownScrollCss — 아래 GlobalStyles):
      *  · 목록 스크롤러에 타임라인(--mua-own-scroll)을 붙이고 문서 루트에서 이름을 연다(timeline-scope).
      *  · data-own-scroll-move 가 달린 요소(덮개 · 셸 앱바)는 스크롤 0 ~ 제 거리(--own-dist) 구간에서 합성 쪽이 직접 밀어 올린다.
-     *  · 목록 중간에서 위로 올리면(머리가 다 숨은 뒤) data-own-scroll-peek="show" — 0.2초 미끄러져 보이고, 다시 내리면 "hide" 로 0.2초 숨는다.
-     *    이 부분만 1:1 이 아니다(스크롤 위치 = 머리 위치라 중간에서 1:1 로 되돌릴 수 없다 — 사용자가 고름).
+     *  · 목록 중간에서 방향을 바꾸면 기준점(--own-start)만 옮겨 거기서부터 다시 1:1 로 움직인다(0.3.171 — 아래 effect).
      * 지원하지 않는 브라우저는 예전 방식(JS 로 --appbar-hidden 을 적는다 — 셸 앱바 · 덮개가 그 값을 따른다).
      */
     const cssLinked = OWN_SCROLL_CSS_OK;
@@ -133,15 +126,18 @@ export function MailMobileOwnScroll({
         if (!box) return;
         const root = document.documentElement;
         const tops = new WeakMap<EventTarget, number>();
-        // 스크롤 연동 — 목록 중간에서 위로 올리면 보이고(show) 다시 내리면 숨는다(hide → 움직임이 끝나면 스크롤 연동으로 돌아간다)
-        let peek: "" | "show" | "hide" = "";
-        let timer = 0;
-        const setPeek = (v: typeof peek) => {
-            peek = v;
-            window.clearTimeout(timer);
-            if (v) root.setAttribute("data-own-scroll-peek", v);
-            else root.removeAttribute("data-own-scroll-peek");
-            if (v === "hide") timer = window.setTimeout(() => peek === "hide" && setPeek(""), PEEK_MS + 20);
+        /*
+         * 스크롤 연동의 기준점(--own-start, 0.3.171) — 머리 위치 = clamp(스크롤 − 기준점, 0, 거리). 방향이 바뀌는 순간에만 기준점을 옮겨
+         * "지금 위치에서 머리가 지금 모습 그대로" 이게 한다 — 그 뒤로는 올린 만큼 내려오고 내린 만큼 올라간다(1:1, 합성 쪽이 움직인다).
+         * 예전(0.3.170)에는 목록 중간에서 0.2초 미끄러져 보이고 숨어 스크롤 속도와 달랐다(2026-10-19 사용자 지적).
+         * 기준점은 늘 0 이상 · 늘어나기만 해서(맨 위로 돌아오면 0) 맨 위에서는 머리가 다 보인다.
+         */
+        let start = 0;
+        let dir = 0;
+        const setStart = (v: number) => {
+            if (v === start) return;
+            start = v;
+            root.style.setProperty("--own-start", `${start}px`);
         };
         // 예전 방식(JS) — 민 만큼 접고 올린 만큼 편다. 적는 값은 기기 픽셀에 맞춘다(소수 배율 폰에서 1px 떨림, 0.3.169)
         let hidden = 0;
@@ -153,12 +149,17 @@ export function MailMobileOwnScroll({
             const delta = y - (tops.get(t) ?? 0);
             tops.set(t, y);
             if (cssLinked) {
-                if (y <= 0) return void (peek && setPeek(""));
-                if (delta < -2 && peek !== "show" && y > topRef.current) setPeek("show");
-                else if (delta > 2 && peek === "show") {
-                    // 머리 높이 안쪽이면 스크롤 연동 자리로 바로(다 숨기는 움직임은 다 숨은 자리에서만 맞는다)
-                    if (y > topRef.current) setPeek("hide");
-                    else setPeek("");
+                if (y <= 0) {
+                    dir = 0;
+                    setStart(0);
+                    return;
+                }
+                const d = delta > 0.5 ? 1 : delta < -0.5 ? -1 : 0;
+                if (d && d !== dir) {
+                    // 방향이 바뀐 순간 — 지금 머리 모습(v)을 그대로 두는 기준점으로
+                    const v = Math.min(topRef.current, Math.max(0, y - start));
+                    dir = d;
+                    setStart(Math.max(0, y - v));
                 }
                 return;
             }
@@ -174,7 +175,7 @@ export function MailMobileOwnScroll({
         box.addEventListener("scroll", onScroll, { passive: true, capture: true });
         return () => {
             box.removeEventListener("scroll", onScroll, { capture: true });
-            window.clearTimeout(timer);
+            root.style.removeProperty("--own-start");
             root.style.removeProperty(HIDDEN_VAR);
         };
     }, [cssLinked]);
