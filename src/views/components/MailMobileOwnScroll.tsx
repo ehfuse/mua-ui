@@ -7,9 +7,11 @@
  * 칸 크기가 바뀌지 않아 짧은 목록에서도 떨리지 않는다. 접힌 양은 문서 루트의 --appbar-hidden 에 적는다(셸 앱바가 읽는다).
  *
  * 0.3.174(2026-10-19 사용자 지정 "앱바만 접히고 탭은 고정되고 전체 선택부터 목록은 스크롤되면 좋겠다"):
- *  · 덮개(head)에는 탭만 둔다 — 접히는 양은 앱바 높이까지라 앱바가 다 접히면 탭은 화면 맨 위에 붙어 선다.
- *  · 계정 줄(전체 선택 · 툴바, listHead)은 가상 목록의 첫 줄로 그려 메일과 함께 브라우저가 직접 굴린다(머리 접기 늦음이 없다).
- *  · 메일을 고른 동안(pinListHead) 그 줄이 탭 밑으로 지나가면 같은 줄을 탭 아래에 붙여 보인다 — 일괄 작업 단추가 사라지지 않게.
+ *  · 접히는 양은 앱바 높이까지다.
+ *  · 0.3.175(같은 날 사용자 지정 "그냥 탭도 접히게 하고 머리를 스크롤 안에 넣어"): 탭(listHead)과 계정 줄(listToolbar)을 가상 목록의 첫 줄로 그려
+ *    메일과 함께 브라우저가 직접 굴린다(JS 늦음 없음). 겹쳐 띄우는 덮개(head)는 이제 쓰지 않는다(주면 예전처럼 앱바 밑에 뜬다).
+ *  · 메일을 고른 동안(pinToolbar) 계정 줄이 위로 지나가면 같은 줄을 앱바 밑(다 접혔으면 화면 맨 위)에 붙여 보인다 — 일괄 작업 단추가 사라지지 않게.
+ *  · 목록이 비면(다른 탭 · 거르기) 접힘을 처음으로 되돌린다 — 빈 화면은 스크롤이 없어 접힌 앱바와 비워 둔 첫머리가 남았다.
  *
  * 끝에 닿으면 다음 쪽을 읽는다 — 읽는 중에 끝 알림이 오면 기억했다가 읽기가 끝나면 바로 읽는다(가상 목록은 같은 길이에서 끝 알림을 한 번만 준다).
  */
@@ -61,9 +63,10 @@ const COLUMNS: DataColumn<Row>[] = [{ id: "subject", text: "메일" }];
 
 interface MailMobileOwnScrollProps {
     config: MuaMobileOwnScroll; // 앱 셸 설정
-    head: ReactNode; // 덮개 — 탭 · 검색칸(앱바와 함께 앱바 높이만큼 접히고 그 뒤로는 맨 위에 선다)
-    listHead?: ReactNode; // 목록 첫 줄 — 계정 줄 · 전체 선택(메일과 함께 굴러간다, 0.3.174)
-    pinListHead?: boolean; // 첫 줄이 지나간 뒤에도 탭 아래에 붙여 보인다(메일을 고른 동안 — 일괄 작업 단추)
+    head?: ReactNode; // 덮개 — 앱바 밑에 겹쳐 띄우고 앱바와 함께 접힌다(0.3.175 부터 폰 메일은 쓰지 않는다)
+    listHead?: ReactNode; // 목록 첫 줄 윗부분 — 갈래 탭 · 검색칸(메일과 함께 굴러간다)
+    listToolbar?: ReactNode; // 목록 첫 줄 아랫부분 — 계정 줄 · 전체 선택(메일과 함께 굴러간다)
+    pinToolbar?: boolean; // 계정 줄이 지나간 뒤에도 앱바 밑에 붙여 보인다(메일을 고른 동안 — 일괄 작업 단추)
     rows: MailMessageListItem[]; // 목록(누적 쪽)
     loading: boolean; // 목록 읽는 중
     loadingMore: boolean; // 다음 쪽 읽는 중
@@ -83,7 +86,8 @@ export function MailMobileOwnScroll({
     config,
     head,
     listHead,
-    pinListHead = false,
+    listToolbar,
+    pinToolbar = false,
     rows,
     loading,
     loadingMore,
@@ -117,6 +121,15 @@ export function MailMobileOwnScroll({
     // 첫 줄(계정 줄)이 탭 밑으로 지나갔나 — 고른 메일이 있으면 탭 아래에 붙여 보인다
     const [passed, setPassed] = useState(false);
     const passedRef = useRef(false);
+    // 첫 줄 안에서 계정 줄이 시작하는 높이 — 이만큼 넘게 밀면(앱바가 접힌 양을 빼고) 계정 줄이 앱바 밑으로 지나간다
+    const toolbarRef = useRef<HTMLDivElement | null>(null);
+    const toolbarAtRef = useRef(Infinity);
+    const measureToolbar = (el: HTMLDivElement | null) => {
+        toolbarRef.current = el;
+        if (el) toolbarAtRef.current = el.offsetTop;
+    };
+    // 접힘을 처음(다 보임)으로 — 아래 effect 가 채운다
+    const resetRef = useRef<() => void>(() => undefined);
 
     /*
      * 머리 접기(0.3.170, 2026-10-19 사용자 지적 "스크롤을 내리면 머리가 바로 안 접히고 살짝 차이 · 천천히 내리면 계단식").
@@ -182,7 +195,9 @@ export function MailMobileOwnScroll({
             const y = t.scrollTop;
             const delta = y - (tops.get(t) ?? 0);
             tops.set(t, y);
-            const past = y > topRef.current + 4;
+            // 내리는 동안 앱바는 min(y, 앱바 높이) 만큼 접혀 있다 — 그만큼을 빼고 계정 줄 시작 높이를 넘었으면 지나간 것
+            if (toolbarRef.current?.isConnected) toolbarAtRef.current = toolbarRef.current.offsetTop;
+            const past = y - Math.min(y, topRef.current) > toolbarAtRef.current;
             if (past !== passedRef.current) {
                 passedRef.current = past;
                 setPassed(past);
@@ -212,7 +227,17 @@ export function MailMobileOwnScroll({
             paint(shown);
         };
         box.addEventListener("scroll", onScroll, { passive: true, capture: true });
+        resetRef.current = () => {
+            hidden = 0;
+            written = 0;
+            dir = 0;
+            setStart(0);
+            if (!cssLinked) paint(0);
+            passedRef.current = false;
+            setPassed(false);
+        };
         return () => {
+            resetRef.current = () => undefined;
             box.removeEventListener("scroll", onScroll, { capture: true });
             window.clearTimeout(settle);
             // 직접 쓴 transform 을 걷어 React 가 준 값(루트 변수를 따르는 식)으로 돌린다 — 셸 앱바는 이 화면을 떠나도 남는다
@@ -222,10 +247,17 @@ export function MailMobileOwnScroll({
         };
     }, [cssLinked]);
 
+    // 목록이 비면(다른 탭 · 거르기 · 다시 읽는 중) 접힘을 되돌린다(0.3.175) — 빈 화면은 스크롤이 없어 접힌 앱바가 그대로 남고
+    // 비워 둔 첫머리(앱바 + 탭)가 회색 띠로 보였다(2026-10-19 사용자 화면 — 안 읽음 탭).
+    const empty = rows.length === 0;
+    useEffect(() => {
+        if (empty) resetRef.current();
+    }, [empty]);
+
     // 끝 줄을 붙인 표 데이터
     const data = useMemo<Row[]>(
-        () => [...(listHead ? [{ seq: HEAD_SEQ } as Row] : []), ...rows, ...(hasMore ? [{ seq: MORE_SEQ } as Row] : [])],
-        [rows, hasMore, listHead]
+        () => [...(listHead || listToolbar ? [{ seq: HEAD_SEQ } as Row] : []), ...rows, ...(hasMore ? [{ seq: MORE_SEQ } as Row] : [])],
+        [rows, hasMore, listHead, listToolbar]
     );
     // 읽는 중에 끝에 닿았다 — 기억했다가 읽기가 끝나면 바로 다음 쪽
     const pending = useRef(false);
@@ -239,7 +271,10 @@ export function MailMobileOwnScroll({
     const renderRow = (r: Row) =>
         r.seq === HEAD_SEQ ? (
             // 계정 줄 — 덮개와 같은 좌우 여백(띠는 음수 여백으로 끝까지 나간다)
-            <Box sx={{ px: `${BLEED}px` }}>{listHead}</Box>
+            <Box sx={{ px: `${BLEED}px`, position: "relative" }}>
+                {listHead}
+                <Box ref={measureToolbar}>{listToolbar}</Box>
+            </Box>
         ) : r.seq === MORE_SEQ ? (
             loadingMore ? (
                 <MobileListLoadingMoreSpinner />
@@ -287,7 +322,7 @@ export function MailMobileOwnScroll({
                     right: 0,
                     zIndex: 2,
                     px: `${BLEED}px`,
-                    pt: 2,
+                    pt: head ? 2 : 0,
                     bgcolor: config.background,
                     transform: `translateY(calc(-1 * var(${HIDDEN_VAR}, 0px)))`,
                     // 움직이는 동안 글자를 다시 그리지 않게 GPU 층에 둔다(1px 떨림 — 위 주석)
@@ -296,15 +331,20 @@ export function MailMobileOwnScroll({
             >
                 {head}
                 {/* 고른 메일이 있는데 첫 줄이 지나갔으면 탭 아래에 붙인다 — 덮개 높이(목록 첫머리 여백)는 바꾸지 않게 겹쳐 띄운다 */}
-                {pinListHead && passed && listHead && (
-                    <Box sx={{ position: "absolute", top: "100%", left: 0, right: 0, px: `${BLEED}px`, bgcolor: config.background }}>{listHead}</Box>
+                {pinToolbar && passed && listToolbar && (
+                    <Box sx={{ position: "absolute", top: "100%", left: 0, right: 0, px: `${BLEED}px`, bgcolor: config.background }}>{listToolbar}</Box>
                 )}
             </Box>
             {/* 목록 칸 — 화면 맨 위부터 끝까지(크기 · 자리 고정) */}
             <Box ref={listRef} sx={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column" }}>
                 {rows.length === 0 ? (
                     <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pt: `${top}px` }}>
-                        {listHead && <Box sx={{ px: `${BLEED}px` }}>{listHead}</Box>}
+                        {(listHead || listToolbar) && (
+                            <Box sx={{ px: `${BLEED}px` }}>
+                                {listHead}
+                                {listToolbar}
+                            </Box>
+                        )}
                         {loading ? (
                             <MobileListLoadingSpinner />
                         ) : (

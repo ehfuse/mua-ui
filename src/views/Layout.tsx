@@ -1243,14 +1243,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     // 하단 탭 메일 — 자기 스크롤 가상 목록 + 1:1 머리 접기(0.3.168). 앱이 mobile.ownScroll 을 줬을 때만
                     <MailMobileOwnScroll
                         config={mobileOwnScroll}
-                        head={
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 0 }}>
-                                {mobileTabs}
-                            </Box>
-                        }
-                        // 계정 줄(전체 선택)은 목록 첫 줄 — 메일과 함께 굴러간다. 고른 동안은 지나가도 탭 아래에 붙는다(일괄 작업 단추)
-                        listHead={mobileToolbar}
-                        pinListHead={checkedSeqs.size > 0}
+                        // 탭 · 계정 줄(전체 선택)은 목록 첫 줄 — 메일과 함께 굴러간다(0.3.175). 고른 동안은 계정 줄이 지나가도 앱바 밑에 붙는다(일괄 작업 단추)
+                        listHead={<Box sx={{ pt: 2 }}>{mobileTabs}</Box>}
+                        listToolbar={mobileToolbar}
+                        pinToolbar={checkedSeqs.size > 0}
                         rows={messages}
                         loading={loadingList}
                         loadingMore={loadingMore}
