@@ -111,7 +111,8 @@ export function MailMobileOwnScroll({
      *  · 목록 중간에서 방향을 바꾸면 기준점(--own-start)만 옮겨 거기서부터 다시 1:1 로 움직인다(0.3.171 — 아래 effect).
      * 지원하지 않는 브라우저는 예전 방식(JS 로 --appbar-hidden 을 적는다 — 셸 앱바 · 덮개가 그 값을 따른다).
      */
-    const cssLinked = OWN_SCROLL_CSS_OK;
+    // 앱이 끌 수 있다(0.3.172 — 안드로이드 WebView 에서 스크롤 연동 애니메이션이 있으면 관성 스크롤이 진행되지 않고 손을 뗀 뒤 한 번에 건너뛰었다)
+    const cssLinked = OWN_SCROLL_CSS_OK && config.cssLinked !== false;
     useEffect(() => {
         if (!cssLinked) return;
         const root = document.documentElement;

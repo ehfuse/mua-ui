@@ -88,6 +88,7 @@ export interface MuaMobileOwnScroll {
     background: string; // 셸 본문 바탕색 — 덮개(탭 · 계정 줄)를 이 색으로 칠한다
     heightVar?: string; // 화면 높이 CSS 변수(기본 "--shell-own-height")
     scrollbars?: VirtualDataTableProps<unknown>["scrollbars"]; // 목록 스크롤 설정(당겨서 새로고침 · 맨 위로 FAB — 셸과 같은 값을 준다)
+    cssLinked?: boolean; // 머리 접기를 CSS 스크롤 연동 애니메이션으로(기본 true, 지원할 때) — false 면 JS(--appbar-hidden). 안드로이드 WebView 에서 관성 스크롤이 멈췄다 한 번에 튀어 끌 수 있게 했다(0.3.172)
 }
 
 /** 공용(shared) 범위 후보 팀 1건 — 앱(업무함)의 팀 개념을 주입받는다. */
