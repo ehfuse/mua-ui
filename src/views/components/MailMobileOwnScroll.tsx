@@ -12,6 +12,9 @@
  *    메일과 함께 브라우저가 직접 굴린다(JS 늦음 없음). 겹쳐 띄우는 덮개(head)는 이제 쓰지 않는다(주면 예전처럼 앱바 밑에 뜬다).
  *  · 메일을 고른 동안(pinToolbar) 계정 줄이 위로 지나가면 같은 줄을 앱바 밑(다 접혔으면 화면 맨 위)에 붙여 보인다 — 일괄 작업 단추가 사라지지 않게.
  *  · 목록이 비면(다른 탭 · 거르기) 접힘을 처음으로 되돌린다 — 빈 화면은 스크롤이 없어 접힌 앱바와 비워 둔 첫머리가 남았다.
+ *  · 0.3.176(같은 날 사용자 지정 "머리 접힘 자연스럽게 · 새로고침 깜빡임"): 앱이 appBarSlot 을 주면 앱바도 첫 줄 안(그 자리)에 그린다 —
+ *    앱바 · 탭 · 계정 줄이 모두 메일과 함께 브라우저가 직접 굴려 늦음 · 접힘 계산이 없다(목록 중간에서 앱바가 먼저 내려오는 동작은 없다).
+ *    당겨서 새로고침은 onRefresh 를 주면 페이지를 다시 읽지 않고 목록만 다시 읽는다(하얀 화면 깜빡임이 없다).
  *
  * 끝에 닿으면 다음 쪽을 읽는다 — 읽는 중에 끝 알림이 오면 기억했다가 읽기가 끝나면 바로 읽는다(가상 목록은 같은 길이에서 끝 알림을 한 번만 준다).
  */
@@ -67,6 +70,7 @@ interface MailMobileOwnScrollProps {
     listHead?: ReactNode; // 목록 첫 줄 윗부분 — 갈래 탭 · 검색칸(메일과 함께 굴러간다)
     listToolbar?: ReactNode; // 목록 첫 줄 아랫부분 — 계정 줄 · 전체 선택(메일과 함께 굴러간다)
     pinToolbar?: boolean; // 계정 줄이 지나간 뒤에도 앱바 밑에 붙여 보인다(메일을 고른 동안 — 일괄 작업 단추)
+    onRefresh?: () => Promise<void>; // 당겨서 새로고침 — 주면 목록만 다시 읽는다(앱 설정의 당김 동작을 바꾼다)
     rows: MailMessageListItem[]; // 목록(누적 쪽)
     loading: boolean; // 목록 읽는 중
     loadingMore: boolean; // 다음 쪽 읽는 중
@@ -88,6 +92,7 @@ export function MailMobileOwnScroll({
     listHead,
     listToolbar,
     pinToolbar = false,
+    onRefresh,
     rows,
     loading,
     loadingMore,
@@ -113,9 +118,12 @@ export function MailMobileOwnScroll({
         ro.observe(el);
         return () => ro.disconnect();
     }, []);
-    const top = config.appBarHeight + headH; // 목록 첫머리 빈 높이(앱바 + 탭)
+    // 앱바를 첫 줄 안에 그리면(appBarSlot) 겹쳐 띄울 것도 접을 것도 없다
+    const inList = Boolean(config.appBarSlot);
+    const barH = inList ? 0 : config.appBarHeight;
+    const top = barH + headH; // 목록 첫머리 빈 높이(겹쳐 띄운 앱바 + 덮개)
     // 접히는 최대 양 = 앱바 높이(0.3.174 — 탭은 접히지 않고 맨 위에 선다)
-    const collapse = config.appBarHeight;
+    const collapse = barH;
     const topRef = useRef(collapse);
     topRef.current = collapse;
     // 첫 줄(계정 줄)이 탭 밑으로 지나갔나 — 고른 메일이 있으면 탭 아래에 붙여 보인다
@@ -124,9 +132,19 @@ export function MailMobileOwnScroll({
     // 첫 줄 안에서 계정 줄이 시작하는 높이 — 이만큼 넘게 밀면(앱바가 접힌 양을 빼고) 계정 줄이 앱바 밑으로 지나간다
     const toolbarRef = useRef<HTMLDivElement | null>(null);
     const toolbarAtRef = useRef(Infinity);
+    const toolbarRo = useRef<ResizeObserver | null>(null);
+    /** 계정 줄 자리 재기 — 붙을 때 · 첫 줄 크기가 바뀔 때만(스크롤마다 레이아웃을 읽으면 앱에서 스크롤 처리가 무거워졌다, 0.3.176) */
     const measureToolbar = (el: HTMLDivElement | null) => {
+        toolbarRo.current?.disconnect();
         toolbarRef.current = el;
-        if (el) toolbarAtRef.current = el.offsetTop;
+        if (!el) return;
+        toolbarAtRef.current = el.offsetTop;
+        const row = el.parentElement;
+        if (!row) return;
+        toolbarRo.current = new ResizeObserver(() => {
+            if (el.isConnected) toolbarAtRef.current = el.offsetTop;
+        });
+        toolbarRo.current.observe(row);
     };
     // 접힘을 처음(다 보임)으로 — 아래 effect 가 채운다
     const resetRef = useRef<() => void>(() => undefined);
@@ -141,7 +159,7 @@ export function MailMobileOwnScroll({
      * 지원하지 않는 브라우저는 예전 방식(JS 로 --appbar-hidden 을 적는다 — 셸 앱바 · 덮개가 그 값을 따른다).
      */
     // 앱이 끌 수 있다(0.3.172 — 안드로이드 WebView 에서 스크롤 연동 애니메이션이 있으면 관성 스크롤이 진행되지 않고 손을 뗀 뒤 한 번에 건너뛰었다)
-    const cssLinked = OWN_SCROLL_CSS_OK && config.cssLinked !== false;
+    const cssLinked = OWN_SCROLL_CSS_OK && config.cssLinked !== false && !inList;
     useEffect(() => {
         if (!cssLinked) return;
         const root = document.documentElement;
@@ -196,7 +214,6 @@ export function MailMobileOwnScroll({
             const delta = y - (tops.get(t) ?? 0);
             tops.set(t, y);
             // 내리는 동안 앱바는 min(y, 앱바 높이) 만큼 접혀 있다 — 그만큼을 빼고 계정 줄 시작 높이를 넘었으면 지나간 것
-            if (toolbarRef.current?.isConnected) toolbarAtRef.current = toolbarRef.current.offsetTop;
             const past = y - Math.min(y, topRef.current) > toolbarAtRef.current;
             if (past !== passedRef.current) {
                 passedRef.current = past;
@@ -272,6 +289,8 @@ export function MailMobileOwnScroll({
         r.seq === HEAD_SEQ ? (
             // 계정 줄 — 덮개와 같은 좌우 여백(띠는 음수 여백으로 끝까지 나간다)
             <Box sx={{ px: `${BLEED}px`, position: "relative" }}>
+                {/* 앱바 자리 — 셸이 포털로 앱바를 그린다(화면 끝까지) */}
+                {inList && <Box ref={config.appBarSlot} sx={{ mx: `-${BLEED}px` }} />}
                 {listHead}
                 <Box ref={measureToolbar}>{listToolbar}</Box>
             </Box>
@@ -317,7 +336,7 @@ export function MailMobileOwnScroll({
                 style={{ ["--own-dist" as string]: `${collapse}px` }}
                 sx={{
                     position: "absolute",
-                    top: config.appBarHeight,
+                    top: barH,
                     left: 0,
                     right: 0,
                     zIndex: 2,
@@ -341,6 +360,7 @@ export function MailMobileOwnScroll({
                     <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", pt: `${top}px` }}>
                         {(listHead || listToolbar) && (
                             <Box sx={{ px: `${BLEED}px` }}>
+                                {inList && <Box ref={config.appBarSlot} sx={{ mx: `-${BLEED}px` }} />}
                                 {listHead}
                                 {listToolbar}
                             </Box>
@@ -369,7 +389,7 @@ export function MailMobileOwnScroll({
                             mobile={{ query: "all", renderRow }}
                             // 첫머리 여백 — VDT 는 처음 값만 쓰므로 CSS 변수로(덮개 높이가 바뀌어도 다시 그리지 않고 따라 늘어난다)
                             paddingTop={`var(${TOP_VAR}, 0px)`}
-                            scrollbars={config.scrollbars}
+                            scrollbars={onRefresh ? { ...config.scrollbars, pullToRefresh: { enabled: true, onRefresh } } : config.scrollbars}
                             onEndReached={() => {
                                 if (!hasMore) return;
                                 if (loadingMore) pending.current = true;

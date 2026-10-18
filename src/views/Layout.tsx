@@ -1247,6 +1247,14 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         listHead={<Box sx={{ pt: 2 }}>{mobileTabs}</Box>}
                         listToolbar={mobileToolbar}
                         pinToolbar={checkedSeqs.size > 0}
+                        // 당겨서 새로고침 — 목록 · 수만 다시 읽고(빠르다) 메일 서버 동기화는 뒤에서 한 뒤 목록을 한 번 더(0.3.176 — 페이지를 다시 읽어 하얗게 깜빡였다)
+                        onRefresh={async () => {
+                            await Promise.all([state.actions.loadMessages({ silent: true }), state.actions.loadCounts()]).catch(() => undefined);
+                            void state.actions
+                                .syncNow(filters.mailAccountSeq)
+                                .then(() => refreshList())
+                                .catch(() => undefined);
+                        }}
                         rows={messages}
                         loading={loadingList}
                         loadingMore={loadingMore}
