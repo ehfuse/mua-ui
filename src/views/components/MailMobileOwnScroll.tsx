@@ -143,6 +143,23 @@ export function MailMobileOwnScroll({
         // 예전 방식(JS) — 민 만큼 접고 올린 만큼 편다. 적는 값은 기기 픽셀에 맞춘다(소수 배율 폰에서 1px 떨림, 0.3.169)
         let hidden = 0;
         let written = 0;
+        /*
+         * 접힌 양은 머리 요소(data-own-scroll-move — 덮개 · 셸 앱바)의 transform 에 바로 쓴다(0.3.173).
+         * 문서 루트 변수(--appbar-hidden)에 매번 쓰면 문서 전체 스타일을 다시 계산해 머리가 1~3프레임 늦고 몰아서 따라잡아 흔들렸다.
+         * 루트 변수는 스크롤이 멈춘 뒤에만 맞춰 둔다 — 머리가 다시 그려져도(React) 같은 자리에 선다.
+         */
+        let moves: HTMLElement[] = [];
+        let settle = 0;
+        /** 머리 요소들에 접힌 양을 쓴다(요소마다 제 거리 --own-dist 까지) */
+        const paint = (v: number) => {
+            if (!moves.length || moves.some((el) => !el.isConnected)) moves = [...document.querySelectorAll<HTMLElement>("[data-own-scroll-move]")];
+            for (const el of moves) {
+                const dist = parseFloat(el.style.getPropertyValue("--own-dist")) || 0;
+                el.style.transform = `translate3d(0, ${-Math.min(v, dist || v)}px, 0)`;
+            }
+            window.clearTimeout(settle);
+            settle = window.setTimeout(() => root.style.setProperty(HIDDEN_VAR, `${v}px`), 150);
+        };
         const onScroll = (e: Event) => {
             const t = e.target as HTMLElement | null;
             if (!t || typeof t.scrollTop !== "number") return;
@@ -171,11 +188,14 @@ export function MailMobileOwnScroll({
             const shown = Math.round(hidden * dpr) / dpr;
             if (shown === written) return;
             written = shown;
-            root.style.setProperty(HIDDEN_VAR, `${shown}px`);
+            paint(shown);
         };
         box.addEventListener("scroll", onScroll, { passive: true, capture: true });
         return () => {
             box.removeEventListener("scroll", onScroll, { capture: true });
+            window.clearTimeout(settle);
+            // 직접 쓴 transform 을 걷어 React 가 준 값(루트 변수를 따르는 식)으로 돌린다 — 셸 앱바는 이 화면을 떠나도 남는다
+            for (const el of moves) if (el.isConnected) el.style.transform = "";
             root.style.removeProperty("--own-start");
             root.style.removeProperty(HIDDEN_VAR);
         };
