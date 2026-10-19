@@ -306,7 +306,16 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             backdropClick={false}
             open={modal.isOpen}
             onClose={closeWithSave}
-            title={{ text: titleText }}
+            // 자동 저장 상태는 제목 오른쪽에 작게(2026-10-19) — 액션바에 두면 단추 줄을 차지해 [보내기] 와 같은 무게로 읽혔다.
+            title={{
+                text: titleText,
+                rightIcons:
+                    autoSave && autoSaveStatus ? (
+                        <Box component="span" sx={{ ml: 1, fontSize: 14, fontWeight: 400, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
+                            {autoSaveStatus}
+                        </Box>
+                    ) : undefined,
+            }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
             locale="ko"
@@ -559,19 +568,14 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             ]}
             actions={{
                 visible: true,
-                // 모바일은 mfd 기본 취소 대신 [임시저장][취소][보내기] 를 균등 3열로 직접 그린다.
+                // 모바일은 mfd 기본 취소 대신 [임시저장][취소][보내기] 를 균등 3열로 직접 그린다(자동 저장이면 [취소][보내기] 2열).
                 showCancelButton: !isMobile,
                 ...(isMobile
                     ? {
                           left: (
                               // 간격은 mfd 액션바 슬롯과 같은 gap 1rem — Stack spacing(margin)은 액션바가 버튼 margin 을 지워 버튼이 붙었다.
                               <Box sx={{ display: "flex", gap: "1rem", width: "100%" }}>
-                                  {autoSave ? (
-                                      // 자동 저장이면 [임시저장] 자리에 저장 상태를 보인다(단추와 같은 칸 폭).
-                                      <Box sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
-                                          {autoSaveStatus}
-                                      </Box>
-                                  ) : (
+                                  {autoSave ? null : (
                                       <Button
                                           variant="outlined"
                                           onClick={() => void saveDraft()}
@@ -603,9 +607,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                           ),
                       }
                     : {
-                          left: autoSave ? (
-                              <Box sx={{ fontSize: 14, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>{autoSaveStatus}</Box>
-                          ) : (
+                          left: autoSave ? undefined : (
                               <Button
                                   variant="outlined"
                                   onClick={() => void saveDraft()}
