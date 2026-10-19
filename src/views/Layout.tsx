@@ -76,6 +76,11 @@ import { toRouteFolder } from "../utils/routeFolder";
 
 /** 보기 타입 저장 키 */
 const VIEW_MODE_STORAGE_KEY = "mua-mail-view-mode";
+/**
+ * 폰 메일 목록의 마지막 모습 — 거르기(계정 · 폴더 · 검색 · 갈래)별(0.3.181, 2026-10-19 사용자 지적 "메일 페이지로 갈 때마다 다시 렌더링돼 깜빡인다").
+ * 다른 탭에 갔다 오면 메일 상태가 비워진 채 다시 받아 그동안 목록이 비었다 — 받는 동안 이것을 그대로 보인다(새로고침하면 비워진다).
+ */
+const lastMobileRows = new Map<string, MailMessageListItem[]>();
 
 interface MailLayoutProps {
     /**
@@ -304,6 +309,23 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
 
     // 필터가 바뀌면 목록·건수 재조회
     const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}`;
+    // 받은 목록을 거르기별로 적어 두고, 다시 받는 동안(비어 있을 때) 그것을 보인다 — 폰 자기 스크롤 목록만 쓴다
+    // 실제로 받은 뒤(읽는 중 → 끝)거나 목록이 있을 때만 적는다 — 화면을 막 연 빈 상태로 덮어쓰지 않게
+    const listWasLoading = useRef(false);
+    // 이 화면을 연 뒤 이 거르기로 실제로 받기를 마쳤나 — 마치기 전(막 연 빈 상태 · 읽는 중)에는 적어 둔 목록을 보인다
+    const [loadedKey, setLoadedKey] = useState("");
+    useEffect(() => {
+        if (loadingList) {
+            listWasLoading.current = true;
+            return;
+        }
+        if (listWasLoading.current) {
+            lastMobileRows.set(filterKey, messages);
+            setLoadedKey(filterKey);
+        } else if (messages.length > 0) lastMobileRows.set(filterKey, messages);
+        listWasLoading.current = false;
+    }, [filterKey, loadingList, messages]);
+    const mobileRows = messages.length === 0 && loadedKey !== filterKey ? (lastMobileRows.get(filterKey) ?? messages) : messages;
     useEffect(() => {
         void state.actions.loadMessages();
         void state.actions.loadCounts();
@@ -1249,7 +1271,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         pinToolbar={checkedSeqs.size > 0}
                         // 당겨서 새로고침은 앱 설정(config.scrollbars) 그대로 — 업무함은 페이지 전체 새로고침(0.3.180 사용자 지정 "예전 방식 전체 새로고침").
                         // 목록만 다시 읽게 하려면 onRefresh 를 준다(0.3.176 ~ 0.3.179 에서 썼다)
-                        rows={messages}
+                        rows={mobileRows}
                         loading={loadingList}
                         loadingMore={loadingMore}
                         hasMore={hasMore}

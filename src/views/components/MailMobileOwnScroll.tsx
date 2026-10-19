@@ -469,6 +469,8 @@ export function MailMobileOwnScroll({
                             getRowId={(r) => r.seq}
                             // 줄 최소 높이(작게) — 카드는 내용만큼 선다
                             rowHeight={40}
+                            // 첫 그림부터 앞쪽 줄을 그린다(VDT 1.7.3) — 가상 목록은 줄 높이를 먼저 재느라 처음 몇 프레임이 비어 화면을 다시 열면 깜빡였다
+                            initialItemCount={10}
                             rowDivider={false}
                             showPaper={false}
                             framed={false}
