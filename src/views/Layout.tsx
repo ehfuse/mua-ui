@@ -1247,11 +1247,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         listHead={<Box sx={{ pt: 2 }}>{mobileTabs}</Box>}
                         listToolbar={mobileToolbar}
                         pinToolbar={checkedSeqs.size > 0}
-                        // 당겨서 새로고침 — 목록 · 수만 다시 읽는다(0.3.176 — 페이지를 다시 읽어 하얗게 깜빡였다).
-                        // 메일 서버의 새 메일 검사(동기화)는 하지 않는다(0.3.179 사용자 지정 "새 메일 검사가 아니라 페이지만 새로") — 동기화는 계정 줄의 ⟳ 단추
-                        onRefresh={async () => {
-                            await Promise.all([state.actions.loadMessages({ silent: true }), state.actions.loadCounts()]).catch(() => undefined);
-                        }}
+                        // 당겨서 새로고침은 앱 설정(config.scrollbars) 그대로 — 업무함은 페이지 전체 새로고침(0.3.180 사용자 지정 "예전 방식 전체 새로고침").
+                        // 목록만 다시 읽게 하려면 onRefresh 를 준다(0.3.176 ~ 0.3.179 에서 썼다)
                         rows={messages}
                         loading={loadingList}
                         loadingMore={loadingMore}
