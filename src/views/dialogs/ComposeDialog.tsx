@@ -306,15 +306,20 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             backdropClick={false}
             open={modal.isOpen}
             onClose={closeWithSave}
-            // 자동 저장 상태는 제목 오른쪽에 작게(2026-10-19) — 액션바에 두면 단추 줄을 차지해 [보내기] 와 같은 무게로 읽혔다.
+            // 자동 저장 상태는 제목 글자 바로 오른쪽에 작게(2026-10-19) — 액션바에 두면 단추 줄을 차지해 [보내기] 와 같은 무게로 읽혔다.
+            // mfd 의 rightIcons 는 제목 줄 오른쪽 끝(글자 크기 · 닫기 옆)에 붙어 제목과 떨어지므로 제목 글자에 함께 싣는다.
             title={{
-                text: titleText,
-                rightIcons:
+                text:
                     autoSave && autoSaveStatus ? (
-                        <Box component="span" sx={{ ml: 1, fontSize: 14, fontWeight: 400, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
-                            {autoSaveStatus}
+                        <Box component="span" sx={{ display: "inline-flex", alignItems: "baseline", gap: 1.25, minWidth: 0 }}>
+                            <span>{titleText}</span>
+                            <Box component="span" sx={{ fontSize: 14, fontWeight: 400, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
+                                {autoSaveStatus}
+                            </Box>
                         </Box>
-                    ) : undefined,
+                    ) : (
+                        titleText
+                    ),
             }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
