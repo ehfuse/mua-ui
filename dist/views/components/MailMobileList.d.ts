@@ -39,4 +39,9 @@ export interface MailMobileRowProps {
 }
 /** 메일 카드 한 줄 — 1줄 체크 · 별 · 상대 · 일시 / 2줄 제목(+첨부) / 3줄 미리보기 */
 export declare function MailMobileRow({ row, labels, checked, onSelect, onToggleStar, onToggleCheck, onRowContextMenu, bleed, }: MailMobileRowProps): import("react").JSX.Element;
+/** 대화 수(2026-10-20) — 묶은 줄이 두 통 이상이면 이름 옆에 흐리게 적는다(지메일 "보낸 사람 2" 와 같다). */
+export declare function ThreadCount({ row, fontSize }: {
+    row: MailMessageListItem;
+    fontSize?: string;
+}): import("react").JSX.Element | null;
 export {};

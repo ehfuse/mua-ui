@@ -93,6 +93,9 @@ export interface MailMessageListItem {
     send_state?: string | null;
     translated_subject?: string | null;
     label_seqs?: number[];
+    thread_key?: string | null;
+    thread_count?: number;
+    thread_unread?: number;
 }
 /** 색상 라벨(사람마다) — 서버 mail_label */
 export interface MailLabel {
@@ -189,6 +192,19 @@ export interface MailFilters {
 /** 페이지 크기 */
 export declare const MAIL_PAGE_SIZE = 50;
 /** 화면 상태 */
+/** 대화 안의 메일 한 통(상세의 대화 띠) — 서버 GET /messages/:seq/thread 와 같은 꼴. */
+export interface MailThreadEntry {
+    seq: number;
+    folder: string;
+    from_name: string | null;
+    from_address: string | null;
+    to_summary: string | null;
+    subject: string | null;
+    snippet: string | null;
+    date_time: string | null;
+    is_read: boolean;
+    has_attachment: boolean;
+}
 export interface MailState {
     accounts: MailAccount[];
     loadingAccounts: boolean;
@@ -202,6 +218,7 @@ export interface MailState {
     selectedSeq: number;
     detail: MailMessageDetail | null;
     loadingDetail: boolean;
+    thread: MailThreadEntry[];
     counts: MailFolderCounts;
     syncingSeqs: number[];
     labels: MailLabel[];

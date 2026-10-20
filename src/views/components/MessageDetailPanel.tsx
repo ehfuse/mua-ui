@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
     Box,
     Button,
+    ButtonBase,
     Chip,
     CircularProgress,
     Divider,
@@ -50,8 +51,9 @@ import type {
     MailTranslation,
     MailReceipt,
     MailLabel,
+    MailThreadEntry,
 } from "../../models/types";
-import { formatAddressList, formatBytes, formatMailFullDate, sendStateColor, sendStateLabel } from "../../utils/format";
+import { formatAddressList, formatBytes, formatMailFullDate, formatMailListDate, sendStateColor, sendStateLabel } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
 import { MailLabelChips, labelColor } from "./MailLabels";
 import LabelIcon from "@mui/icons-material/Label";
@@ -82,6 +84,9 @@ interface MessageDetailPanelProps {
      * 자체 세로 스크롤러 대신 내용 높이만큼 늘어나 다이얼로그 스크롤에 맡긴다.
      */
     embedded?: boolean;
+    /** 이 메일이 든 대화(2026-10-20) — 두 통 이상이면 제목 아래에 띠로 보이고, 누르면 그 메일로 바꾼다. */
+    thread?: MailThreadEntry[];
+    onSelectThreadMessage?: (seq: number) => void;
     /** 내 라벨 — 주면 단추줄에 라벨 단추가 생기고 제목 아래에 단 라벨이 칩으로 보인다(라벨을 켠 앱만, 2026-10-16). */
     labels?: MailLabel[];
     /** 라벨 단추 — 누른 단추 아래 좌표를 넘긴다(메뉴는 목록 화면이 띄운다: 달기·떼기·새 라벨·관리가 목록과 같은 메뉴다). */
@@ -208,6 +213,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         onCreateRule,
         onTranslationShownChange,
         embedded = false,
+        thread = [],
+        onSelectThreadMessage,
         labels,
         onOpenLabelMenu,
     } = props;
@@ -898,6 +905,48 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     ) : null}
                 </Box>
                 <Divider />
+                {/* 대화 띠(2026-10-20) — 같은 대화의 메일들(오래된 것부터). 보고 있는 메일을 칠하고, 다른 줄을 누르면 그 메일을 연다. */}
+                {thread.length > 1 && (
+                    <Box sx={{ mx: 2, mb: 1.5, border: "1px solid #e2e8f0", borderRadius: 1.5, overflow: "hidden" }}>
+                        <Typography sx={{ px: 1.5, py: 0.75, fontSize: 14, fontWeight: 600, color: "#475569", bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
+                            이 대화 {thread.length}통
+                        </Typography>
+                        {thread.map((item) => {
+                            const current = item.seq === detail.seq;
+                            return (
+                                <ButtonBase
+                                    key={item.seq}
+                                    onClick={() => !current && onSelectThreadMessage?.(item.seq)}
+                                    aria-current={current ? "true" : undefined}
+                                    sx={{
+                                        display: "flex",
+                                        width: "100%",
+                                        alignItems: "baseline",
+                                        gap: 1.5,
+                                        px: 1.5,
+                                        py: 1,
+                                        textAlign: "left",
+                                        fontSize: 14,
+                                        bgcolor: current ? "#eff6ff" : "transparent",
+                                        boxShadow: current ? "inset 3px 0 0 #3b82f6" : "none",
+                                        "&:not(:last-of-type)": { borderBottom: "1px solid #f1f5f9" },
+                                        "&:hover": current ? undefined : { bgcolor: "#f8fafc" },
+                                    }}
+                                >
+                                    <Box component="span" sx={{ flexShrink: 0, maxWidth: "40%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: item.is_read ? 500 : 700, color: "#111827" }}>
+                                        {item.folder === "sent" || item.folder === "draft" ? `나 → ${item.to_summary || ""}` : item.from_name || item.from_address || "(발신자 없음)"}
+                                    </Box>
+                                    <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#64748b" }}>
+                                        {item.snippet || item.subject || ""}
+                                    </Box>
+                                    <Box component="span" sx={{ flexShrink: 0, color: "#64748b" }}>
+                                        {formatMailListDate(item.date_time)}
+                                    </Box>
+                                </ButtonBase>
+                            );
+                        })}
+                    </Box>
+                )}
                 {/* 본문 도구 — 내용에 관한 도구(복사·번역)는 본문 바로 위에 둔다(헤더 액션 바는 메일 단위 조작 전용). */}
                 <Stack
                     direction="row"

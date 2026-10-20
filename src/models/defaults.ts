@@ -75,6 +75,7 @@ export const defaultMailState: MailState = {
     selectedSeq: 0,
     detail: null,
     loadingDetail: false,
+    thread: [],
     counts: defaultMailFolderCounts,
     syncingSeqs: [],
     labels: [],

@@ -1,7 +1,7 @@
 /**
  * 메일 상세 패널 — 헤더(제목/주소/일시) · 액션(답장/전체답장/전달/휴지통/복원/삭제) · 첨부 · 본문.
  */
-import type { MailMessageDetail, MailMoveTarget, MailMoveTargetOption, MailLabel } from "../../models/types";
+import type { MailMessageDetail, MailMoveTarget, MailMoveTargetOption, MailLabel, MailThreadEntry } from "../../models/types";
 interface MessageDetailPanelProps {
     detail: MailMessageDetail | null;
     loading: boolean;
@@ -26,6 +26,9 @@ interface MessageDetailPanelProps {
      * 자체 세로 스크롤러 대신 내용 높이만큼 늘어나 다이얼로그 스크롤에 맡긴다.
      */
     embedded?: boolean;
+    /** 이 메일이 든 대화(2026-10-20) — 두 통 이상이면 제목 아래에 띠로 보이고, 누르면 그 메일로 바꾼다. */
+    thread?: MailThreadEntry[];
+    onSelectThreadMessage?: (seq: number) => void;
     /** 내 라벨 — 주면 단추줄에 라벨 단추가 생기고 제목 아래에 단 라벨이 칩으로 보인다(라벨을 켠 앱만, 2026-10-16). */
     labels?: MailLabel[];
     /** 라벨 단추 — 누른 단추 아래 좌표를 넘긴다(메뉴는 목록 화면이 띄운다: 달기·떼기·새 라벨·관리가 목록과 같은 메뉴다). */

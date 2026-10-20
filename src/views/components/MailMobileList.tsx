@@ -186,22 +186,24 @@ export function MailMobileRow({
                         }}
                     />
                 </IconButton>
-                <Typography
-                    sx={{
-                        flex: 1,
-                        width: 0,
-                        ml: 0.5,
-                        // 아래 제목과 같은 크기 — 제목만 줄이면 보낸사람이 제목보다 커 보인다.
-                        fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
-                        fontWeight: unread ? 700 : 500,
-                        color: "#111827",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                    }}
-                >
-                    {formatCounterpart(row)}
-                </Typography>
+                {/* 이름은 줄여도 대화 수(2026-10-20)는 늘 보이게 이름과 수를 한 상자에 나눠 둔다. */}
+                <Box sx={{ flex: 1, width: 0, ml: 0.5, display: "flex", alignItems: "baseline", minWidth: 0 }}>
+                    <Typography
+                        sx={{
+                            minWidth: 0,
+                            // 아래 제목과 같은 크기 — 제목만 줄이면 보낸사람이 제목보다 커 보인다.
+                            fontSize: `calc(${mfs(16)} - var(--card-title-shrink, 0px))`,
+                            fontWeight: unread ? 700 : 500,
+                            color: "#111827",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}
+                    >
+                        {formatCounterpart(row)}
+                    </Typography>
+                    <ThreadCount row={row} fontSize={`calc(${mfs(16)} - var(--card-title-shrink, 0px))`} />
+                </Box>
                 <MobileChip tone={unread ? "blue" : "default"} bold={unread}>
                     {formatMailListDate(row.date_time) || "-"}
                 </MobileChip>
@@ -263,6 +265,17 @@ export function MailMobileRow({
                     </Typography>
                 ) : null}
             </Box>
+        </Box>
+    );
+}
+
+/** 대화 수(2026-10-20) — 묶은 줄이 두 통 이상이면 이름 옆에 흐리게 적는다(지메일 "보낸 사람 2" 와 같다). */
+export function ThreadCount({ row, fontSize }: { row: MailMessageListItem; fontSize?: string }) {
+    const count = Number(row.thread_count ?? 1);
+    if (count < 2) return null;
+    return (
+        <Box component="span" sx={{ flexShrink: 0, ml: 0.75, fontSize, fontWeight: 400, color: "#64748b" }} aria-label={`대화 ${count}통`}>
+            {count}
         </Box>
     );
 }

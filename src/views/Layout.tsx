@@ -38,6 +38,7 @@ import type {
     MailListFolder,
     MailMessageDetail,
     MailMessageListItem,
+    MailThreadEntry,
     MailMoveTarget,
     MailMoveTargetOption,
     MailUserFolder,
@@ -193,6 +194,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const accounts = useMemo(() => allAccounts.filter((a) => a.in_sidebar !== false), [allAccounts]);
     const messages = state.useValue("messages") as MailMessageListItem[];
     const total = state.useValue("total") as number;
+    const thread = (state.useValue("thread") as MailThreadEntry[] | undefined) ?? [];
     const loadingList = state.useValue("loadingList") as boolean;
     const filters = state.useValue("filters") as MailFilters;
     const selectedSeq = state.useValue("selectedSeq") as number;
@@ -410,7 +412,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
 
     const handleTrash = useCallback(
         (seq: number) => {
-            void state.actions.applyMessageAction([seq], "trash").then(() => state.actions.loadCounts());
+            // 목록의 줄은 대화 하나다 — 대화 전체를 버린다(2026-10-20).
+            void state.actions.applyMessageAction([seq], "trash", undefined, true).then(() => state.actions.loadCounts());
         },
         [state.actions]
     );
@@ -439,7 +442,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             const seqs = messages.filter((row) => checkedSeqs.has(row.seq)).map((row) => row.seq);
             if (seqs.length === 0) return;
             const run = () =>
-                void state.actions.applyMessageAction(seqs, action).then((ok: boolean) => {
+                // 고른 줄은 대화 하나씩이다 — 같은 대화의 메일 전부에 적용한다(별표는 서버가 그 줄에만).
+                void state.actions.applyMessageAction(seqs, action, undefined, true).then((ok: boolean) => {
                     if (!ok) return;
                     setCheckedSeqs(new Set());
                     if (
@@ -532,7 +536,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     );
     const rowAction = useCallback(
         (row: MailMessageListItem, action: BulkMessageAction, move?: MailMoveTarget) =>
-            void state.actions.applyMessageAction([row.seq], action, move).then((ok: boolean) => {
+            void state.actions.applyMessageAction([row.seq], action, move, true).then((ok: boolean) => {
                 if (!ok) return;
                 if (
                     action !== "read" &&
@@ -1003,6 +1007,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             loading={loadingDetail}
             // 모바일은 mfd 상세 다이얼로그의 ← 가 닫기를 맡고, 본문 스크롤도 다이얼로그가 소유한다.
             embedded={isMobile}
+            // 같은 대화의 메일들(2026-10-20) — 띠에서 고르면 그 메일을 연다(대화는 그대로 둔다).
+            thread={thread}
+            onSelectThreadMessage={(seq) => void state.actions.selectMessage(seq)}
             // 상세의 라벨 단추 — 목록 행 단추와 같은 메뉴(달기·떼기·새 라벨·관리)를 그 메일 하나에 띄운다.
             labels={labelsEnabled ? labels : undefined}
             onOpenLabelMenu={labelsEnabled ? (position) => detail && setRowLabelMenu({ position, row: detail }) : undefined}

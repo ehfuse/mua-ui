@@ -24,7 +24,7 @@ export declare const selectMessage: () => (context: ActionContext<MailState>, se
 /** 선택을 해제한다. */
 export declare const clearSelection: () => (context: ActionContext<MailState>) => void;
 /** 메시지 일괄/단건 액션(읽음·중요·휴지통·복원·영구삭제)을 적용하고 목록을 낙관 갱신한다. */
-export declare const applyMessageAction: () => (context: ActionContext<MailState>, seqs: number[], action: BulkMessageAction, move?: MailMoveTarget) => Promise<boolean>;
+export declare const applyMessageAction: () => (context: ActionContext<MailState>, seqs: number[], action: BulkMessageAction, move?: MailMoveTarget, threads?: boolean) => Promise<boolean>;
 /** 계정(0=전체 활성 계정)을 즉시 동기화하고 목록/건수를 다시 읽는다. */
 export declare const syncNow: () => (context: ActionContext<MailState>, mailAccountSeq: number) => Promise<void>;
 /** 사용자 메일함 목록을 읽는다. */

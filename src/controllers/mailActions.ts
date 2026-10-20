@@ -14,6 +14,7 @@ import {
     type MailLabel,
     type MailMessageDetail,
     type MailMessageListItem,
+    type MailThreadEntry,
     type MailMoveTarget,
     type MailRule,
     type MailState,
@@ -137,6 +138,8 @@ export const loadMessages =
                     unread: filters.unreadOnly,
                     starred: filters.starredOnly,
                     label_seq: filters.labelSeq > 0 ? filters.labelSeq : undefined,
+                    // 대화로 묶어 받는다(2026-10-20) — 같은 대화(답장 · 사본)는 한 줄, total 은 대화 수다.
+                    thread: true,
                 }),
                 "메일 목록을 불러오지 못했습니다."
             );
@@ -235,6 +238,7 @@ export const selectMessage =
         if (!(seq > 0)) {
             context.setValue("selectedSeq", 0);
             context.setValue("detail", null);
+            context.setValue("thread", []);
             return;
         }
         const requestSeq = ++latestDetailRequestSeq;
@@ -250,6 +254,28 @@ export const selectMessage =
             if (requestSeq !== latestDetailRequestSeq) return;
             context.setValue("detail", detail);
             patchLocalMessage(context, seq, { is_read: true });
+            // 대화(2026-10-20) — 같은 대화의 메일들을 띠로 보이고, 목록에서 연 대화면 대화 전체를 읽음으로 한다(지메일과 같다).
+            // 띠에서 다른 메일을 고른 것이면(이미 그 대화) 다시 읽지 않는다.
+            const currentThread = context.getValue("thread") as MailThreadEntry[];
+            const inSameThread = currentThread.some((item) => item.seq === seq);
+            const threadUnread = Number(row?.thread_unread ?? 0);
+            if (!inSameThread) {
+                context.setValue("thread", []);
+                void mailApi
+                    .getThread(seq, threadUnread > 0)
+                    .then((res) => {
+                        if (requestSeq !== latestDetailRequestSeq) return;
+                        const items = unwrap(res, "대화를 불러오지 못했습니다.").items;
+                        context.setValue("thread", items.length > 1 ? items : []);
+                        if (threadUnread > 0) {
+                            patchLocalMessage(context, seq, { thread_unread: 0 });
+                            void loadCounts()(context);
+                        }
+                    })
+                    .catch(() => undefined);
+            } else {
+                context.setValue("thread", currentThread.map((item) => (item.seq === seq ? { ...item, is_read: true } : item)));
+            }
             if (wasUnread && row) {
                 // 미읽음 건수 낙관 감소(서버 재집계는 loadCounts 로) — 메일이 있는 폴더의 배지만 줄인다.
                 if (row.folder === "custom" && row.mail_folder_seq > 0) {
@@ -292,6 +318,7 @@ export const clearSelection =
     (context: ActionContext<MailState>): void => {
         context.setValue("selectedSeq", 0);
         context.setValue("detail", null);
+        context.setValue("thread", []);
     };
 
 /** 메시지 일괄/단건 액션(읽음·중요·휴지통·복원·영구삭제)을 적용하고 목록을 낙관 갱신한다. */
@@ -301,12 +328,16 @@ export const applyMessageAction =
         context: ActionContext<MailState>,
         seqs: number[],
         action: BulkMessageAction,
-        move?: MailMoveTarget
+        move?: MailMoveTarget,
+        threads = false
     ): Promise<boolean> => {
         const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
         if (targets.length === 0) return false;
+        // 묶은 목록에서 대화의 머리 한 통만 따로 처리했다 — 같은 대화의 다른 메일이 남아 있으면 그 줄이 다시 보이게 목록을 새로 받는다.
+        const rows = context.getValue("messages") as MailMessageListItem[];
+        const singleOfThread = !threads && rows.some((row) => targets.includes(row.seq) && Number(row.thread_count ?? 1) > 1);
         try {
-            unwrap(await mailApi.bulkMessages(targets, action, move), "처리하지 못했습니다.");
+            unwrap(await mailApi.bulkMessages(targets, action, move, threads), "처리하지 못했습니다.");
         } catch (error) {
             ErrorAlert({ message: messageOf(error, "처리하지 못했습니다.") });
             return false;
@@ -342,6 +373,7 @@ export const applyMessageAction =
                           ? "복원했습니다."
                           : "영구 삭제했습니다.";
             SuccessAlert(`${targets.length}건을 ${label}`);
+            if (singleOfThread) void loadMessages()(context, { silent: true });
         }
         return true;
     };

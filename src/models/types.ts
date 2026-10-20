@@ -100,6 +100,10 @@ export interface MailMessageListItem {
     // 번역본 보기 상태일 때의 번역 제목(목록 응답 — 서버가 translation_shown 일 때만 채운다). null/없음이면 원문 제목.
     translated_subject?: string | null;
     label_seqs?: number[]; // 내가 단 색상 라벨(mail_label seq) — 라벨을 켠 앱의 서버만 싣는다
+    // 대화 묶음(2026-10-20) — 묶어 받은 목록(thread=1)에서만 온다. 이 줄은 대화의 가장 최근 메일이고, thread_count 는 이 목록 거르기에 든 대화의 메일 수다.
+    thread_key?: string | null;
+    thread_count?: number;
+    thread_unread?: number;
 }
 
 /** 색상 라벨(사람마다) — 서버 mail_label */
@@ -193,6 +197,20 @@ export interface MailFilters {
 export const MAIL_PAGE_SIZE = 50;
 
 /** 화면 상태 */
+/** 대화 안의 메일 한 통(상세의 대화 띠) — 서버 GET /messages/:seq/thread 와 같은 꼴. */
+export interface MailThreadEntry {
+    seq: number;
+    folder: string;
+    from_name: string | null;
+    from_address: string | null;
+    to_summary: string | null;
+    subject: string | null;
+    snippet: string | null;
+    date_time: string | null;
+    is_read: boolean;
+    has_attachment: boolean;
+}
+
 export interface MailState {
     accounts: MailAccount[]; // 내 계정 목록
     loadingAccounts: boolean; // 계정 로딩
@@ -206,6 +224,7 @@ export interface MailState {
     selectedSeq: number; // 선택 메시지
     detail: MailMessageDetail | null; // 선택 메시지 상세
     loadingDetail: boolean; // 상세 로딩
+    thread: MailThreadEntry[]; // 열어 본 메일이 든 대화의 메일들(오래된 것부터, 한 통뿐이면 빈 배열 — 2026-10-20)
     counts: MailFolderCounts; // 폴더 건수(현재 계정 범위)
     syncingSeqs: number[]; // 동기화 중인 메일 계정 seq 목록(계정별 표시)
     labels: MailLabel[]; // 내 색상 라벨(config.labels 를 켰을 때만 읽는다)

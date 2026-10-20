@@ -19,6 +19,20 @@ export interface ListMessagesParams {
     unread?: boolean;
     starred?: boolean;
     label_seq?: number;
+    thread?: boolean;
+}
+/** 대화 안의 메일 한 통(본문 없이 머리만) — GET /messages/:seq/thread */
+export interface MailThreadItem {
+    seq: number;
+    folder: string;
+    from_name: string | null;
+    from_address: string | null;
+    to_summary: string | null;
+    subject: string | null;
+    snippet: string | null;
+    date_time: string | null;
+    is_read: boolean;
+    has_attachment: boolean;
 }
 /** 목록 응답 */
 export interface ListMessagesResponse {
@@ -89,6 +103,10 @@ export declare const mailApi: {
     translateMessage: (seq: number, target?: string) => Promise<ApiOk<MailTranslation>>;
     /** 원문(RFC 822) — 기업메일은 받은 원문, 외부 계정은 다시 만든 것(rebuilt). full=true 면 잘리지 않은 전체. */
     getMessageSource: (seq: number, full?: boolean) => Promise<ApiOk<MailMessageSource>>;
+    /** 이 메일이 든 대화의 메일들(오래된 것부터). markRead 면 같은 폴더의 안 읽은 메일을 함께 읽음으로. */
+    getThread: (seq: number, markRead: boolean) => Promise<ApiOk<{
+        items: MailThreadItem[];
+    }>>;
     getMessage: (seq: number, markRead: boolean) => Promise<ApiOk<MailMessageDetail>>;
     /** 읽음/중요/폴더 변경 */
     patchMessage: (seq: number, body: {
@@ -98,7 +116,8 @@ export declare const mailApi: {
         translation_shown?: boolean;
     }) => Promise<ApiOk<MailMessageDetail>>;
     /** 일괄 처리 */
-    bulkMessages: (seqs: number[], action: BulkMessageAction, move?: MailMoveTarget) => Promise<ApiOk<{
+    /** threads — 대화로 묶은 목록의 줄이면 같은 폴더의 같은 대화 메일 전부에 적용한다(별표는 그 줄에만). */
+    bulkMessages: (seqs: number[], action: BulkMessageAction, move?: MailMoveTarget, threads?: boolean) => Promise<ApiOk<{
         affected: number;
     }>>;
     /** 사용자 화면 설정(보기 타입) */

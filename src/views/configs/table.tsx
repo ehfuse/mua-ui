@@ -2,6 +2,7 @@
  * 메일 목록 컬럼 설정 — 중요 · 상대 · 제목/미리보기 · 첨부 · 일시.
  */
 
+import { ThreadCount } from "../components/MailMobileList";
 import type { DataColumn } from "@ehfuse/mui-virtual-data-table";
 import { Box, Checkbox, IconButton, Typography } from "@mui/material";
 import { StarRoundedIcon } from "../../internal/icons";
@@ -120,6 +121,7 @@ export function getMailColumns(
                     title={row.from_address ?? undefined}
                 >
                     <HighlightText text={formatCounterpart(row)} query={search} />
+                    <ThreadCount row={row} fontSize="14px" />
                 </Typography>
             ),
         },

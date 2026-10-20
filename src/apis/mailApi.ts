@@ -45,6 +45,21 @@ export interface ListMessagesParams {
     unread?: boolean; // 미읽음만
     starred?: boolean; // 중요만
     label_seq?: number; // 색상 라벨 하나만(0/생략 = 거르지 않음) — 휴지통·스팸함이 아니면 서버가 전 폴더에서 찾는다
+    thread?: boolean; // 대화로 묶어 받기(2026-10-20) — 대화마다 한 줄, total 은 대화 수(임시보관 · 예약은 서버가 묶지 않는다)
+}
+
+/** 대화 안의 메일 한 통(본문 없이 머리만) — GET /messages/:seq/thread */
+export interface MailThreadItem {
+    seq: number;
+    folder: string;
+    from_name: string | null;
+    from_address: string | null;
+    to_summary: string | null;
+    subject: string | null;
+    snippet: string | null;
+    date_time: string | null;
+    is_read: boolean;
+    has_attachment: boolean;
 }
 
 /** 목록 응답 */
@@ -136,6 +151,9 @@ export const mailApi = {
     /** 원문(RFC 822) — 기업메일은 받은 원문, 외부 계정은 다시 만든 것(rebuilt). full=true 면 잘리지 않은 전체. */
     getMessageSource: (seq: number, full = false) =>
         entityAppServer.http.get<ApiOk<MailMessageSource>>(`/v1/mua/messages/${seq}/source${full ? "?full=1" : ""}`),
+    /** 이 메일이 든 대화의 메일들(오래된 것부터). markRead 면 같은 폴더의 안 읽은 메일을 함께 읽음으로. */
+    getThread: (seq: number, markRead: boolean) =>
+        entityAppServer.http.get<ApiOk<{ items: MailThreadItem[] }>>(`/v1/mua/messages/${seq}/thread${toQuery({ mark_read: markRead })}`),
     getMessage: (seq: number, markRead: boolean) =>
         entityAppServer.http.get<ApiOk<MailMessageDetail>>(
             `/v1/mua/messages/${seq}${toQuery({ mark_read: markRead })}`
@@ -146,10 +164,12 @@ export const mailApi = {
         body: { is_read?: boolean; is_starred?: boolean; folder?: MailFolder | "restore"; translation_shown?: boolean }
     ) => entityAppServer.http.patch<ApiOk<MailMessageDetail>>(`/v1/mua/messages/${seq}`, body),
     /** 일괄 처리 */
-    bulkMessages: (seqs: number[], action: BulkMessageAction, move?: MailMoveTarget) =>
+    /** threads — 대화로 묶은 목록의 줄이면 같은 폴더의 같은 대화 메일 전부에 적용한다(별표는 그 줄에만). */
+    bulkMessages: (seqs: number[], action: BulkMessageAction, move?: MailMoveTarget, threads = false) =>
         entityAppServer.http.post<ApiOk<{ affected: number }>>("/v1/mua/messages/bulk", {
             seqs,
             action,
+            ...(threads ? { threads: true } : {}),
             ...(move
                 ? { folder: move.folder, mail_folder_seq: move.folder === "custom" ? move.mail_folder_seq : 0 }
                 : {}),
