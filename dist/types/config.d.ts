@@ -70,6 +70,8 @@ export interface MuaMobileOwnScroll {
     background: string;
     heightVar?: string;
     scrollbars?: VirtualDataTableProps<unknown>["scrollbars"];
+    appBarSlot?: (el: HTMLElement | null) => void;
+    cssLinked?: boolean;
 }
 /** 공용(shared) 범위 후보 팀 1건 — 앱(업무함)의 팀 개념을 주입받는다. */
 export interface MuaTeamOption {

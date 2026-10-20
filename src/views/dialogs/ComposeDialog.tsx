@@ -487,9 +487,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             />
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
                                 첨부하려고 매번 끝까지 내려야 하고, 붙였는지도 눈에 들어오지 않는다. */}
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                                 {existingAttachments.length > 0 ? (
-                                    <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap" }}>
+                                    <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap", minWidth: 0 }}>
                                         {existingAttachments.map((item) => (
                                             <Chip
                                                 key={refKey(item)}
@@ -501,6 +501,12 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                                     color: "#111",
                                                     pl: 0.75,
                                                     "& .MuiChip-icon": { ml: 0.5 },
+                                                    // 긴 파일 이름은 칩 안에서 줄을 바꾼다(0.3.184, 업무함 2026-10-20 사용자 지적 "파일명이 개행이 안 되고 화면을 밀어낸다") —
+                                                    // MUI Chip 은 한 줄 고정이라 이름이 길면 창 폭을 넘겨 쓰기 창이 옆으로 밀렸다. 칩은 줄 폭까지, 높이는 내용만큼.
+                                                    maxWidth: "100%",
+                                                    height: "auto",
+                                                    minHeight: 32,
+                                                    "& .MuiChip-label": { whiteSpace: "normal", overflowWrap: "anywhere", py: 0.5 },
                                                 }}
                                                 onDelete={() => handleRemoveExisting(refKey(item))}
                                             />
