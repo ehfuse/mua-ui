@@ -25,6 +25,37 @@ let latestListRequestSeq = 0;
 /** 상세 요청 시퀀스 */
 let latestDetailRequestSeq = 0;
 
+/**
+ * "안 읽음" 목록에서 읽은 메일 — 다른 화면으로 가기 전까지 목록에 남긴다(2026-10-20 사용자 지정).
+ * 서버는 안 읽음 거르기로 읽은 메일을 빼고 돌려주므로, 열자마자 오는 조용한 재조회(실시간 · 건수)에 줄이 바로 사라졌다.
+ * 거르기가 바뀌거나 메일 화면을 떠나면(resetKeptReadMessages) 비운다.
+ */
+const keptReadRows = new Map<number, MailMessageListItem>();
+let keptReadKey = "";
+
+/** 남겨 둔 읽은 메일이 어느 목록의 것인지 가리는 열쇠 — 같은 안 읽음 목록일 때만 다시 끼운다. */
+function keptKeyOf(filters: MailFilters): string {
+    return `${filters.mailAccountSeq}|${filters.folder}|${filters.mailFolderSeq}|${filters.search}|${filters.labelSeq}`;
+}
+
+/** 안 읽음 목록에서 읽음이 된 줄을 적어 둔다. */
+function keepReadRows(context: ActionContext<MailState>, rows: MailMessageListItem[]): void {
+    const filters = context.getValue("filters") as MailFilters;
+    if (!filters.unreadOnly) return;
+    const key = keptKeyOf(filters);
+    if (keptReadKey !== key) {
+        keptReadRows.clear();
+        keptReadKey = key;
+    }
+    for (const row of rows) keptReadRows.set(row.seq, { ...row, is_read: true });
+}
+
+/** 남겨 둔 읽은 메일을 버린다 — 메일 화면을 떠날 때 부른다. */
+export function resetKeptReadMessages(): void {
+    keptReadRows.clear();
+    keptReadKey = "";
+}
+
 /** 오류 메시지 추출 */
 function messageOf(error: unknown, fallback: string): string {
     return error instanceof Error && error.message ? error.message : fallback;
@@ -63,6 +94,7 @@ export const setFilters =
             current.starredOnly === next.starredOnly &&
             current.labelSeq === next.labelSeq;
         if (same) return;
+        resetKeptReadMessages();
         context.setValue("filters", next);
         if (current.unreadOnly !== next.unreadOnly || current.starredOnly !== next.starredOnly || current.labelSeq !== next.labelSeq)
             storeMailScope(next);
@@ -109,7 +141,19 @@ export const loadMessages =
                 "메일 목록을 불러오지 못했습니다."
             );
             if (requestSeq !== latestListRequestSeq) return;
-            const items = Array.isArray(data.items) ? data.items : [];
+            let items = Array.isArray(data.items) ? data.items : [];
+            let kept = 0;
+            if (filters.unreadOnly && keptReadKey === keptKeyOf(filters) && keptReadRows.size > 0) {
+                // 서버가 뺀 읽은 줄을 일시 순서대로 다시 끼운다(다음 페이지 붙이기에는 끼우지 않는다 — 이미 목록에 있다).
+                if (!append) {
+                    const got = new Set(items.map((row) => row.seq));
+                    const extra = [...keptReadRows.values()].filter((row) => !got.has(row.seq));
+                    kept = extra.length;
+                    items = [...items, ...extra].sort((a, b) => String(b.date_time ?? "").localeCompare(String(a.date_time ?? "")));
+                }
+            } else if (!filters.unreadOnly) {
+                resetKeptReadMessages();
+            }
             if (append) {
                 const prev = context.getValue("messages") as MailMessageListItem[];
                 const seen = new Set(prev.map((row) => row.seq));
@@ -117,7 +161,7 @@ export const loadMessages =
             } else {
                 context.setValue("messages", items);
             }
-            context.setValue("total", Number(data.total) || items.length);
+            context.setValue("total", (Number(data.total) || 0) + kept || items.length);
             context.setValue("page", page);
         } catch (error) {
             if (requestSeq !== latestListRequestSeq) return;
@@ -199,6 +243,8 @@ export const selectMessage =
         const rows = context.getValue("messages") as MailMessageListItem[];
         const row = rows.find((r) => r.seq === seq);
         const wasUnread = Boolean(row && !row.is_read);
+        // 요청 전에 적는다 — 서버가 읽음으로 바꾸며 보내는 실시간 재조회가 응답보다 먼저 와도 줄이 남게
+        if (wasUnread && row) keepReadRows(context, [row]);
         try {
             const detail = unwrap(await mailApi.getMessage(seq, true), "메일을 불러오지 못했습니다.");
             if (requestSeq !== latestDetailRequestSeq) return;
@@ -266,6 +312,11 @@ export const applyMessageAction =
             return false;
         }
         if (action === "read" || action === "unread") {
+            if (action === "read") {
+                const rows = context.getValue("messages") as MailMessageListItem[];
+                keepReadRows(context, rows.filter((row) => targets.includes(row.seq)));
+            }
+            else for (const seq of targets) keptReadRows.delete(seq);
             for (const seq of targets) patchLocalMessage(context, seq, { is_read: action === "read" });
         } else if (action === "star" || action === "unstar") {
             for (const seq of targets) patchLocalMessage(context, seq, { is_starred: action === "star" });

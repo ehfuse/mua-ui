@@ -4,6 +4,8 @@
 import type { ActionContext } from "@ehfuse/forma";
 import { type BulkMessageAction } from "../apis/mailApi";
 import { type MailAccount, type MailFilters, type MailLabel, type MailMoveTarget, type MailRule, type MailState, type MailUserFolder } from "../models/types";
+/** 남겨 둔 읽은 메일을 버린다 — 메일 화면을 떠날 때 부른다. */
+export declare function resetKeptReadMessages(): void;
 /** 내 메일 계정 목록을 읽는다. */
 export declare const loadAccounts: () => (context: ActionContext<MailState>) => Promise<MailAccount[]>;
 /** 필터를 바꾼다(목록 재조회는 Layout 의 effect 가 필터 변화를 보고 호출한다). */

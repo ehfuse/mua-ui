@@ -29,6 +29,7 @@ import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime, type MailChangedData } from "../apis/useMailRealtime";
 import { useComposeController } from "../controllers/composeController";
 import { useMailController } from "../controllers/mailController";
+import { resetKeptReadMessages } from "../controllers/mailActions";
 import type {
     MailAccount,
     MailFilters,
@@ -326,6 +327,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         listWasLoading.current = false;
     }, [filterKey, loadingList, messages]);
     const mobileRows = messages.length === 0 && loadedKey !== filterKey ? (lastMobileRows.get(filterKey) ?? messages) : messages;
+    // 안 읽음 목록에서 읽은 메일은 이 화면에 있는 동안만 남긴다 — 다른 화면으로 가면 버린다
+    useEffect(() => () => resetKeptReadMessages(), []);
     useEffect(() => {
         void state.actions.loadMessages();
         void state.actions.loadCounts();
