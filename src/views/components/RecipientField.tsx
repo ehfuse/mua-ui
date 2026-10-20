@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { Box, MenuItem, MenuList, Paper, Popper, Typography } from "@mui/material";
 import { ClearTextField } from "@ehfuse/mui-form-controls";
 import { mailApi, unwrap } from "../../apis/mailApi";
+import { useMuaConfig } from "../../MuaProvider";
 import type { MailContact } from "../../models/types";
 
 /** 한 번에 보이는 후보 수 — 더 치면 좁혀진다. */
@@ -73,12 +74,27 @@ export function RecipientField({ name, label, form, placeholder, inputRef }: Rec
     // Esc 로 닫은 뒤에는 다시 칠 때까지 열지 않는다.
     const [dismissed, setDismissed] = useState(false);
 
+    // 앱이 준 직원 · 구성원 명단을 주소록 뒤에 붙인다 — 주소록에 같은 주소가 있으면 주소록 쪽을 쓴다.
+    const { recipientDirectory } = useMuaConfig();
+    const candidates = useMemo(() => {
+        if (!recipientDirectory?.length) return contacts;
+        const known = new Set(contacts.map((contact) => contact.email.toLowerCase()));
+        const extra: MailContact[] = [];
+        for (const person of recipientDirectory) {
+            const email = String(person.email ?? "").trim();
+            if (!email || known.has(email.toLowerCase())) continue;
+            known.add(email.toLowerCase());
+            extra.push({ seq: -(extra.length + 1), account_seq: 0, scope: "shared", name: person.name, email, organization: person.organization ?? "", phone: "", memo: "", is_favorite: false });
+        }
+        return [...contacts, ...extra];
+    }, [contacts, recipientDirectory]);
+
     const { head, tail } = splitTail(value);
     const query = tail.trim().toLowerCase();
     const suggestions = useMemo(() => {
         if (query.length < 1) return [];
         const taken = emailsIn(head);
-        const scored = contacts
+        const scored = candidates
             .filter((contact) => contact.email && !taken.has(contact.email.toLowerCase()))
             .map((contact) => {
                 const fields = [contact.name, contact.email, contact.organization].map((field) => String(field ?? "").toLowerCase());
@@ -89,7 +105,7 @@ export function RecipientField({ name, label, form, placeholder, inputRef }: Rec
             .filter((row) => row.rank >= 0)
             .sort((a, b) => a.rank - b.rank || Number(b.contact.is_favorite) - Number(a.contact.is_favorite) || a.contact.name.localeCompare(b.contact.name));
         return scored.slice(0, MAX_SUGGESTIONS).map((row) => row.contact);
-    }, [contacts, head, query]);
+    }, [candidates, head, query]);
     const open = focused && !dismissed && suggestions.length > 0;
 
     useEffect(() => setActive(0), [query]);
