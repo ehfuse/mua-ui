@@ -347,7 +347,10 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                     id: "mail-compose-main",
                     showTitle: false,
                     children: (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, width: "100%" }}>
+                        // 내용이 창 폭을 늘리지 못하게 한다(0.3.185, 업무함 2026-10-20 사용자 지적 "화면을 밀어낸다") — 전달 · 답장 본문의 넓은 표(가로 600px 넘는
+                        // 안내 메일)나 긴 첨부 이름이 이 상자의 최소 폭이 되어 창 안 틀이 그만큼 넓어졌고, 받는 사람 칸 · 첨부 칩 · 본문이 모두 오른쪽으로 잘렸다.
+                        // inline-size 가두기로 이 상자는 바깥(창) 폭만 따르고, 넓은 본문은 에디터 안에서 가로로 스크롤한다.
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, width: "100%", minWidth: 0, contain: "inline-size" }}>
                             {/* 보내는 계정과 받는 사람을 한 줄에 — 둘 다 한 줄짜리 값이라 각각 한 줄을 쓰면
                                 정작 본문이 밀린다. 참조/숨은참조 토글은 그 값들이 놓이는 아래 줄에 둔다(2026-09-07). */}
                             <Box
@@ -546,6 +549,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     flexDirection: "column",
                                     "& > div": { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" },
                                     "& .ehfuse-editor-container": { flex: 1, minHeight: 0 },
+                                    // 넓은 본문(전달한 메일의 표 등)은 에디터 안에서 가로로 스크롤한다 — 창을 넓히지 않는다.
+                                    minWidth: 0,
+                                    "& .ehfuse-editor-container, & [contenteditable]": { minWidth: 0, maxWidth: "100%", overflowX: "auto" },
                                 }}
                             >
                                 <Editor
