@@ -78,6 +78,15 @@ export interface MailBootstrapData {
 }
 
 /** 메일 API */
+/** 원문 보기 응답 */
+export interface MailMessageSource {
+    source: string; // 원문 글(큰 메일은 앞 2MB 만)
+    rebuilt: boolean; // 원문을 보관하지 않아 다시 만든 것(외부 계정 메일)
+    truncated: boolean; // 앞부분만 실었다
+    size: number; // 원문 전체 바이트
+    file_name: string; // 내려받을 .eml 이름
+}
+
 export const mailApi = {
     /** 진입 1회 — 계정·메일함·규칙을 한 번에(사이드바+메일 화면이 나눠 쓴다) */
     bootstrap: () => entityAppServer.http.get<ApiOk<MailBootstrapData>>("/v1/mua/bootstrap"),
@@ -124,6 +133,9 @@ export const mailApi = {
     /** 제목·본문 AI 번역(Gemini) — 저장 안 함, 실패는 throw(502/503). */
     translateMessage: (seq: number, target = "ko") =>
         entityAppServer.http.post<ApiOk<MailTranslation>>(`/v1/mua/messages/${seq}/translate`, { target }),
+    /** 원문(RFC 822) — 기업메일은 받은 원문, 외부 계정은 다시 만든 것(rebuilt). full=true 면 잘리지 않은 전체. */
+    getMessageSource: (seq: number, full = false) =>
+        entityAppServer.http.get<ApiOk<MailMessageSource>>(`/v1/mua/messages/${seq}/source${full ? "?full=1" : ""}`),
     getMessage: (seq: number, markRead: boolean) =>
         entityAppServer.http.get<ApiOk<MailMessageDetail>>(
             `/v1/mua/messages/${seq}${toQuery({ mark_read: markRead })}`

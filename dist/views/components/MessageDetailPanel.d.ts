@@ -34,6 +34,5 @@ interface MessageDetailPanelProps {
         left: number;
     }) => void;
 }
-/** 상세 패널 컴포넌트 */
 export declare function MessageDetailPanel(props: MessageDetailPanelProps): import("react").JSX.Element | null;
 export {};

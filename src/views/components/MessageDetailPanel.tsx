@@ -24,6 +24,8 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import TranslateIcon from "@mui/icons-material/Translate";
 import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
 import RuleOutlinedIcon from "@mui/icons-material/RuleOutlined";
+import CodeOutlinedIcon from "@mui/icons-material/CodeOutlined";
+import { MailSourceDialog } from "../dialogs/MailSourceDialog";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import { FolderIcon } from "../../internal/FolderIcon";
@@ -177,6 +179,14 @@ function isMostlyKorean(raw: string): boolean {
 }
 
 /** 상세 패널 컴포넌트 */
+/** ⋮ 메뉴 줄 모양 — 목록 우클릭 메뉴(internal/ContextMenu)와 같은 글자 15px · 아이콘 20px · 위아래 8px. */
+const MENU_COMPACT_SX = {
+    "& .MuiMenuItem-root": { minHeight: 0, py: 1, px: 2 },
+    "& .MuiListItemText-primary": { fontSize: 15 },
+    "& .MuiListItemIcon-root": { minWidth: 30 },
+    "& .MuiListItemIcon-root .MuiSvgIcon-root": { fontSize: 20 },
+} as const;
+
 export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const {
         detail,
@@ -230,6 +240,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     };
     // ⋮ 더보기 메뉴
     const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+    const [sourceOpen, setSourceOpen] = useState(false);
     // "이동 ▸" 서브메뉴 앵커(⋮ 메뉴 항목 오른쪽에 붙는다)
     const [moveAnchor, setMoveAnchor] = useState<HTMLElement | null>(null);
     // AI 번역 — 결과(캐시 적재)·진행 중·번역본 표시 여부. 다른 메일로 바뀌면 원문 표시로 돌아간다.
@@ -463,7 +474,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     anchorEl={menuAnchor}
                     open={Boolean(menuAnchor)}
                     onClose={closeMenu}
-                    slotProps={{ paper: { sx: { minWidth: 220 } }, transition: { timeout: 0 } }}
+                    // 글자 · 아이콘 · 줄 높이는 목록 우클릭 메뉴(ContextMenu)와 같은 값 — MUI 기본(16px · 줄 48)은 커 보였다(2026-10-20 사용자 지적).
+                    slotProps={{ paper: { sx: { minWidth: 220, ...MENU_COMPACT_SX } }, transition: { timeout: 0 } }}
                 >
                     {!isDraft
                         ? [
@@ -524,7 +536,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </MenuItem>
                     ) : null}
                     {/* 이동 ▸ / 규칙 만들기 — 우클릭 메뉴와 같은 항목(임시보관은 제외) */}
-                    {!isDraft && (moveTargets.length > 0 || onCreateRule)
+                    {!isDraft
                         ? [
                               <Divider key="d-move" />,
                               ...(moveTargets.length > 0 && onMove
@@ -548,6 +560,13 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                         </MenuItem>,
                                     ]
                                   : []),
+                              // 원문 보기 — 받은 경로 · 인증 헤더를 확인할 때(2026-10-20).
+                              <MenuItem key="source" onClick={() => (closeMenu(), setSourceOpen(true))}>
+                                  <ListItemIcon>
+                                      <CodeOutlinedIcon fontSize="small" />
+                                  </ListItemIcon>
+                                  <ListItemText primary="원문 보기" />
+                              </MenuItem>,
                           ]
                         : null}
                     {isSpam || detail.folder === "inbox" ? <Divider /> : null}
@@ -567,6 +586,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </MenuItem>
                     ) : null}
                 </Menu>
+                <MailSourceDialog open={sourceOpen} seq={sourceOpen ? detail.seq : 0} onClose={() => setSourceOpen(false)} />
                 {/* 이동 ▸ 서브메뉴 — 항목 오른쪽에 붙여 연다. 고르면 두 메뉴를 모두 닫고 이동한다. */}
                 <Menu
                     anchorEl={moveAnchor}
@@ -574,7 +594,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     onClose={() => setMoveAnchor(null)}
                     anchorOrigin={{ vertical: "top", horizontal: "right" }}
                     transformOrigin={{ vertical: "top", horizontal: "left" }}
-                    slotProps={{ paper: { sx: { minWidth: 200 } }, transition: { timeout: 0 } }}
+                    slotProps={{ paper: { sx: { minWidth: 200, ...MENU_COMPACT_SX } }, transition: { timeout: 0 } }}
                 >
                     {moveTargets.map((t) => (
                         <MenuItem

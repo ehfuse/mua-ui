@@ -36,6 +36,14 @@ export interface MailBootstrapData {
     rules: MailRule[];
 }
 /** 메일 API */
+/** 원문 보기 응답 */
+export interface MailMessageSource {
+    source: string;
+    rebuilt: boolean;
+    truncated: boolean;
+    size: number;
+    file_name: string;
+}
 export declare const mailApi: {
     /** 진입 1회 — 계정·메일함·규칙을 한 번에(사이드바+메일 화면이 나눠 쓴다) */
     bootstrap: () => Promise<ApiOk<MailBootstrapData>>;
@@ -79,6 +87,8 @@ export declare const mailApi: {
     /** 상세(+읽음 처리) */
     /** 제목·본문 AI 번역(Gemini) — 저장 안 함, 실패는 throw(502/503). */
     translateMessage: (seq: number, target?: string) => Promise<ApiOk<MailTranslation>>;
+    /** 원문(RFC 822) — 기업메일은 받은 원문, 외부 계정은 다시 만든 것(rebuilt). full=true 면 잘리지 않은 전체. */
+    getMessageSource: (seq: number, full?: boolean) => Promise<ApiOk<MailMessageSource>>;
     getMessage: (seq: number, markRead: boolean) => Promise<ApiOk<MailMessageDetail>>;
     /** 읽음/중요/폴더 변경 */
     patchMessage: (seq: number, body: {
