@@ -212,6 +212,8 @@ export const mailApi = {
     /** 메일함 삭제(메일은 받은편지함으로) */
     deleteFolder: (seq: number) =>
         entityAppServer.http.delete<ApiOk<{ deleted: boolean; moved: number }>>(`/v1/mua/folders/${seq}`, {}),
+    /** 메일함 비우기 — 안의 메일을 휴지통으로 옮긴다(되돌리면 이 메일함으로 돌아온다). */
+    emptyFolder: (seq: number) => entityAppServer.http.post<ApiOk<{ moved: number }>>(`/v1/mua/folders/${seq}/empty`, {}),
     /** 규칙 목록 */
     listRules: () => entityAppServer.http.get<ApiOk<{ items: MailRule[] }>>("/v1/mua/rules"),
     /** 규칙 추가 */

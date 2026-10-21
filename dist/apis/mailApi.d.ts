@@ -187,6 +187,10 @@ export declare const mailApi: {
         deleted: boolean;
         moved: number;
     }>>;
+    /** 메일함 비우기 — 안의 메일을 휴지통으로 옮긴다(되돌리면 이 메일함으로 돌아온다). */
+    emptyFolder: (seq: number) => Promise<ApiOk<{
+        moved: number;
+    }>>;
     /** 규칙 목록 */
     listRules: () => Promise<ApiOk<{
         items: MailRule[];

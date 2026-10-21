@@ -18,6 +18,7 @@ import {
     Typography,
 } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { ClearTextField } from "@ehfuse/mui-form-controls";
 import { TaskIconPickerPopover } from "@ehfuse/taskbox";
@@ -146,7 +147,29 @@ function FolderRow({
         });
     }, [folder, onChanged]);
 
-    // 모바일은 폭이 좁아 [아이콘][이름·칩][✎🗑] 1줄 + [건수 · 크기] 2줄로 나눈다(데스크톱은 한 줄 4열).
+    // 비우기(2026-10-21) — 안의 메일을 휴지통으로 옮긴다. 지우지 않으니 휴지통에서 되돌리면 이 메일함으로 돌아온다.
+    const empty = useCallback(() => {
+        ConfirmDialog({
+            title: "메일함 비우기",
+            message: `"${folder.name}" 메일함의 메일 ${folder.message_count ?? 0}통을 휴지통으로 옮깁니다. 휴지통에서 되돌리면 이 메일함으로 돌아옵니다.`,
+            onConfirm: () =>
+                void (async () => {
+                    setBusy(true);
+                    try {
+                        const res = unwrap(await mailApi.emptyFolder(folder.seq), "메일함을 비우지 못했습니다.");
+                        SuccessAlert(`${res.moved}통을 휴지통으로 옮겼습니다.`);
+                        onChanged();
+                    } catch (error) {
+                        ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 비우지 못했습니다." });
+                    } finally {
+                        setBusy(false);
+                    }
+                })(),
+        });
+    }, [folder, onChanged]);
+    const isEmpty = (folder.message_count ?? 0) === 0;
+
+    // 모바일은 폭이 좁아 [아이콘][이름·칩][✎ 비우기 🗑] 1줄 + [건수 · 크기] 2줄로 나눈다(데스크톱은 한 줄 4열).
     const isMobile = useIsMobile();
     return (
         <Box
@@ -198,6 +221,13 @@ function FolderRow({
                     <span>
                         <IconButton size="small" onClick={onEdit} aria-label="수정" disabled={!canManage}>
                             <EditOutlinedIcon fontSize="small" />
+                        </IconButton>
+                    </span>
+                </Tooltip>
+                <Tooltip title={!canManage ? "공용 메일함은 관리자 또는 만든 사람만 비울 수 있습니다" : isEmpty ? "비어 있습니다" : "비우기(휴지통으로)"}>
+                    <span>
+                        <IconButton size="small" onClick={empty} aria-label="비우기" disabled={!canManage || isEmpty || busy}>
+                            <DeleteSweepOutlinedIcon fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>
