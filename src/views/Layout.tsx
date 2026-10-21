@@ -311,7 +311,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [routeFolder, routeAccountSeq, routeUserFolderSeq, isInboxRoute, state.actions]);
 
     // 필터가 바뀌면 목록·건수 재조회
-    const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}`;
+    // 사용자 메일함 번호(mailFolderSeq)도 열쇠에 든다(2026-10-21) — 빠져 있어 메일함끼리 옮기면(광고 → 정보) 목록은 비우고 "불러오는 중" 만 켠 채
+    // 다시 받지 않아, 다음 실시간 갱신까지 스피너만 돌았다.
+    const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.mailFolderSeq}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}`;
     // 받은 목록을 거르기별로 적어 두고, 다시 받는 동안(비어 있을 때) 그것을 보인다 — 폰 자기 스크롤 목록만 쓴다
     // 실제로 받은 뒤(읽는 중 → 끝)거나 목록이 있을 때만 적는다 — 화면을 막 연 빈 상태로 덮어쓰지 않게
     const listWasLoading = useRef(false);
