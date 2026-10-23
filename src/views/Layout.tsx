@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { Box, Button, Checkbox, Drawer, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EditIcon from "@mui/icons-material/Edit";
@@ -309,6 +309,29 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             state.actions.setFilters({ folder: routeFolder, mailFolderSeq: 0 });
         }
     }, [routeFolder, routeAccountSeq, routeUserFolderSeq, isInboxRoute, state.actions]);
+
+    // 메일 딥링크 `?message=<seq>`(2026-10-23 사용자 지시 "링크를 누르면 목록으로 간 뒤 메일 상세도 열리게") — 새 메일 알림 · 다른 화면의 "메일 보기" 가
+    // 목록 주소에 메일 번호를 달아 보낸다. 목록의 첫 쪽에 없어도 번호로 읽어 연다(selectMessage 가 상세를 번호로 받고 읽음으로 바꾼다).
+    //  · 위의 라우트 → 거르기 effect 뒤에 둔다 — 거르기가 폴더 · 계정을 바꾸면 선택을 비우므로, 그보다 먼저 열면 바로 닫힌다.
+    //  · 주소에서 먼저 지운다(replace) — 새로고침 · 뒤로가기에 또 열리지 않고, 폰 상세 창(useModal)이 쌓는 기록 칸이 그 위에 선다(뒤로가기 = 상세만 닫힘).
+    //  · 서브페이지 창(폴더 고정 embedded)은 밑 화면 주소를 함께 보므로 라우트 화면 · 하단 탭 목록만 읽는다.
+    const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+    const deepLinkSeq = !isEmbedded || isInline ? Number(searchParams.get("message") ?? 0) || 0 : 0;
+    useEffect(() => {
+        if (!(deepLinkSeq > 0)) return;
+        setSearchParams(
+            (prev) => {
+                const next = new URLSearchParams(prev);
+                next.delete("message");
+                return next;
+            },
+            { replace: true, state: location.state }
+        );
+        // 목록에 없던 메일이면 selectMessage 가 건수를 줄이지 못한다 — 다 읽은 뒤 서버 건수로 맞춘다.
+        void state.actions.selectMessage(deepLinkSeq).then(() => state.actions.loadCounts());
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [deepLinkSeq]);
 
     // 필터가 바뀌면 목록·건수 재조회
     // 사용자 메일함 번호(mailFolderSeq)도 열쇠에 든다(2026-10-21) — 빠져 있어 메일함끼리 옮기면(광고 → 정보) 목록은 비우고 "불러오는 중" 만 켠 채
