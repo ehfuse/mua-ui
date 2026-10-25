@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일(MUA) 레이아웃 — ListLayout(툴바 헤더 + 메시지 목록 + 오른쪽 상세 패널).
  *
@@ -226,7 +227,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     );
     const embeddedAccountLabel = useMemo(() => {
         if (!isEmbedded) return null;
-        if (routeUserFolderSeq > 0) return currentUserFolder?.name ?? "메일함";
+        if (routeUserFolderSeq > 0) return currentUserFolder?.name ?? t("mailbox");
         if (routeAccountSeq <= 0) return null;
         const account = accounts.find((a) => a.seq === routeAccountSeq);
         return account ? account.name || account.email : null;
@@ -500,7 +501,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         async (seqs: number[], mode: "reply" | "replyAll" | "forward") => {
             if (seqs.length === 0) return;
             if (seqs.length > 20) {
-                WarningAlert({ message: "한 번에 전달할 수 있는 메일은 20통까지입니다." });
+                WarningAlert({ message: t("forwardLimit") });
                 return;
             }
             try {
@@ -508,18 +509,18 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     seqs.map(async (seq) =>
                         detail && detail.seq === seq
                             ? detail
-                            : unwrap(await mailApi.getMessage(seq, false), "메일을 불러오지 못했습니다.")
+                            : unwrap(await mailApi.getMessage(seq, false), t("loadMailFailed"))
                     )
                 );
                 const account = accounts.find((a) => a.seq === details[0].mail_account_seq) ?? defaultAccount;
                 if (mode === "replyAll" && details[0].cc.length === 0) {
-                    WarningAlert({ message: "참조가 없는 메일은 전체 답장할 수 없습니다. 답장을 사용하세요." });
+                    WarningAlert({ message: t("noReplyAllCc") });
                     return;
                 }
                 if (mode === "forward") compose.form.actions.openForwardMany(details, account);
                 else compose.form.actions.openFromMessage(details[0], mode, account);
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "메일을 불러오지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("loadMailFailed") });
             }
         },
         [detail, accounts, defaultAccount, compose.form.actions]
@@ -611,13 +612,13 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             .filter((f) => !(filters.folder === "custom" && f.seq === filters.mailFolderSeq))
             .map((f) => ({
                 key: `f${f.seq}`,
-                label: f.scope === "shared" ? `${f.name} (공용)` : f.name,
+                label: f.scope === "shared" ? t("sharedSuffix", { name: f.name }) : f.name,
                 target: { folder: "custom", mail_folder_seq: f.seq },
                 folder: f,
             }));
-        if (filters.folder !== "inbox") items.push({ key: "inbox", label: "받은편지함", target: { folder: "inbox" } });
-        if (filters.folder !== "spam") items.push({ key: "spam", label: "스팸함", target: { folder: "spam" } });
-        if (filters.folder !== "trash") items.push({ key: "trash", label: "휴지통", target: { folder: "trash" } });
+        if (filters.folder !== "inbox") items.push({ key: "inbox", label: t("folderInbox"), target: { folder: "inbox" } });
+        if (filters.folder !== "spam") items.push({ key: "spam", label: t("folderSpam"), target: { folder: "spam" } });
+        if (filters.folder !== "trash") items.push({ key: "trash", label: t("folderTrash"), target: { folder: "trash" } });
         return items;
     }, [folders, filters.folder, filters.mailFolderSeq]);
     /** 이 메일을 힌트로 규칙 폼을 연다(우클릭 "규칙 만들기"·상세 ⋮ "규칙 만들기" 공용). */
@@ -634,7 +635,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         return /<([^>]+)>/.exec(first)?.[1]?.trim() ?? first;
                     })(),
                 },
-                name: row.from_address ? `${row.from_name || row.from_address} 메일` : "",
+                name: row.from_address ? t("ruleNameFromSender", { sender: row.from_name || row.from_address }) : "",
                 conditions: [],
         });
     }, []);
@@ -662,7 +663,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 };
             }),
             {
-                label: "새 라벨 만들기",
+                label: t("createLabel"),
                 icon: <AddIcon fontSize="small" />,
                 dividerBefore: labels.length > 0,
                 onClick: (target: MailMessageListItem) => setLabelForm({ applyTo: [target.seq] }),
@@ -673,44 +674,44 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const contextMenuItems = useMemo<ContextMenuItem<MailMessageListItem>[]>(
         () => [
             {
-                label: "열기",
+                label: t("open"),
                 icon: <OpenInNewOutlinedIcon fontSize="small" />,
                 onClick: (row) => void state.actions.selectMessage(row.seq),
             },
             {
-                label: "답장",
+                label: t("reply"),
                 icon: <ReplyArrowIcon fontSize="small" />,
                 hidden: isDraftFolder,
                 onClick: (row) => void composeFromSeqs([row.seq], "reply"),
             },
             {
-                label: "전체 답장",
+                label: t("replyAll"),
                 icon: <ReplyAllArrowIcon fontSize="small" />,
                 // 참조가 없는 메일은 답장과 같으므로 숨긴다
                 hidden: (row) => isDraftFolder || !row.has_cc,
                 onClick: (row) => void composeFromSeqs([row.seq], "replyAll"),
             },
             {
-                label: "전달",
+                label: t("forward"),
                 icon: <ForwardArrowIcon fontSize="small" />,
                 hidden: isDraftFolder,
                 onClick: (row) => void composeFromSeqs([row.seq], "forward"),
             },
             {
-                label: (row) => (row.is_read ? "읽지 않음으로 표시" : "읽음으로 표시"),
+                label: (row) => (row.is_read ? t("markUnread") : t("markRead")),
                 icon: <MarkEmailUnreadOutlinedIcon fontSize="small" />,
                 dividerBefore: true,
                 hidden: isTrashFolder || isSpamFolder,
                 onClick: (row) => rowAction(row, row.is_read ? "unread" : "read"),
             },
             {
-                label: (row) => (row.is_starred ? "중요 해제" : "중요 표시"),
+                label: (row) => (row.is_starred ? t("unstar") : t("star")),
                 icon: <StarRoundedIcon fontSize="small" />,
                 hidden: isTrashFolder || isSpamFolder,
                 onClick: (row) => rowAction(row, row.is_starred ? "unstar" : "star"),
             },
             {
-                label: "이동",
+                label: t("move"),
                 icon: <DriveFileMoveOutlinedIcon fontSize="small" />,
                 dividerBefore: true,
                 hidden: isDraftFolder,
@@ -737,20 +738,20 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 })),
             },
             {
-                label: "라벨",
+                label: t("label"),
                 icon: <LabelOutlinedIcon fontSize="small" />,
                 hidden: !labelsEnabled,
                 onClick: () => undefined,
                 children: labelContextChildren,
             },
             {
-                label: "규칙 만들기",
+                label: t("createRule"),
                 icon: <RuleOutlinedIcon fontSize="small" />,
                 hidden: isDraftFolder,
                 onClick: (row) => openRuleFromMessage(row),
             },
             {
-                label: "스팸 신고",
+                label: t("reportSpam"),
                 icon: <ReportGmailerrorredOutlinedIcon fontSize="small" />,
                 dividerBefore: true,
                 hidden: filters.folder !== "inbox",
@@ -758,21 +759,21 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     setRowConfirm({ row, kind: "spam", anchor: rowContextMenu.anchor ?? { top: 0, left: 0 } }),
             },
             {
-                label: "스팸 아님",
+                label: t("notSpam"),
                 icon: <RestoreFromTrashOutlinedIcon fontSize="small" />,
                 dividerBefore: true,
                 hidden: !isSpamFolder,
                 onClick: (row) => rowAction(row, "restore"),
             },
             {
-                label: "복원",
+                label: t("restore"),
                 icon: <RestoreFromTrashOutlinedIcon fontSize="small" />,
                 dividerBefore: true,
                 hidden: !isTrashFolder,
                 onClick: (row) => rowAction(row, "restore"),
             },
             {
-                label: "삭제",
+                label: t("delete"),
                 icon: <TrashIcon fontSize="small" />,
                 dividerBefore: filters.folder !== "inbox" && !isSpamFolder,
                 hidden: isTrashFolder,
@@ -780,13 +781,13 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     setRowConfirm({ row, kind: "trash", anchor: rowContextMenu.anchor ?? { top: 0, left: 0 } }),
             },
             {
-                label: "영구 삭제",
+                label: t("deleteForever"),
                 icon: <TrashIcon fontSize="small" />,
                 hidden: !isTrashFolder,
                 onClick: (row) =>
                     ConfirmDialog({
-                        title: "영구 삭제",
-                        message: "이 메일을 영구 삭제합니다. 되돌릴 수 없습니다.",
+                        title: t("deleteForever"),
+                        message: t("deleteForeverConfirm"),
                         onConfirm: () => rowAction(row, "delete"),
                     }),
             },
@@ -893,7 +894,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 onClick={handleCompose}
                 disabled={accounts.length === 0}
             >
-                새 메일
+                {t("compose")}
             </Button>
         ),
         toolbar: isMobile ? undefined : bulkBar,
@@ -1082,8 +1083,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const emptyMessage = error
         ? error
         : accounts.length === 0
-          ? "등록된 메일 계정이 없습니다. 오른쪽 위 계정 관리에서 계정을 등록하세요."
-          : "메일이 없습니다.";
+          ? t("noAccounts")
+          : t("noMail");
 
     // 공용 다이얼로그(작성 + 관리 UI) — 데스크탑·모바일 공통.
     // 관리 UI(관리 다이얼로그·계정 폼·규칙 폼)는 앱이 자기 레이아웃에 호스트를 뒀으면(appHostsMailManage) 여기서
@@ -1132,9 +1133,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 anchorEl={rowConfirmAnchor}
                 placement="bottom-start"
                 zIndex={1400}
-                title={rowConfirm?.kind === "spam" ? "이 메일을 스팸으로 신고할까요?" : "이 메일을 삭제할까요?"}
-                confirmText={rowConfirm?.kind === "spam" ? "스팸 신고" : "삭제"}
-                cancelText="취소"
+                title={rowConfirm?.kind === "spam" ? t("reportSpamConfirm") : t("deleteConfirm")}
+                confirmText={rowConfirm?.kind === "spam" ? t("reportSpam") : t("delete")}
+                cancelText={t("cancel")}
                 onCancel={() => setRowConfirm(null)}
                 onConfirm={() => {
                     const target = rowConfirm;
@@ -1148,7 +1149,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // ── 모바일: 카드 목록 + 상세(mfd 슬라이드) + 새 메일 FAB ─────────────────────────────
     if (isMobile) {
         const scopeAccount = accounts.find((a) => a.seq === filters.mailAccountSeq);
-        const scopeLabel = scopeAccount ? scopeAccount.name || scopeAccount.email : "전체 계정";
+        const scopeLabel = scopeAccount ? scopeAccount.name || scopeAccount.email : t("allAccounts");
         const unreadCount = filters.folder === "inbox" ? counts.inbox_unread : 0;
         // 앱이 모바일 목록 래퍼를 주입하지 않았으면 머리(검색·필터 상자)를 그리지 않고 탭 + 접히는 검색칸을 쓴다.
         const inlineMobileTop = !mobileConfig?.CardListLayout;
@@ -1211,14 +1212,14 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                     indeterminate={someChecked && !allChecked}
                                     onChange={toggleAllChecked}
                                     sx={{ p: 0.75, ml: 0.5, flexShrink: 0 }}
-                                    inputProps={{ "aria-label": "전체 선택" }}
+                                    inputProps={{ "aria-label": t("selectAll") }}
                                 />
                             )}
                             {bulkBar ? (
                                 <>
                                     {/* 고른 수 — 아이콘만 있는 바가 무엇을 대상으로 하는지 보인다. */}
                                     <Typography sx={{ flexShrink: 0, fontSize: mfs(15), color: "#475569", fontWeight: 600 }}>
-                                        {checkedCount}개
+                                        {t("selectedCount", { count: checkedCount })}
                                     </Typography>
                                     <Box sx={{ flex: 1, minWidth: 0, display: "flex", justifyContent: "flex-end" }}>{bulkBar}</Box>
                                 </>
@@ -1245,7 +1246,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                                     onClick={toggleAllChecked}
                                                     sx={{ p: 0, border: 0, background: "none", cursor: "pointer", font: "inherit", color: "inherit" }}
                                                 >
-                                                    전체 선택
+                                                    {t("selectAll")}
                                                 </Box>
                                                 {scopeAccount ? ` · ${scopeLabel}` : ""}
                                             </>
@@ -1277,7 +1278,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                                         color: filters.unreadOnly ? "primary.main" : "inherit",
                                                     }}
                                                 >
-                                                    안 읽음 {counts.inbox_unread}
+                                                    {t("unreadCount", { count: counts.inbox_unread })}
                                                 </Box>
                                             </>
                                         )}
@@ -1352,7 +1353,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     바가 있는 라우트 화면에서만 그 높이만큼 올라간다. 계정이 없으면 계정 등록 창이 열린다(handleCompose). */}
                 <Fab
                     color="primary"
-                    aria-label="새 메일"
+                    aria-label={t("compose")}
                     onClick={handleCompose}
                     sx={{
                         position: "fixed",
@@ -1369,7 +1370,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     open={Boolean(detail) || loadingDetail}
                     title={
                         (detail?.folder ?? filters.folder) === "custom"
-                            ? (currentUserFolder?.name ?? "메일함")
+                            ? (currentUserFolder?.name ?? t("mailbox"))
                             : MAIL_FOLDER_LABELS[(detail?.folder as MailListFolder | undefined) ?? filters.folder]
                     }
                     onClose={() => state.actions.clearSelection()}
@@ -1437,12 +1438,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 scrollButtons="auto"
                 sx={{ minHeight: 44, borderBottom: "1px solid #e2e8f0", flexShrink: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
             >
-                <Tab value="all" label="전체" />
-                <Tab value="unread" label={desktopUnread > 0 ? `안 읽음 ${desktopUnread}` : "안 읽음"} />
+                <Tab value="all" label={t("all")} />
+                <Tab value="unread" label={desktopUnread > 0 ? t("unreadCount", { count: desktopUnread }) : t("unread")} />
                 {/* 별표는 글 대신 노란 별(0.3.158) — 목록 행의 켜진 별과 같은 아이콘 · 같은 노랑이라 무엇을 거르는 탭인지 바로 보인다. */}
                 <Tab
                     value="starred"
-                    aria-label="별표"
+                    aria-label={t("starred")}
                     sx={{ minWidth: 56 }}
                     label={<StarRoundedIcon sx={{ fontSize: 22, color: "#f59e0b", fill: "currentColor" }} />}
                 />

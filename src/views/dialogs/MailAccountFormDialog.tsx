@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 메일 계정 등록/수정 다이얼로그(mfd) — 기본 · 수신 서버 · 발신 서버 · 서명 + 접속 테스트.
  *
@@ -58,13 +59,13 @@ const SIGNATURE_TOOLBAR: ToolbarConfig = {
 const NOTE_SX = { fontSize: "15px", color: "#111" } as const;
 
 const PROTOCOL_OPTIONS = [
-    { value: "imap", label: "IMAP (권장 — 서버와 동기화)" },
-    { value: "pop3", label: "POP3 (내려받기)" },
+    { value: "imap", get label() { return t("protocolImap"); } },
+    { value: "pop3", get label() { return t("protocolPop3"); } },
 ];
 const SECURITY_OPTIONS = [
     { value: "ssl", label: "SSL/TLS" },
     { value: "starttls", label: "STARTTLS" },
-    { value: "none", label: "없음(평문)" },
+    { value: "none", get label() { return t("securityNone"); } },
 ];
 
 /** 메일 계정 다이얼로그 컴포넌트 */
@@ -83,7 +84,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     const lastSyncedSignatureRef = useRef<string | null>(null);
     const signatureEditorConfig = useMemo<EditorConfig>(
         () => ({
-            placeholder: "서명을 입력하세요 (메일 본문 끝에 붙습니다)",
+            placeholder: t("signaturePlaceholder"),
             // 모바일은 서식 편집이 어려워 툴바를 감추고 내용 높이에 맞춘다(새 메일·업무함과 같은 규칙).
             minHeight: isMobile ? 140 : 180,
             showToolbar: !isMobile,
@@ -175,8 +176,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     const handleDelete = useCallback(() => {
         if (!(seq > 0)) return;
         ConfirmDialog({
-            title: "메일 계정 삭제",
-            message: "이 계정과 받은/보낸 메일이 모두 삭제됩니다. 삭제하시겠습니까?",
+            title: t("deleteAccount"),
+            message: t("deleteAccountConfirm"),
             onConfirm: () => void removeAccount(seq),
         });
     }, [seq, removeAccount]);
@@ -185,20 +186,20 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
         () => [
             {
                 id: "mail-account-basic",
-                title: "기본 정보",
+                title: t("basicInfo"),
                 showTitle: true,
                 children: (
                     <Box sx={SECTION_SX}>
                         <Box sx={ROW_2_SX}>
                             <ClearTextField
                                 name="email"
-                                label="메일 주소 *"
+                                label={t("emailRequired")}
                                 form={form}
                                 fullWidth
                                 autoComplete="off"
                                 onBlur={applyPreset}
                             />
-                            <ClearTextField name="name" label="보내는 사람 이름" form={form} fullWidth />
+                            <ClearTextField name="name" label={t("senderName")} form={form} fullWidth />
                         </Box>
                         {/* 스위치 — 모바일은 한 줄에 하나씩(세로), 데스크톱은 가로 나열 */}
                         <Stack
@@ -207,16 +208,16 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                             sx={{ flexWrap: "wrap", alignItems: isMobile ? "flex-start" : "center", minHeight: 40 }}
                         >
                             {canShare || isShared ? (
-                                <Switch form={form} name="is_shared" label="공용 계정" disabled={!canShare} />
+                                <Switch form={form} name="is_shared" label={t("sharedAccount")} disabled={!canShare} />
                             ) : null}
-                            {!isShared ? <Switch form={form} name="is_default" label="기본 발신 계정" /> : null}
+                            {!isShared ? <Switch form={form} name="is_default" label={t("defaultSendAccount")} /> : null}
                         </Stack>
                         {/* 어느 팀의 공용인지 — 팀 주입 앱에서 신규 등록일 때만 고른다(팀은 등록 후 바꾸지 않는다). */}
                         {isShared && seq === 0 && shareableTeams.length > 0 ? (
                             <Select
                                 form={form}
                                 name="team_seq"
-                                label="공용 팀"
+                                label={t("sharedTeam")}
                                 options={shareableTeams.map((t) => ({ value: t.seq, label: t.name }))}
                                 showEmptyOption={false}
                                 fullWidth={false}
@@ -225,10 +226,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                         ) : null}
                         {isShared ? (
                             <Typography sx={NOTE_SX}>
-                                공용 계정의 받은편지함·보낸편지함은 {teams.length > 0 ? "그 팀의 팀원" : "같은 회사"}{" "}
-                                전원이 보고 보낼 수 있습니다. 읽음/중요 표시는 함께 공유되고, 임시보관은 작성자 본인만
-                                봅니다. 수정·삭제는 {teams.length > 0 ? "팀 소유자/관리자" : "관리자"} 또는 등록자만 할
-                                수 있습니다.
+                                {teams.length > 0 ? t("sharedAccountNoteTeam") : t("sharedAccountNoteCompany")}
                             </Typography>
                         ) : null}
                         {preset?.note ? (
@@ -248,7 +246,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                             }}
                                             sx={{ fontSize: "15px", fontWeight: 600 }}
                                         >
-                                            {preset.note_link_label ?? "설정 방법 보기"} ↗
+                                            {preset.note_link_label ?? t("howToSetUp")} ↗
                                         </Link>
                                     </>
                                 ) : null}
@@ -259,14 +257,14 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             },
             {
                 id: "mail-account-incoming",
-                title: "수신 서버",
+                title: t("incomingServer"),
                 showTitle: true,
                 children: (
                     <Box sx={SECTION_SX}>
                         {/* [프로토콜][호스트] */}
                         <Box sx={ROW_INCOMING_SX}>
                             <Select
-                                label="프로토콜"
+                                label={t("protocol")}
                                 showEmptyOption={false}
                                 name="incoming_protocol"
                                 form={form}
@@ -277,7 +275,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                             />
                             <ClearTextField
                                 name="incoming_host"
-                                label="호스트 *"
+                                label={t("hostRequired")}
                                 form={form}
                                 fullWidth
                                 placeholder="imap.example.com"
@@ -286,7 +284,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                         {/* [보안][포트] */}
                         <Box sx={ROW_2_SX}>
                             <Select
-                                label="보안"
+                                label={t("security")}
                                 showEmptyOption={false}
                                 name="incoming_security"
                                 form={form}
@@ -298,21 +296,21 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                     )
                                 }
                             />
-                            <NumberTextField name="incoming_port" label="포트" form={form} fullWidth />
+                            <NumberTextField name="incoming_port" label={t("port")} form={form} fullWidth />
                         </Box>
                         {/* [아이디][비밀번호] */}
                         <Box sx={ROW_2_SX}>
                             <ClearTextField
                                 name="incoming_username"
-                                label="아이디"
+                                label={t("username")}
                                 form={form}
                                 fullWidth
                                 autoComplete="off"
-                                placeholder="비우면 메일 주소를 사용"
+                                placeholder={t("usernamePlaceholder")}
                             />
                             <PasswordTextField
                                 name="incoming_password"
-                                label="비밀번호 *"
+                                label={t("passwordRequired")}
                                 form={form}
                                 fullWidth
                                 autoComplete="new-password"
@@ -321,41 +319,37 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                         <Box sx={ROW_2_SX}>
                             <NumberTextField
                                 name="sync_interval_min"
-                                label="자동 수신 간격(분)"
+                                label={t("fetchInterval")}
                                 form={form}
                                 fullWidth
                             />
                             {protocol === "imap" ? (
                                 <ClearTextField
                                     name="imap_mailbox"
-                                    label="수신 폴더 (IMAP)"
+                                    label={t("incomingFolder")}
                                     form={form}
                                     fullWidth
                                     placeholder="INBOX"
                                 />
                             ) : (
                                 <Box sx={{ display: "flex", alignItems: "center", minHeight: 56 }}>
-                                    <Switch form={form} name="pop3_delete_after_fetch" label="받은 뒤 서버에서 삭제" />
+                                    <Switch form={form} name="pop3_delete_after_fetch" label={t("deleteAfterFetch")} />
                                 </Box>
                             )}
                         </Box>
                         <Typography sx={NOTE_SX}>
                             {incomingSecurity === "none"
-                                ? "⚠ 평문 접속은 비밀번호가 노출될 수 있습니다."
+                                ? t("plainTextWarning")
                                 : protocol === "imap"
-                                  ? "IMAP · " +
-                                    incomingSecurity.toUpperCase() +
-                                    " — 수신 폴더는 서버에서 받은편지함으로 가져올 폴더이며 보통 INBOX 그대로 둡니다."
-                                  : "POP3 · " +
-                                    incomingSecurity.toUpperCase() +
-                                    " — 여러 기기에서 함께 쓰려면 IMAP 을 권장합니다."}
+                                  ? t("imapNote", { security: incomingSecurity.toUpperCase() })
+                                  : t("pop3Note", { security: incomingSecurity.toUpperCase() })}
                         </Typography>
                     </Box>
                 ),
             },
             {
                 id: "mail-account-smtp",
-                title: "발신 서버",
+                title: t("outgoingServer"),
                 showTitle: true,
                 children: (
                     <Box sx={SECTION_SX}>
@@ -363,13 +357,13 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                         <Box sx={ROW_SMTP_SX}>
                             <ClearTextField
                                 name="smtp_host"
-                                label="호스트 *"
+                                label={t("hostRequired")}
                                 form={form}
                                 fullWidth
                                 placeholder="smtp.example.com"
                             />
                             <Select
-                                label="보안"
+                                label={t("security")}
                                 showEmptyOption={false}
                                 name="smtp_security"
                                 form={form}
@@ -381,27 +375,27 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                     )
                                 }
                             />
-                            <NumberTextField name="smtp_port" label="포트" form={form} fullWidth />
+                            <NumberTextField name="smtp_port" label={t("port")} form={form} fullWidth />
                         </Box>
                         <Box sx={{ display: "flex", alignItems: "center", minHeight: 40 }}>
                             <Switch
                                 form={form}
                                 name="smtp_use_incoming_auth"
-                                label="수신 서버와 같은 아이디/비밀번호 사용"
+                                label={t("sameCredentials")}
                             />
                         </Box>
                         {!useIncomingAuth ? (
                             <Box sx={ROW_2_SX}>
                                 <ClearTextField
                                     name="smtp_username"
-                                    label="SMTP 아이디"
+                                    label={t("smtpUsername")}
                                     form={form}
                                     fullWidth
                                     autoComplete="off"
                                 />
                                 <PasswordTextField
                                     name="smtp_password"
-                                    label="SMTP 비밀번호 *"
+                                    label={t("smtpPasswordRequired")}
                                     form={form}
                                     fullWidth
                                     autoComplete="new-password"
@@ -413,7 +407,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             },
             {
                 id: "mail-account-signature",
-                title: "서명",
+                title: t("signature"),
                 showTitle: true,
                 children: (
                     <Box sx={SECTION_SX}>
@@ -440,7 +434,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                 {...signatureEditorConfig}
                             />
                         </Box>
-                        <Typography sx={NOTE_SX}>새 메일·답장 본문 끝에 자동으로 붙습니다.</Typography>
+                        <Typography sx={NOTE_SX}>{t("signatureNote")}</Typography>
                     </Box>
                 ),
             },
@@ -467,7 +461,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             open={modal.isOpen}
             onClose={modal.close}
             // "외부" 를 붙인다 — 이 앱에는 기업메일(우리 도메인 사서함)이 따로 있어 그냥 "메일 계정" 이면 갈리지 않는다.
-            title={{ text: `${isShared ? "공용 " : ""}외부 메일 계정 ${seq > 0 ? "수정" : "등록"}` }}
+            title={{ text: isShared ? (seq > 0 ? t("editSharedAccount") : t("addSharedAccount")) : seq > 0 ? t("editAccount") : t("addAccount") }}
             titleIcons={{ delete: { visible: false } }}
             // 섹션 탭(기본 정보/수신/발신/서명)을 보여 주고, 콘텐츠 높이는 800px 로 고정한다(탭 전환 시 크기 점프 방지).
             // 모바일은 풀스크린 슬라이드라 고정 높이를 두지 않는다(화면 높이를 그대로 쓴다).
@@ -489,7 +483,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                       }
                     : undefined
             }
-            locale="ko"
+            locale={formDialogLocale()}
             // sm(600)은 수신 서버 줄(프로토콜·호스트)이 눌려 보였고 md(900)는 너무 넓다 — 그 사이 680 으로 직접 잡는다(2026-10-01).
             width={isMobile ? undefined : 680}
             maxWidth="md"
@@ -508,8 +502,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                               <Stack spacing={1} sx={{ width: "100%" }}>
                                   {testResult ? (
                                       <Typography sx={{ fontSize: "14px", color: "#111", wordBreak: "break-word" }}>
-                                          수신 {testResult.incoming.ok ? "✅" : `❌ ${testResult.incoming.error ?? ""}`}{" "}
-                                          · 발신 {testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}`}
+                                          {t("testIncoming", { result: testResult.incoming.ok ? "✅" : `❌ ${testResult.incoming.error ?? ""}` })}{" "}
+                                          · {t("testOutgoing", { result: testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}` })}
                                       </Typography>
                                   ) : null}
                                   <Stack direction="row" sx={{ width: "100%", gap: 1.5 }}>
@@ -519,7 +513,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                           disabled={testing || isSubmitting}
                                           sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                       >
-                                          {testing ? <CircularProgress size={20} color="inherit" /> : "접속 테스트"}
+                                          {testing ? <CircularProgress size={20} color="inherit" /> : t("testConnection")}
                                       </Button>
                                       <Button
                                           variant="outlined"
@@ -528,7 +522,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                           disabled={isSubmitting || testing}
                                           sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                       >
-                                          취소
+                                          {t("cancel")}
                                       </Button>
                                       <Button
                                           variant="contained"
@@ -537,7 +531,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                           disabled={isSubmitting || testing}
                                           sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                       >
-                                          {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "저장"}
+                                          {isSubmitting ? <CircularProgress size={20} color="inherit" /> : t("save")}
                                       </Button>
                                   </Stack>
                               </Stack>
@@ -552,12 +546,12 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                       disabled={testing || isSubmitting}
                                       sx={{ minWidth: 110 }}
                                   >
-                                      {testing ? <CircularProgress size={20} color="inherit" /> : "접속 테스트"}
+                                      {testing ? <CircularProgress size={20} color="inherit" /> : t("testConnection")}
                                   </Button>
                                   {testResult ? (
                                       <Typography sx={{ fontSize: "15px", color: "#111" }}>
-                                          수신 {testResult.incoming.ok ? "✅" : `❌ ${testResult.incoming.error ?? ""}`}{" "}
-                                          · 발신 {testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}`}
+                                          {t("testIncoming", { result: testResult.incoming.ok ? "✅" : `❌ ${testResult.incoming.error ?? ""}` })}{" "}
+                                          · {t("testOutgoing", { result: testResult.smtp.ok ? "✅" : `❌ ${testResult.smtp.error ?? ""}` })}
                                       </Typography>
                                   ) : null}
                               </Stack>
@@ -570,7 +564,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                   disabled={isSubmitting || testing}
                                   sx={{ minWidth: 80 }}
                               >
-                                  {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "저장"}
+                                  {isSubmitting ? <CircularProgress size={20} color="inherit" /> : t("save")}
                               </Button>
                           ),
                       }),

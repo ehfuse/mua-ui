@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 주소록 페이지 — 사용자별 연락처 목록(검색·즐겨찾기) + 등록/수정 다이얼로그 + [메일 보내기](작성 다이얼로그).
  * 데스크탑 = ListLayout 표, 모바일 = 카드 목록(서브페이지 본문으로도 마운트된다: embedded).
@@ -57,7 +58,7 @@ function ScopeChip({ shared }: { shared: boolean }) {
                 bgcolor: shared ? "#eff6ff" : "#f1f5f9",
             }}
         >
-            {shared ? "공용" : "개인"}
+            {shared ? t("shared") : t("personal")}
         </Box>
     );
 }
@@ -93,10 +94,10 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const load = useCallback(async (keyword: string, silent = false) => {
         if (!silent) setLoading(true);
         try {
-            const data = unwrap(await mailApi.listContacts(keyword), "주소록을 읽지 못했습니다.");
+            const data = unwrap(await mailApi.listContacts(keyword), t("loadContactsFailed"));
             setContacts(Array.isArray(data.items) ? data.items : []);
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "주소록을 읽지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("loadContactsFailed") });
         } finally {
             setLoading(false);
         }
@@ -122,7 +123,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
         (email: string) => {
             const account = accounts.find((a) => a.is_default) ?? accounts[0];
             if (!account) {
-                ErrorAlert({ message: "메일을 보내려면 먼저 메일 계정을 등록하세요." });
+                ErrorAlert({ message: t("addAccountToSend") });
                 return;
             }
             contactForm.modal.close();
@@ -136,10 +137,10 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
         const next = !contact.is_favorite;
         setContacts((prev) => prev.map((c) => (c.seq === contact.seq ? { ...c, is_favorite: next } : c)));
         try {
-            unwrap(await mailApi.updateContact(contact.seq, { is_favorite: next }), "저장하지 못했습니다.");
+            unwrap(await mailApi.updateContact(contact.seq, { is_favorite: next }), t("saveFailed"));
         } catch (error) {
             setContacts((prev) => prev.map((c) => (c.seq === contact.seq ? { ...c, is_favorite: !next } : c)));
-            ErrorAlert({ message: error instanceof Error ? error.message : "저장하지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("saveFailed") });
         }
     }, []);
 
@@ -167,11 +168,11 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const headerConfig: NonNullable<ListLayoutProps["header"]> = {
         left: isMobile ? undefined : (
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={openNew}>
-                연락처 추가
+                {t("addContact")}
             </Button>
         ),
         showSearch: true,
-        searchPlaceholder: "이름, 메일 검색",
+        searchPlaceholder: t("searchNameEmail"),
         searchWidth: isMobile ? mobileSearchWidth : undefined,
         onSearchChange: handleSearchChange,
         onSearch: handleSearch,
@@ -198,7 +199,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
             {
                 // 줄 번호 — 지금 보는 목록에서 몇 번째인가. 연락처의 고유 번호가 아니다.
                 id: "no",
-                text: "번호",
+                text: t("number"),
                 width: 64,
                 align: "center",
                 render: (_row, index) => cellText(String(index + 1), true),
@@ -212,7 +213,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                 render: (row) => (
                     <IconButton
                         size="small"
-                        aria-label={row.is_favorite ? "즐겨찾기 해제" : "즐겨찾기"}
+                        aria-label={row.is_favorite ? t("unfavorite") : t("favorite")}
                         onClick={(event) => {
                             event.stopPropagation();
                             void toggleFavorite(row);
@@ -225,7 +226,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
             },
             {
                 id: "name",
-                text: "이름",
+                text: t("name"),
                 width: "18%",
                 style: { fontSize: 15 },
                 render: (row) => (
@@ -236,16 +237,16 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
             },
             {
                 id: "scope",
-                text: "구분",
+                text: t("type"),
                 width: 80,
                 align: "center",
                 style: { textAlign: "center" },
                 render: (row) => <ScopeChip shared={row.scope === "shared"} />,
             },
-            { id: "email", text: "메일 주소", width: "26%", render: (row) => cellText(row.email) },
-            { id: "organization", text: "소속", width: "16%", render: (row) => cellText(row.organization || "") },
-            { id: "phone", text: "전화번호", width: 150, align: "center", render: (row) => cellText(row.phone || "") },
-            { id: "memo", text: "메모", render: (row) => cellText(row.memo || "", true) },
+            { id: "email", text: t("emailAddress"), width: "26%", render: (row) => cellText(row.email) },
+            { id: "organization", text: t("organization"), width: "16%", render: (row) => cellText(row.organization || "") },
+            { id: "phone", text: t("phone"), width: 150, align: "center", render: (row) => cellText(row.phone || "") },
+            { id: "memo", text: t("memo"), render: (row) => cellText(row.memo || "", true) },
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [toggleFavorite]
@@ -255,10 +256,10 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const favoriteCount = useMemo(() => contacts.filter((c) => c.is_favorite).length, [contacts]);
 
     const emptyMessage = search
-        ? "검색 결과가 없습니다."
+        ? t("noResults")
         : scope === "favorite"
-          ? "별표한 연락처가 없습니다. 연락처 줄의 별을 누르면 여기에 모입니다."
-        : "등록된 연락처가 없습니다. 연락처를 추가하거나 메일 상세의 보낸 사람 옆 주소록 아이콘을 누르세요.";
+          ? t("noStarredContacts")
+        : t("noContacts");
 
     const dialogs = (
         <>
@@ -277,7 +278,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                     inDialog={embedded}
                 >
                     {/* 갈래 탭 — 메일 목록의 폰 탭(MailMobileTop)과 같은 모양: 칸이 폭을 똑같이 나누고 고른 칸만 파란 굵은 글자 + 밑줄. */}
-                    <Box role="tablist" aria-label="주소록 보기" sx={{ display: "flex", mx: "-16px", mt: "-16px", mb: 1.5, bgcolor: "#fff", borderBottom: "1px solid #e2e8f0" }}>
+                    <Box role="tablist" aria-label={t("contactsView")} sx={{ display: "flex", mx: "-16px", mt: "-16px", mb: 1.5, bgcolor: "#fff", borderBottom: "1px solid #e2e8f0" }}>
                         {(["all", "favorite"] as const).map((key) => {
                             const selected = scope === key;
                             return (
@@ -304,7 +305,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                         color: selected ? "primary.main" : "#64748b",
                                     }}
                                 >
-                                    {key === "all" ? "전체" : favoriteCount > 0 ? `별표 ${favoriteCount}` : "별표"}
+                                    {key === "all" ? t("all") : favoriteCount > 0 ? t("starredCount", { count: favoriteCount }) : t("starred")}
                                 </Box>
                             );
                         })}
@@ -354,7 +355,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                                 {contact.name || contact.email}
                                             </Typography>
                                             {contact.scope === "shared" ? (
-                                                <MobileChip tone="blue">공용</MobileChip>
+                                                <MobileChip tone="blue">{t("shared")}</MobileChip>
                                             ) : null}
                                             {contact.organization ? (
                                                 <MobileChip>{contact.organization}</MobileChip>
@@ -376,7 +377,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                 </MobileCardListLayout>
                 <Fab
                     color="primary"
-                    aria-label="연락처 추가"
+                    aria-label={t("addContact")}
                     onClick={openNew}
                     sx={{
                         position: "fixed",
@@ -418,10 +419,10 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                             onChange={(_event, value: "all" | "favorite") => setScope(value)}
                             sx={{ minHeight: 44, borderBottom: "1px solid #e2e8f0", flexShrink: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
                         >
-                            <Tab value="all" label="전체" />
+                            <Tab value="all" label={t("all")} />
                             <Tab
                                 value="favorite"
-                                aria-label="별표"
+                                aria-label={t("starred")}
                                 sx={{ minWidth: 56 }}
                                 label={<StarRoundedIcon sx={{ fontSize: 22, color: "#f59e0b", fill: "currentColor" }} />}
                             />

@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 주소 도메인 → 서비스(브랜드) 식별 — 사이드바/계정 목록의 아이콘 표시에 쓴다.
  */
@@ -16,11 +17,11 @@ export interface MailProviderInfo {
 
 const PROVIDERS: Record<MailProviderKey, MailProviderInfo> = {
     gmail: { key: "gmail", label: "Gmail", color: "#fff", text_color: "#EA4335", letter: "M" },
-    naver: { key: "naver", label: "네이버", color: "#03C75A", text_color: "#fff", letter: "N" },
-    daum: { key: "daum", label: "다음", color: "#3B6CFF", text_color: "#fff", letter: "D" },
-    kakao: { key: "kakao", label: "카카오", color: "#FEE500", text_color: "#191919", letter: "K" },
+    naver: { key: "naver", get label() { return t("providerNaver"); }, color: "#03C75A", text_color: "#fff", letter: "N" },
+    daum: { key: "daum", get label() { return t("providerDaum"); }, color: "#3B6CFF", text_color: "#fff", letter: "D" },
+    kakao: { key: "kakao", get label() { return t("providerKakao"); }, color: "#FEE500", text_color: "#191919", letter: "K" },
     outlook: { key: "outlook", label: "Outlook", color: "#0078D4", text_color: "#fff", letter: "O" },
-    nate: { key: "nate", label: "네이트", color: "#E4002B", text_color: "#fff", letter: "n" },
+    nate: { key: "nate", get label() { return t("providerNate"); }, color: "#E4002B", text_color: "#fff", letter: "n" },
 };
 
 const DOMAIN_TO_PROVIDER: Record<string, MailProviderKey> = {

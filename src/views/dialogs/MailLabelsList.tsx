@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 색상 라벨 관리(0.3.158) — 관리 창의 "라벨" 목록(이름 · 색 · 순서 · 지우기)과 라벨 만들기/고치기 창.
  * 라벨은 사람마다라 공용/개인 구분이 없다. 지우면 그 라벨을 단 메일에서도 떨어진다(메일은 그대로).
@@ -56,27 +57,27 @@ function LabelRow({
                 <MailLabelChip label={label} maxWidth={360} />
             </Box>
             <Stack direction="row" spacing={0.25} alignItems="center">
-                <Tooltip title="위로">
+                <Tooltip title={t("moveUp")}>
                     <span>
-                        <IconButton size="small" aria-label="위로" disabled={first} onClick={() => onMove(-1)}>
+                        <IconButton size="small" aria-label={t("moveUp")} disabled={first} onClick={() => onMove(-1)}>
                             <ArrowUpwardIcon fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>
-                <Tooltip title="아래로">
+                <Tooltip title={t("moveDown")}>
                     <span>
-                        <IconButton size="small" aria-label="아래로" disabled={last} onClick={() => onMove(1)}>
+                        <IconButton size="small" aria-label={t("moveDown")} disabled={last} onClick={() => onMove(1)}>
                             <ArrowDownwardIcon fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>
-                <Tooltip title="수정">
-                    <IconButton size="small" aria-label="수정" onClick={onEdit}>
+                <Tooltip title={t("edit")}>
+                    <IconButton size="small" aria-label={t("edit")} onClick={onEdit}>
                         <EditOutlinedIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title="삭제">
-                    <IconButton size="small" aria-label="삭제" onClick={onDelete}>
+                <Tooltip title={t("delete")}>
+                    <IconButton size="small" aria-label={t("delete")} onClick={onDelete}>
                         <TrashIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
@@ -94,10 +95,10 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
             const [item] = next.splice(index, 1);
             next.splice(index + dir, 0, item);
             try {
-                const res = unwrap(await mailApi.reorderLabels(next.map((l) => l.seq)), "순서를 저장하지 못했습니다.");
+                const res = unwrap(await mailApi.reorderLabels(next.map((l) => l.seq)), t("reorderFailed"));
                 onChanged(res.items);
             } catch (error) {
-                ErrorAlert({ message: messageOf(error, "순서를 저장하지 못했습니다.") });
+                ErrorAlert({ message: messageOf(error, t("reorderFailed")) });
             }
         },
         [labels, onChanged]
@@ -105,16 +106,16 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
     const remove = useCallback(
         (label: MailLabel) =>
             ConfirmDialog({
-                title: "라벨 삭제",
-                message: `"${label.name}" 라벨을 삭제합니다. 이 라벨을 단 메일에서도 떨어집니다(메일은 지워지지 않습니다).`,
+                title: t("deleteLabel"),
+                message: t("deleteLabelConfirm", { name: label.name }),
                 onConfirm: () =>
                     void (async () => {
                         try {
-                            unwrap(await mailApi.deleteLabel(label.seq), "라벨을 삭제하지 못했습니다.");
-                            SuccessAlert("라벨을 삭제했습니다.");
+                            unwrap(await mailApi.deleteLabel(label.seq), t("labelDeleteFailed"));
+                            SuccessAlert(t("labelDeleted"));
                             onChanged();
                         } catch (error) {
-                            ErrorAlert({ message: messageOf(error, "라벨을 삭제하지 못했습니다.") });
+                            ErrorAlert({ message: messageOf(error, t("labelDeleteFailed")) });
                         }
                     })(),
             }),
@@ -124,7 +125,7 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
             {labels.length === 0 ? (
                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                    만든 라벨이 없습니다. 아래 [라벨 만들기]로 만드세요.
+                    {t("noLabels")}
                 </Typography>
             ) : null}
             {labels.map((label, index) => (
@@ -146,7 +147,7 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
 /** 색 견본 9칸 — 고른 칸은 체크 표시. */
 function ColorSwatches({ value, onChange }: { value: string; onChange: (color: string) => void }) {
     return (
-        <Box role="radiogroup" aria-label="라벨 색" sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+        <Box role="radiogroup" aria-label={t("labelColor")} sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
             {LABEL_COLORS.map((c) => {
                 const selected = value.toLowerCase() === c.color;
                 return (
@@ -215,21 +216,21 @@ export function MailLabelFormDialog({
         try {
             const saved =
                 isEdit && label
-                    ? unwrap(await mailApi.updateLabel(label.seq, { name: next, color }), "라벨을 저장하지 못했습니다.")
-                    : unwrap(await mailApi.createLabel({ name: next, color }), "라벨을 만들지 못했습니다.");
+                    ? unwrap(await mailApi.updateLabel(label.seq, { name: next, color }), t("labelSaveFailed"))
+                    : unwrap(await mailApi.createLabel({ name: next, color }), t("labelCreateFailed"));
             onClose();
             onSaved(saved);
         } catch (error) {
-            ErrorAlert({ message: messageOf(error, "라벨을 저장하지 못했습니다.") });
+            ErrorAlert({ message: messageOf(error, t("labelSaveFailed")) });
         } finally {
             setBusy(false);
         }
     }, [name, color, busy, isEdit, label, onClose, onSaved]);
 
-    const preview: MailLabel = { seq: 0, name: name.trim() || "라벨", color, sort_no: 0 };
+    const preview: MailLabel = { seq: 0, name: name.trim() || t("label"), color, sort_no: 0 };
     const saveButton = (
         <Button variant="contained" onClick={() => void save()} disabled={busy || !name.trim()}>
-            저장
+            {t("save")}
         </Button>
     );
     return (
@@ -239,10 +240,10 @@ export function MailLabelFormDialog({
             mobilePresentation={isMobile ? "slide" : "dialog"}
             open={open}
             onClose={requestClose}
-            title={{ text: isEdit ? "라벨 수정" : "새 라벨" }}
+            title={{ text: isEdit ? t("editLabel") : t("newLabel") }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
-            locale="ko"
+            locale={formDialogLocale()}
             maxWidth="xs"
             scrollPastLastSection={false}
             contentBottomPadding={24}
@@ -253,7 +254,7 @@ export function MailLabelFormDialog({
                     children: (
                         <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
                             <ClearTextField
-                                label="라벨 이름"
+                                label={t("labelName")}
                                 size="medium"
                                 fullWidth
                                 autoFocus

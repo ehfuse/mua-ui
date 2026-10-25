@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 메일 계정 목록(메일 관리 다이얼로그의 "계정" 탭) — 내가 쓸 수 있는 계정(개인 + 공용)을 수정/삭제/지금 동기화.
  * 수정·삭제는 can_manage(개인=소유자, 공용=관리자·등록자)인 계정만 가능하다.
@@ -90,7 +91,7 @@ function AccountRow({
             {/* 기업메일 사서함(kind=hosted)은 외부 계정이 아니라 팀 도메인 주소다 — 여기서는 못 고치므로
                 "개인" 대신 정체를 적는다(관리는 팀 관리 › 기업메일). */}
             <Box component="span" sx={chipSx(!teamName && isShared)}>
-                {account.kind === "hosted" ? "기업메일" : isShared ? "공용" : "개인"}
+                {account.kind === "hosted" ? t("hostedMail") : isShared ? t("shared") : t("personal")}
             </Box>
         </Stack>
     );
@@ -148,14 +149,14 @@ function AccountRow({
                     ) : null}
                     {/* 기본 발신 칩 — 데스크톱은 이름 옆, 모바일은 하단 액션행 왼쪽(이름 줄이 좁아 줄바꿈되던 것). */}
                     {account.is_default && !isMobile ? (
-                        <Chip size="small" label="기본 발신" color="primary" sx={DEFAULT_CHIP_SX} />
+                        <Chip size="small" label={t("defaultSend")} color="primary" sx={DEFAULT_CHIP_SX} />
                     ) : null}
                 </Stack>
                 {/* 기업메일 사서함은 IMAP 으로 가져오지 않는다 — 우리 메일서버가 받는 즉시 넣어 준다.
                     수신 서버 표시는 폼 재사용을 위한 값일 뿐이라 그대로 적으면 거짓말이 된다(2026-09-06). */}
                 <Typography noWrap sx={{ fontSize: "15px", color: "#475569", mt: 0.5 }}>
                     {isHosted
-                        ? `기업메일 사서함 · ${account.email.split("@")[1] ?? ""}`
+                        ? t("hostedMailboxDomain", { domain: account.email.split("@")[1] ?? "" })
                         : `${account.incoming_protocol.toUpperCase()} · ${account.incoming_host}`}
                 </Typography>
                 {/* 마지막 동기화(또는 오류)는 아래 줄에 따로 — 가져오지 않는 사서함에는 동기화 개념이 없다. */}
@@ -173,16 +174,16 @@ function AccountRow({
                                 lineHeight: 1.4,
                             }}
                         >
-                            {`오류: ${account.last_error}`}
+                            {t("errorWithMessage", { message: account.last_error })}
                         </Typography>
                     </Tooltip>
                 ) : (
                     <Typography noWrap sx={{ fontSize: "15px", color: "#475569", mt: 0.25 }}>
                         {isHosted
-                            ? "받는 즉시 들어옵니다"
+                            ? t("arrivesInstantly")
                             : account.last_sync_time
-                              ? `마지막 동기화 ${formatMailFullDate(account.last_sync_time)}`
-                              : "아직 동기화 전"}
+                              ? t("lastSynced", { time: formatMailFullDate(account.last_sync_time) })
+                              : t("notSyncedYet")}
                     </Typography>
                 )}
             </Box>
@@ -199,7 +200,7 @@ function AccountRow({
                 {/* 모바일 — [개인/공용][기본 발신] 칩을 액션행 왼쪽에, 아이콘들은 오른쪽으로 민다. */}
                 {isMobile ? scopeChip : null}
                 {isMobile && account.is_default ? (
-                    <Chip size="small" label="기본 발신" color="primary" sx={DEFAULT_CHIP_SX} />
+                    <Chip size="small" label={t("defaultSend")} color="primary" sx={DEFAULT_CHIP_SX} />
                 ) : null}
                 {isMobile ? <Box sx={{ flex: 1 }} /> : null}
                 {/* 기업메일 사서함에는 가져올 서버가 없다 — 눌러도 할 일이 없는 버튼은 두지 않는다.
@@ -212,9 +213,9 @@ function AccountRow({
                         </IconButton>
                     ) : null
                 ) : (
-                    <Tooltip title="지금 동기화">
+                    <Tooltip title={t("syncNow")}>
                         <span>
-                            <IconButton size="small" onClick={onSync} disabled={syncing} aria-label="지금 동기화">
+                            <IconButton size="small" onClick={onSync} disabled={syncing} aria-label={t("syncNow")}>
                                 {syncing ? <CircularProgress size={16} /> : <SyncIcon fontSize="small" />}
                             </IconButton>
                         </span>
@@ -224,19 +225,19 @@ function AccountRow({
                     (can_edit_profile). 사서함 자체는 여전히 팀 관리 › 기업메일 소관이다(2026-09-07). */}
                 <Tooltip title={
                         account.can_manage
-                            ? "수정"
+                            ? t("edit")
                             : canEditProfile
-                              ? "보내는 사람 이름·서명 (주소·수신 설정은 팀 관리 › 기업메일)"
+                              ? t("editProfileTooltip")
                               : isHosted
-                                ? "기업메일 사서함은 팀 관리 › 기업메일에서 관리합니다"
-                                : "공용 계정은 관리자 또는 등록자만 수정할 수 있습니다"
+                                ? t("hostedManagedInTeam")
+                                : t("sharedAccountEditOnly")
                     }>
                     <span>
                         <IconButton
                             size="small"
                             onClick={onEdit}
                             disabled={!account.can_manage && !canEditProfile}
-                            aria-label="수정"
+                            aria-label={t("edit")}
                         >
                             <EditOutlinedIcon fontSize="small" />
                         </IconButton>
@@ -244,13 +245,13 @@ function AccountRow({
                 </Tooltip>
                 <Tooltip title={
                         account.can_manage
-                            ? "삭제"
+                            ? t("delete")
                             : isHosted
-                              ? "기업메일 사서함은 팀 관리 › 기업메일에서 관리합니다"
-                              : "공용 계정은 관리자 또는 등록자만 삭제할 수 있습니다"
+                              ? t("hostedManagedInTeam")
+                              : t("sharedAccountDeleteOnly")
                     }>
                     <span>
-                        <IconButton size="small" onClick={onDelete} disabled={!account.can_manage} aria-label="삭제">
+                        <IconButton size="small" onClick={onDelete} disabled={!account.can_manage} aria-label={t("delete")}>
                             <TrashIcon fontSize="small" />
                         </IconButton>
                     </span>
@@ -297,7 +298,7 @@ export function MailAccountsList({ accounts, syncingSeqs, onEdit, onDelete, onSy
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
             {accounts.length === 0 ? (
                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                    등록된 메일 계정이 없습니다. 아래 [계정 추가]로 등록하세요.
+                    {t("noAccountsAddBelow")}
                 </Typography>
             ) : (
                 ordered.map((account) => (

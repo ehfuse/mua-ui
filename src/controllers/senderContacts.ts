@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 보낸 사람 ↔ 주소록 — 편지 상세의 "주소록 추가" 아이콘과 외부 이미지 허용(신뢰 발신자)을 정하는 주소 집합이다.
  *
@@ -57,13 +58,13 @@ export function useSenderContacts(fromAddress: string | null | undefined, accoun
                 const scope = account?.scope === "shared" ? "shared" : "personal";
                 const res = await mailApi.createContact({ email, name, scope });
                 if (res && res.ok === false) {
-                    WarningAlert({ message: res.error || "이미 주소록에 있는 메일 주소입니다." });
+                    WarningAlert({ message: res.error || t("alreadyInContacts") });
                 } else {
-                    SuccessAlert("주소록에 추가했습니다.");
+                    SuccessAlert(t("addedToContacts"));
                 }
                 setContactEmails(new Set(contactEmails).add(email.toLowerCase()));
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "주소록에 추가하지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("addToContactsFailed") });
             }
         },
         [account]

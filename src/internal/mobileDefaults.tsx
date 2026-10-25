@@ -1,3 +1,4 @@
+import { formDialogLocale } from "../i18n";
 /** 모바일 셸 기본 구현 — 앱이 MuaConfig.mobile 로 주입하지 않을 때 쓰는 단순 래퍼/다이얼로그. */
 
 import { useCallback, useEffect } from "react";
@@ -54,7 +55,7 @@ export function DefaultMobileDetailDialog({
             tabs={{ visible: false }}
             actions={actions ?? { visible: false }}
             readonly
-            locale="ko"
+            locale={formDialogLocale()}
             sx={{ DialogContent: { backgroundColor: "#f1f4f7" } }}
             // 읽는 화면(메일 상세)은 내리는 만큼 제목바를 접어 본문에 높이를 돌려준다(mfd 1.8.12 — 그보다 옛 판은 이 값을 무시한다).
             {...({ collapsibleTitle: flush } as object)}

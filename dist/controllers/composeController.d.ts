@@ -1,6 +1,3 @@
-/**
- * 메일 작성 다이얼로그 컨트롤러 — 새 메일/답장/전체답장/전달/임시보관 열기, 발송, 임시저장.
- */
 import type { MuaModalControl } from "../types/modal";
 import type { ComposeForm, ComposeRequest } from "../models/types";
 interface ComposeControllerOptions {

@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 메일 원문(RFC 822) 보기 창(2026-10-20 사용자 요청 "원문보기 메뉴") — 받은 경로 · 인증 결과(Received · DKIM · SPF) 같은 헤더를 확인할 때 연다.
  * 기업메일은 받은 원문 그대로, 외부 계정 메일은 원문을 보관하지 않아 저장된 내용으로 다시 만든 것이다(그때는 받은 헤더가 없다 — 창 위에 알린다).
@@ -33,10 +34,10 @@ export function MailSourceDialog({ open, seq, onClose }: MailSourceDialogProps) 
         setData(null);
         mailApi
             .getMessageSource(seq)
-            .then((res) => alive && setData(unwrap(res, "원문을 불러오지 못했습니다.")))
+            .then((res) => alive && setData(unwrap(res, t("loadSourceFailed"))))
             .catch((error) => {
                 if (!alive) return;
-                ErrorAlert({ message: error instanceof Error ? error.message : "원문을 불러오지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("loadSourceFailed") });
                 onClose();
             });
         return () => {
@@ -51,10 +52,10 @@ export function MailSourceDialog({ open, seq, onClose }: MailSourceDialogProps) 
         if (downloading) return;
         setDownloading(true);
         try {
-            const full = data && !data.truncated ? data : unwrap(await mailApi.getMessageSource(seq, true), "원문을 내려받지 못했습니다.");
+            const full = data && !data.truncated ? data : unwrap(await mailApi.getMessageSource(seq, true), t("downloadSourceFailed"));
             await saveBlob(new Blob([full.source], { type: "message/rfc822" }), full.file_name);
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "원문을 내려받지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("downloadSourceFailed") });
         } finally {
             setDownloading(false);
         }
@@ -74,10 +75,10 @@ export function MailSourceDialog({ open, seq, onClose }: MailSourceDialogProps) 
                         {data.rebuilt || data.truncated ? (
                             <Box component="ul" sx={{ m: 0, pl: 2.5, fontSize: 14, color: "text.secondary" }}>
                                 {data.rebuilt ? (
-                                    <li>외부 계정에서 가져온 메일은 원문을 보관하지 않아, 저장된 내용으로 다시 만든 것입니다(받은 경로 · 인증 헤더가 없습니다).</li>
+                                    <li>{t("sourceRebuilt")}</li>
                                 ) : null}
                                 {data.truncated ? (
-                                    <li>원문이 커서({formatBytes(data.size)}) 앞부분만 보입니다. 전체는 [내려받기]로 보세요.</li>
+                                    <li>{t("sourceTruncated", { size: formatBytes(data.size) })}</li>
                                 ) : null}
                             </Box>
                         ) : null}
@@ -111,12 +112,12 @@ export function MailSourceDialog({ open, seq, onClose }: MailSourceDialogProps) 
             fontScaleKey="MailSourceDialog"
             open={open}
             onClose={onClose}
-            title={{ text: "원문 보기" }}
+            title={{ text: t("showOriginal") }}
             titleIcons={{ delete: { visible: false } }}
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
             tabs={{ visible: false }}
-            locale="ko"
+            locale={formDialogLocale()}
             maxWidth="md"
             scrollPastLastSection={false}
             sections={sections}
@@ -125,9 +126,9 @@ export function MailSourceDialog({ open, seq, onClose }: MailSourceDialogProps) 
                 showCancelButton: false,
                 right: (
                     <>
-                        <Button onClick={onClose}>닫기</Button>
+                        <Button onClick={onClose}>{t("close")}</Button>
                         <Button variant="contained" disabled={!data || downloading} onClick={() => void download()}>
-                            {downloading ? <CircularProgress size={20} color="inherit" /> : "내려받기(.eml)"}
+                            {downloading ? <CircularProgress size={20} color="inherit" /> : t("downloadEml")}
                         </Button>
                     </>
                 ),

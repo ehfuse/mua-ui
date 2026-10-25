@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 사용자 메일함 목록(메일 관리 다이얼로그의 "메일함" 탭) — 행: [아이콘(클릭=아이콘/색 선택)][이름·개인/공용 칩][메일 수 · 사용량][수정·삭제].
  * MailFolderFormDialog 는 이름/아이콘/공용 여부를 받는 mfd — 관리 다이얼로그의 [+ 만들기](신규)와 행의 ✎(수정)이 같은 창을 쓴다.
@@ -49,7 +50,7 @@ function ScopeChip({ shared, teamName }: { shared: boolean; teamName?: string })
                 bgcolor: shared ? "#eff6ff" : "#f1f5f9",
             }}
         >
-            {shared ? teamName || "공용" : "개인"}
+            {shared ? teamName || t("shared") : t("personal")}
         </Box>
     );
 }
@@ -71,12 +72,12 @@ function FolderIconButton({
     const [anchor, setAnchor] = useState<HTMLElement | null>(null);
     return (
         <>
-            <Tooltip title={disabled ? "" : "아이콘/색 선택"}>
+            <Tooltip title={disabled ? "" : t("pickIconColor")}>
                 <span>
                     <IconButton
                         disabled={disabled}
                         onClick={(e) => setAnchor(e.currentTarget)}
-                        aria-label="아이콘 선택"
+                        aria-label={t("pickIcon")}
                         sx={{ width: 40, height: 40 }}
                     >
                         <FolderIcon icon={icon} color={color || "#475569"} shared={shared} fontSize={24} />
@@ -114,10 +115,10 @@ function FolderRow({
         async (body: { icon?: string; color?: string }) => {
             setBusy(true);
             try {
-                unwrap(await mailApi.updateFolder(folder.seq, body), "메일함을 저장하지 못했습니다.");
+                unwrap(await mailApi.updateFolder(folder.seq, body), t("folderSaveFailed"));
                 onChanged();
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 저장하지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("folderSaveFailed") });
             } finally {
                 setBusy(false);
             }
@@ -126,21 +127,21 @@ function FolderRow({
     );
     const remove = useCallback(() => {
         ConfirmDialog({
-            title: "메일함 삭제",
-            message: `"${folder.name}" 메일함을 삭제합니다. 안에 있던 메일은 받은편지함으로 돌아갑니다.`,
+            title: t("deleteFolder"),
+            message: t("deleteFolderConfirm", { name: folder.name }),
             onConfirm: () =>
                 void (async () => {
                     try {
-                        const res = unwrap(await mailApi.deleteFolder(folder.seq), "메일함을 삭제하지 못했습니다.");
+                        const res = unwrap(await mailApi.deleteFolder(folder.seq), t("folderDeleteFailed"));
                         SuccessAlert(
                             res.moved > 0
-                                ? `메일함을 삭제하고 ${res.moved}건을 받은편지함으로 옮겼습니다.`
-                                : "메일함을 삭제했습니다."
+                                ? t("folderDeletedMoved", { count: res.moved })
+                                : t("folderDeleted")
                         );
                         onChanged();
                     } catch (error) {
                         ErrorAlert({
-                            message: error instanceof Error ? error.message : "메일함을 삭제하지 못했습니다.",
+                            message: error instanceof Error ? error.message : t("folderDeleteFailed"),
                         });
                     }
                 })(),
@@ -150,17 +151,17 @@ function FolderRow({
     // 비우기(2026-10-21) — 안의 메일을 휴지통으로 옮긴다. 지우지 않으니 휴지통에서 되돌리면 이 메일함으로 돌아온다.
     const empty = useCallback(() => {
         ConfirmDialog({
-            title: "메일함 비우기",
-            message: `"${folder.name}" 메일함의 메일 ${folder.message_count ?? 0}통을 휴지통으로 옮깁니다. 휴지통에서 되돌리면 이 메일함으로 돌아옵니다.`,
+            title: t("emptyFolder"),
+            message: t("emptyFolderConfirm", { name: folder.name, count: folder.message_count ?? 0 }),
             onConfirm: () =>
                 void (async () => {
                     setBusy(true);
                     try {
-                        const res = unwrap(await mailApi.emptyFolder(folder.seq), "메일함을 비우지 못했습니다.");
-                        SuccessAlert(`${res.moved}통을 휴지통으로 옮겼습니다.`);
+                        const res = unwrap(await mailApi.emptyFolder(folder.seq), t("folderEmptyFailed"));
+                        SuccessAlert(t("movedToTrash", { count: res.moved }));
                         onChanged();
                     } catch (error) {
-                        ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 비우지 못했습니다." });
+                        ErrorAlert({ message: error instanceof Error ? error.message : t("folderEmptyFailed") });
                     } finally {
                         setBusy(false);
                     }
@@ -209,7 +210,7 @@ function FolderRow({
                     ...(isMobile ? { gridColumn: "2 / -1", gridRow: 2 } : {}),
                 }}
             >
-                {folder.message_count ?? 0}통 · {formatBytes(folder.total_size ?? 0)}
+                {t("messageCount", { count: folder.message_count ?? 0 })} · {formatBytes(folder.total_size ?? 0)}
             </Typography>
             <Stack
                 direction="row"
@@ -217,23 +218,23 @@ function FolderRow({
                 alignItems="center"
                 sx={isMobile ? { gridColumn: 3, gridRow: 1 } : undefined}
             >
-                <Tooltip title={canManage ? "수정" : "공용 메일함은 관리자 또는 만든 사람만 수정할 수 있습니다"}>
+                <Tooltip title={canManage ? t("edit") : t("sharedFolderEditOnly")}>
                     <span>
-                        <IconButton size="small" onClick={onEdit} aria-label="수정" disabled={!canManage}>
+                        <IconButton size="small" onClick={onEdit} aria-label={t("edit")} disabled={!canManage}>
                             <EditOutlinedIcon fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>
-                <Tooltip title={!canManage ? "공용 메일함은 관리자 또는 만든 사람만 비울 수 있습니다" : isEmpty ? "비어 있습니다" : "비우기(휴지통으로)"}>
+                <Tooltip title={!canManage ? t("sharedFolderEmptyOnly") : isEmpty ? t("isEmpty") : t("emptyToTrash")}>
                     <span>
-                        <IconButton size="small" onClick={empty} aria-label="비우기" disabled={!canManage || isEmpty || busy}>
+                        <IconButton size="small" onClick={empty} aria-label={t("empty")} disabled={!canManage || isEmpty || busy}>
                             <DeleteSweepOutlinedIcon fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>
-                <Tooltip title={canManage ? "삭제" : "공용 메일함은 관리자 또는 만든 사람만 삭제할 수 있습니다"}>
+                <Tooltip title={canManage ? t("delete") : t("sharedFolderDeleteOnly")}>
                     <span>
-                        <IconButton size="small" onClick={remove} aria-label="삭제" disabled={!canManage}>
+                        <IconButton size="small" onClick={remove} aria-label={t("delete")} disabled={!canManage}>
                             <TrashIcon fontSize="small" />
                         </IconButton>
                     </span>
@@ -250,7 +251,7 @@ export function MailFoldersList({ folders, onChanged }: { folders: MailUserFolde
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
             {folders.length === 0 ? (
                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                    만든 메일함이 없습니다. 아래 [메일함 만들기]로 만드세요.
+                    {t("noFolders")}
                 </Typography>
             ) : null}
             {folders.map((folder) => (
@@ -321,16 +322,16 @@ export function MailFolderFormDialog({
                 ...(shared && teamSeq > 0 ? { team_seq: teamSeq } : {}),
             };
             if (isEdit && folder) {
-                unwrap(await mailApi.updateFolder(folder.seq, body), "메일함을 저장하지 못했습니다.");
-                SuccessAlert("메일함을 저장했습니다.");
+                unwrap(await mailApi.updateFolder(folder.seq, body), t("folderSaveFailed"));
+                SuccessAlert(t("folderSaved"));
             } else {
-                unwrap(await mailApi.createFolder(body), "메일함을 추가하지 못했습니다.");
-                SuccessAlert("메일함을 추가했습니다.");
+                unwrap(await mailApi.createFolder(body), t("folderAddFailed"));
+                SuccessAlert(t("folderAdded"));
             }
             onClose();
             onChanged();
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "메일함을 저장하지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("folderSaveFailed") });
         } finally {
             setBusy(false);
         }
@@ -344,10 +345,10 @@ export function MailFolderFormDialog({
             sx={isMobile ? MOBILE_FULL_WIDTH_ACTIONS_SX : undefined}
             open={open}
             onClose={requestClose}
-            title={{ text: isEdit ? "메일함 수정" : "메일함 추가" }}
+            title={{ text: isEdit ? t("editFolder") : t("addFolder") }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
-            locale="ko"
+            locale={formDialogLocale()}
             maxWidth="xs"
             scrollPastLastSection={false}
             contentBottomPadding={24}
@@ -359,7 +360,7 @@ export function MailFolderFormDialog({
                         <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
                             {/* 아이콘 버튼은 이름 입력칸 안(왼쪽)에 둔다 — 별도 칸으로 두면 폼이 두 덩이로 보인다. */}
                             <ClearTextField
-                                label="메일함 이름"
+                                label={t("folderName")}
                                 size="medium"
                                 fullWidth
                                 autoFocus
@@ -391,7 +392,7 @@ export function MailFolderFormDialog({
                             {isMobile ? (
                                 <FormControlLabel
                                     control={<Switch checked={shared} onChange={(_, v) => setShared(v)} />}
-                                    label="공용 메일함"
+                                    label={t("sharedFolder")}
                                     sx={{ ml: 0 }}
                                 />
                             ) : null}
@@ -399,7 +400,7 @@ export function MailFolderFormDialog({
                             {shared && !isEdit && teams.length > 0 ? (
                                 <TextField
                                     select
-                                    label="공용 팀"
+                                    label={t("sharedTeam")}
                                     value={teamSeq || ""}
                                     onChange={(e) => setTeamSeq(Number(e.target.value) || 0)}
                                     fullWidth
@@ -423,10 +424,7 @@ export function MailFolderFormDialog({
                                     lineHeight: 1.6,
                                 }}
                             >
-                                아이콘을 눌러 모양과 색을 고를 수 있습니다. 공용 메일함은{" "}
-                                {teams.length > 0 ? "그 팀의 팀원" : "같은 회사"} 전원이 보고 메일을 넣을 수 있으며,
-                                수정·삭제는 {teams.length > 0 ? "팀 소유자/관리자" : "관리자"} 또는 만든 사람만 할 수
-                                있습니다.
+                                {teams.length > 0 ? t("folderNoteTeam") : t("folderNoteCompany")}
                             </Typography>
                         </Box>
                     ),
@@ -446,7 +444,7 @@ export function MailFolderFormDialog({
                                       disabled={busy}
                                       sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
-                                      취소
+                                      {t("cancel")}
                                   </Button>
                                   <Button
                                       variant="contained"
@@ -454,7 +452,7 @@ export function MailFolderFormDialog({
                                       disabled={busy || !name.trim()}
                                       sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
-                                      저장
+                                      {t("save")}
                                   </Button>
                               </Stack>
                           ),
@@ -463,21 +461,21 @@ export function MailFolderFormDialog({
                           left: (
                               <FormControlLabel
                                   control={<Switch checked={shared} onChange={(_, v) => setShared(v)} />}
-                                  label="공용 메일함"
+                                  label={t("sharedFolder")}
                                   sx={{ ml: 0 }}
                               />
                           ),
                           right: (
                               <Stack direction="row" spacing={1}>
                                   <Button variant="outlined" onClick={requestClose} disabled={busy}>
-                                      취소
+                                      {t("cancel")}
                                   </Button>
                                   <Button
                                       variant="contained"
                                       onClick={() => void save()}
                                       disabled={busy || !name.trim()}
                                   >
-                                      저장
+                                      {t("save")}
                                   </Button>
                               </Stack>
                           ),

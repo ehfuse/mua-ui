@@ -1,6 +1,3 @@
-/**
- * 메일 본문 HTML 정제/인용 유틸.
- */
 import type { MailMessageDetail } from "../models/types";
 /** 본문 HTML 을 안전하게 정제한다. allowRemoteImages 가 false 면 외부 이미지를 막는다. */
 export declare function sanitizeMailHtml(html: string, allowRemoteImages: boolean): string;

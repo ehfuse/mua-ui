@@ -30,3 +30,5 @@ export { defaultMailState } from "./models/defaults";
 export { mailApi, unwrap } from "./apis/mailApi";
 export { useMailRealtime, type MailChangedData } from "./apis/useMailRealtime";
 export { MailBodyFrame } from "./views/components/MailBodyFrame";
+export { setMuaUiLocale, getMuaUiLocale } from "./i18n";
+export type { MuaUiLang } from "./i18n";

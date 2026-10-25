@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 목록 복수 선택 액션 바 — [삭제] [스팸 등록] [읽음으로 표시] [읽지 않음으로 표시] [라벨(config.labels)] (휴지통: [복원] [영구 삭제], 스팸함: [스팸 아님] [삭제]).
  * 선택 건수 표시 없이 버튼만 나란히 둔다(전체 선택 체크박스가 해제를 맡는다).
@@ -71,11 +72,11 @@ export function MailBulkActionBar({
     const needsConfirm = (action: BulkMessageAction) => action === "spam" || action === "trash" || action === "delete";
     const confirmTitle =
         confirm?.action === "spam"
-            ? `선택한 ${count}건을 스팸으로 신고할까요?`
+            ? t("bulkSpamConfirm", { count })
             : confirm?.action === "delete"
-              ? `선택한 ${count}건을 영구 삭제할까요? 되돌릴 수 없습니다.`
-              : `선택한 ${count}건을 삭제할까요?`;
-    const confirmLabel = confirm?.action === "spam" ? "스팸 신고" : confirm?.action === "delete" ? "영구 삭제" : "삭제";
+              ? t("bulkDeleteForeverConfirm", { count })
+              : t("bulkDeleteConfirm", { count });
+    const confirmLabel = confirm?.action === "spam" ? t("reportSpam") : confirm?.action === "delete" ? t("deleteForever") : t("delete");
     const item = (
         key: string,
         label: string,
@@ -125,27 +126,27 @@ export function MailBulkActionBar({
         );
     const items: ReactNode[] = [];
     if (isTrash) {
-        items.push(button("복원", <RestoreFromTrashOutlinedIcon fontSize="small" />, "restore"));
-        items.push(button("영구 삭제", <TrashIcon fontSize="small" />, "delete"));
+        items.push(button(t("restore"), <RestoreFromTrashOutlinedIcon fontSize="small" />, "restore"));
+        items.push(button(t("deleteForever"), <TrashIcon fontSize="small" />, "delete"));
     } else if (isSpam) {
-        items.push(button("스팸 아님", <RestoreFromTrashOutlinedIcon fontSize="small" />, "restore"));
-        items.push(button("삭제", <TrashIcon fontSize="small" />, "trash"));
+        items.push(button(t("notSpam"), <RestoreFromTrashOutlinedIcon fontSize="small" />, "restore"));
+        items.push(button(t("delete"), <TrashIcon fontSize="small" />, "trash"));
     } else {
-        items.push(button("삭제", <TrashIcon fontSize="small" />, "trash"));
+        items.push(button(t("delete"), <TrashIcon fontSize="small" />, "trash"));
         if (folder === "inbox")
-            items.push(button("스팸 등록", <ReportGmailerrorredOutlinedIcon fontSize="small" />, "spam"));
+            items.push(button(t("markSpam"), <ReportGmailerrorredOutlinedIcon fontSize="small" />, "spam"));
         if (folder !== "draft") {
             // 폰(아이콘만)에서 답장 · 전체 답장을 못 쓰는 때(여러 통을 고름)는 숨긴다 — 흐린 아이콘이 자리만 차지해 줄이 넘어갔다
             // (0.3.170, 2026-10-19 사용자 지적 "전체 선택 개수가 많아지면 아이콘이 개행"). 전달은 여러 통도 되니 남긴다
-            if (!compact || replyEnabled) items.push(replyButton("답장", <ReplyArrowIcon fontSize="small" />, "reply"));
+            if (!compact || replyEnabled) items.push(replyButton(t("reply"), <ReplyArrowIcon fontSize="small" />, "reply"));
             if (!compact || replyAllEnabled)
-                items.push(replyButton("전체 답장", <ReplyAllArrowIcon fontSize="small" />, "replyAll"));
-            items.push(replyButton("전달", <ForwardArrowIcon fontSize="small" />, "forward"));
+                items.push(replyButton(t("replyAll"), <ReplyAllArrowIcon fontSize="small" />, "replyAll"));
+            items.push(replyButton(t("forward"), <ForwardArrowIcon fontSize="small" />, "forward"));
         }
         // 이름은 "읽음으로 표시"(0.3.158) — "읽음" 만으로는 상태 표시인지 단추인지 갈리지 않았다(아이콘 모드의 툴팁도 이 이름이다).
-        items.push(button("읽음으로 표시", <DraftsOutlinedIcon fontSize="small" />, "read", canMarkRead));
-        items.push(button("읽지 않음으로 표시", <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread));
-        if (onLabel) items.push(item("label", "라벨", <LabelOutlinedIcon fontSize="small" />, onLabel, disabled));
+        items.push(button(t("markRead"), <DraftsOutlinedIcon fontSize="small" />, "read", canMarkRead));
+        items.push(button(t("markUnread"), <MarkEmailUnreadOutlinedIcon fontSize="small" />, "unread", canMarkUnread));
+        if (onLabel) items.push(item("label", t("label"), <LabelOutlinedIcon fontSize="small" />, onLabel, disabled));
     }
     return (
         <>
@@ -169,7 +170,7 @@ export function MailBulkActionBar({
                 zIndex={1400}
                 title={confirmTitle}
                 confirmText={confirmLabel}
-                cancelText="취소"
+                cancelText={t("cancel")}
                 onCancel={() => setConfirm(null)}
                 onConfirm={() => {
                     const action = confirm?.action;

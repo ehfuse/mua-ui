@@ -1,3 +1,4 @@
+import { formDialogLocale, getMuaUiLocale, t } from "../../i18n";
 /**
  * 메일 작성 다이얼로그(mfd) — 보내는 계정 · 받는 사람/참조/숨은참조 · 제목 · 에디터 본문 · 첨부 · [임시저장] [보내기].
  */
@@ -79,15 +80,15 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         () =>
             accounts.map((a) => ({
                 value: String(a.seq),
-                label: `${a.name ? `${a.name} <${a.email}>` : a.email}${a.scope === "shared" ? " (공용)" : ""}`,
+                label: a.scope === "shared" ? t("sharedSuffix", { name: a.name ? `${a.name} <${a.email}>` : a.email }) : a.name ? `${a.name} <${a.email}>` : a.email,
             })),
-        [accounts]
+        [accounts, getMuaUiLocale()]
     );
 
     // 에디터 → 폼 동기화
     const editorConfig = useMemo<EditorConfig>(
         () => ({
-            placeholder: "내용을 입력하세요",
+            placeholder: t("bodyPlaceholder"),
             // 모바일은 서식 편집이 사실상 어려워 툴바를 감추고 내용 높이에 맞춰 늘린다(업무함 내용 편집기와 같은 규칙).
             minHeight: isMobile ? 240 : 320,
             showToolbar: !isMobile || mobileToolbar,
@@ -210,31 +211,31 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         if (autoSave && savedPrintRef.current !== null && savedPrintRef.current !== fingerprintRef.current) void runAutoSave();
         modal.close();
     }, [autoSave, modal, runAutoSave]);
-    const autoSaveStatus = savingDraft ? "저장 중…" : autoSaveFailed ? "자동 저장 실패" : autoSavedAt ? `자동 저장됨 ${autoSavedAt}` : "";
+    const autoSaveStatus = savingDraft ? t("saving") : autoSaveFailed ? t("autoSaveFailed") : autoSavedAt ? t("autoSavedAt", { time: autoSavedAt }) : "";
 
     // [기본 서명으로 저장] — 지금 서명 칸을 보내는 계정의 서명으로 저장하고 계정 목록을 다시 읽는다(다음 창이 새 서명으로 열리게).
     const [savingSignature, setSavingSignature] = useState(false);
     const saveDefaultSignature = useCallback(async () => {
         const seq = Number(form.getFormValue("mail_account_seq") ?? 0);
         if (!(seq > 0)) {
-            WarningAlert({ message: "보내는 계정을 선택하세요." });
+            WarningAlert({ message: t("pickSendAccount") });
             return;
         }
         const raw = String(form.getFormValue("signature_html") ?? "").trim();
         setSavingSignature(true);
         try {
-            unwrap(await mailApi.updateSignature(seq, raw === "<p><br></p>" ? "" : raw), "서명을 저장하지 못했습니다.");
+            unwrap(await mailApi.updateSignature(seq, raw === "<p><br></p>" ? "" : raw), t("signatureSaveFailed"));
             void state.actions.loadAccounts();
-            SuccessAlert({ message: "보내는 계정의 서명으로 저장했습니다.", delay: 800 });
+            SuccessAlert({ message: t("signatureSaved"), delay: 800 });
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "서명을 저장하지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("signatureSaveFailed") });
         } finally {
             setSavingSignature(false);
         }
     }, [form, state]);
     const signatureEditorConfig = useMemo<EditorConfig>(
         () => ({
-            placeholder: "서명 없음",
+            placeholder: t("noSignature"),
             minHeight: 80,
             showToolbar: false,
             autoHeight: true,
@@ -256,14 +257,14 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                 const loaded: ComposeAttachment[] = [];
                 for (const file of files) {
                     if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
-                        WarningAlert({ message: `${file.name}: 첨부는 ${MAX_ATTACHMENT_MB}MB 까지 가능합니다.` });
+                        WarningAlert({ message: t("attachmentTooLarge", { name: file.name, max: MAX_ATTACHMENT_MB }) });
                         continue;
                     }
                     try {
                         loaded.push(await readFileAsAttachment(file));
                     } catch (error) {
                         ErrorAlert({
-                            message: error instanceof Error ? error.message : `${file.name} 을(를) 읽지 못했습니다.`,
+                            message: error instanceof Error ? error.message : t("fileReadFailed", { name: file.name }),
                         });
                     }
                 }
@@ -293,12 +294,12 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const existingAttachments = attachments.filter((a) => refKey(a));
     const titleText =
         mode === "reply" || mode === "replyAll"
-            ? "답장"
+            ? t("reply")
             : mode === "forward"
-              ? "전달"
+              ? t("forward")
               : mode === "draft"
-                ? "임시보관 메일"
-                : "새 메일";
+                ? t("draftMail")
+                : t("compose");
 
     return (
         <FormDialog
@@ -323,7 +324,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
-            locale="ko"
+            locale={formDialogLocale()}
             maxWidth="md"
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
@@ -362,7 +363,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                 }}
                             >
                                 <Select
-                                    label="보내는 계정"
+                                    label={t("sendAccount")}
                                     name="mail_account_seq"
                                     form={form}
                                     options={accountOptions}
@@ -387,7 +388,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     }}
                                 />
                                 {/* 치면 주소록에서 이름 · 주소 · 소속이 맞는 사람이 뜬다(2026-10-16). */}
-                                <RecipientField name="to" label="받는 사람" form={form} inputRef={toInputRef} placeholder="이름이나 주소 — 여럿은 쉼표로" />
+                                <RecipientField name="to" label={t("to")} form={form} inputRef={toInputRef} placeholder={t("recipientPlaceholder")} />
                             </Box>
                             <Box
                                 sx={{
@@ -399,8 +400,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             >
                                 {showCcBcc ? (
                                     <>
-                                        <RecipientField name="cc" label="참조" form={form} />
-                                        <RecipientField name="bcc" label="숨은참조" form={form} />
+                                        <RecipientField name="cc" label={t("cc")} form={form} />
+                                        <RecipientField name="bcc" label={t("bcc")} form={form} />
                                     </>
                                 ) : null}
                                 {/* 참조 토글 줄 — 왼쪽이 비어 있던 자리에 보내기 옵션 스위치를 둔다(2026-10-11): 예약 발송 · 수신확인 · 보안메일.
@@ -429,9 +430,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                             ...(isMobile ? { "& .MuiFormControlLabel-label": { fontSize: "14px" } } : {}),
                                         }}
                                     >
-                                        <Switch form={form} name="scheduled" label="예약 발송" />
-                                        <Switch form={form} name="read_receipt" label="수신확인" disabled={secure} />
-                                        <Switch form={form} name="secure" label="보안메일" />
+                                        <Switch form={form} name="scheduled" label={t("scheduledSend")} />
+                                        <Switch form={form} name="read_receipt" label={t("readReceipt")} disabled={secure} />
+                                        <Switch form={form} name="secure" label={t("secureMail")} />
                                     </Box>
                                     <Button
                                         size="small"
@@ -439,7 +440,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         // 글자가 두 줄로 꺾이지 않게(0.3.160) — 좁은 폭에서 "참조/숨은 · 참조" 로 갈라졌다.
                                         sx={{ fontSize: "14px", ml: "auto", whiteSpace: "nowrap", flexShrink: 0 }}
                                     >
-                                        {showCcBcc ? "참조 숨기기" : "참조/숨은참조"}
+                                        {showCcBcc ? t("hideCc") : t("ccBcc")}
                                     </Button>
                                 </Box>
                             </Box>
@@ -458,20 +459,20 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     }}
                                 >
                                     {scheduled ? (
-                                        <DateTimeTextField name="send_at" label="보낼 시각 *" form={form} fullWidth />
+                                        <DateTimeTextField name="send_at" label={t("sendAtRequired")} form={form} fullWidth />
                                     ) : null}
                                     {secure ? (
                                         <>
                                             <PasswordTextField
                                                 name="secure_password"
-                                                label="열람 비밀번호 *"
+                                                label={t("viewPasswordRequired")}
                                                 form={form}
                                                 fullWidth
                                                 autoComplete="new-password"
                                             />
                                             <ClearTextField
                                                 name="secure_hint"
-                                                label="비밀번호 힌트"
+                                                label={t("passwordHint")}
                                                 form={form}
                                                 fullWidth
                                                 autoComplete="off"
@@ -482,7 +483,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             ) : null}
                             <ClearTextField
                                 name="subject"
-                                label="제목"
+                                label={t("subject")}
                                 form={form}
                                 inputRef={subjectInputRef}
                                 fullWidth
@@ -526,8 +527,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     // 용량 제한도 여기 적는다 — 따로 한 줄을 두면 정작 파일을 고르는 순간에는 눈이 가지 않는다.
                                     dropzoneText={
                                         isMobile
-                                            ? `탭하여 파일을 첨부하세요 (파일당 최대 ${MAX_ATTACHMENT_MB}MB)`
-                                            : `파일을 끌어놓거나 클릭하여 첨부하세요 (파일당 최대 ${MAX_ATTACHMENT_MB}MB)`
+                                            ? t("attachTap", { max: MAX_ATTACHMENT_MB })
+                                            : t("attachDrop", { max: MAX_ATTACHMENT_MB })
                                     }
                                     onAttachedFilesChange={handleAttachedFilesChange}
                                 />
@@ -568,10 +569,10 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         계정 설정까지 가지 않고 그대로 보내는 계정의 서명으로 굳힐 수 있게 한다(다음 메일부터 채워진다). */}
                                     <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 0.25 }}>
                                         <Box component="div" sx={{ fontSize: 14, color: "text.secondary" }}>
-                                            서명
+                                            {t("signature")}
                                         </Box>
                                         <Button size="small" disabled={savingSignature} onClick={() => void saveDefaultSignature()} sx={{ fontSize: 14 }}>
-                                            {savingSignature ? <CircularProgress size={14} color="inherit" /> : "기본 서명으로 저장"}
+                                            {savingSignature ? <CircularProgress size={14} color="inherit" /> : t("saveAsDefaultSignature")}
                                         </Button>
                                     </Box>
                                     <Box sx={{ border: "1px solid", borderColor: "rgba(0,0,0,0.23)", borderRadius: 1, overflow: "hidden" }}>
@@ -599,7 +600,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                           disabled={sending || savingDraft}
                                           sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                       >
-                                          {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
+                                          {savingDraft ? <CircularProgress size={20} color="inherit" /> : t("saveDraft")}
                                       </Button>
                                   )}
                                   <Button
@@ -609,7 +610,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                       disabled={sending || savingDraft}
                                       sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
-                                      취소
+                                      {t("cancel")}
                                   </Button>
                                   <Button
                                       variant="contained"
@@ -618,7 +619,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                       disabled={sending || savingDraft}
                                       sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                   >
-                                      {sending ? <CircularProgress size={20} color="inherit" /> : scheduled ? "예약" : "보내기"}
+                                      {sending ? <CircularProgress size={20} color="inherit" /> : scheduled ? t("schedule") : t("send")}
                                   </Button>
                               </Box>
                           ),
@@ -631,7 +632,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                   disabled={sending || savingDraft}
                                   sx={{ minWidth: 96 }}
                               >
-                                  {savingDraft ? <CircularProgress size={20} color="inherit" /> : "임시저장"}
+                                  {savingDraft ? <CircularProgress size={20} color="inherit" /> : t("saveDraft")}
                               </Button>
                           ),
                           right: (
@@ -642,7 +643,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                   disabled={sending || savingDraft}
                                   sx={{ minWidth: 88 }}
                               >
-                                  {sending ? <CircularProgress size={20} color="inherit" /> : scheduled ? "예약" : "보내기"}
+                                  {sending ? <CircularProgress size={20} color="inherit" /> : scheduled ? t("schedule") : t("send")}
                               </Button>
                           ),
                       }),

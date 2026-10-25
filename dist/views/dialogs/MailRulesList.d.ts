@@ -1,6 +1,3 @@
-/**
- * 규칙 목록(메일 관리 다이얼로그의 "규칙" 탭) — 규칙마다 조건 요약·동작 요약·사용 스위치·[지금 적용]·수정·삭제.
- */
 import type { MailRule, MailUserFolder } from "../../models/types";
 interface MailRulesListProps {
     rules: MailRule[];

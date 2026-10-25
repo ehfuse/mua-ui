@@ -1,6 +1,3 @@
-/**
- * 메일 상세 패널 — 헤더(제목/주소/일시) · 액션(답장/전체답장/전달/휴지통/복원/삭제) · 첨부 · 본문.
- */
 import type { MailMessageDetail, MailMoveTarget, MailMoveTargetOption, MailLabel, MailThreadEntry } from "../../models/types";
 interface MessageDetailPanelProps {
     detail: MailMessageDetail | null;

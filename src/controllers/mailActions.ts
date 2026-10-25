@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 화면 Actions — 계정/목록/상세/건수/동기화/메시지 조작. API 호출은 전부 여기서만 한다.
  */
@@ -68,12 +69,12 @@ export const loadAccounts =
     async (context: ActionContext<MailState>): Promise<MailAccount[]> => {
         context.setValue("loadingAccounts", true);
         try {
-            const data = unwrap(await mailApi.listAccounts(), "메일 계정을 불러오지 못했습니다.");
+            const data = unwrap(await mailApi.listAccounts(), t("loadAccountsFailed"));
             const items = Array.isArray(data.items) ? data.items : [];
             context.setValue("accounts", items);
             return items;
         } catch (error) {
-            ErrorAlert({ message: messageOf(error, "메일 계정을 불러오지 못했습니다.") });
+            ErrorAlert({ message: messageOf(error, t("loadAccountsFailed")) });
             return [];
         } finally {
             context.setValue("loadingAccounts", false);
@@ -141,7 +142,7 @@ export const loadMessages =
                     // 대화로 묶어 받는다(2026-10-20) — 같은 대화(답장 · 사본)는 한 줄, total 은 대화 수다.
                     thread: true,
                 }),
-                "메일 목록을 불러오지 못했습니다."
+                t("loadListFailed")
             );
             if (requestSeq !== latestListRequestSeq) return;
             let items = Array.isArray(data.items) ? data.items : [];
@@ -168,7 +169,7 @@ export const loadMessages =
             context.setValue("page", page);
         } catch (error) {
             if (requestSeq !== latestListRequestSeq) return;
-            context.setValue("error", messageOf(error, "메일 목록을 불러오지 못했습니다."));
+            context.setValue("error", messageOf(error, t("loadListFailed")));
         } finally {
             if (requestSeq === latestListRequestSeq) context.setValue("loadingList", false);
         }
@@ -180,7 +181,7 @@ export const loadCounts =
     async (context: ActionContext<MailState>): Promise<void> => {
         const filters = context.getValue("filters") as MailFilters;
         try {
-            const data = unwrap(await mailApi.counts(filters.mailAccountSeq), "건수를 불러오지 못했습니다.");
+            const data = unwrap(await mailApi.counts(filters.mailAccountSeq), t("loadCountsFailed"));
             context.setValue("counts", { ...defaultMailFolderCounts, ...(data.folders ?? {}) } as MailFolderCounts);
             const accounts = context.getValue("accounts") as MailAccount[];
             const byAccount = data.by_account ?? {};
@@ -250,7 +251,7 @@ export const selectMessage =
         // 요청 전에 적는다 — 서버가 읽음으로 바꾸며 보내는 실시간 재조회가 응답보다 먼저 와도 줄이 남게
         if (wasUnread && row) keepReadRows(context, [row]);
         try {
-            const detail = unwrap(await mailApi.getMessage(seq, true), "메일을 불러오지 못했습니다.");
+            const detail = unwrap(await mailApi.getMessage(seq, true), t("loadMailFailed"));
             if (requestSeq !== latestDetailRequestSeq) return;
             context.setValue("detail", detail);
             patchLocalMessage(context, seq, { is_read: true });
@@ -265,7 +266,7 @@ export const selectMessage =
                     .getThread(seq, threadUnread > 0)
                     .then((res) => {
                         if (requestSeq !== latestDetailRequestSeq) return;
-                        const items = unwrap(res, "대화를 불러오지 못했습니다.").items;
+                        const items = unwrap(res, t("loadThreadFailed")).items;
                         context.setValue("thread", items.length > 1 ? items : []);
                         if (threadUnread > 0) {
                             patchLocalMessage(context, seq, { thread_unread: 0 });
@@ -304,7 +305,7 @@ export const selectMessage =
             }
         } catch (error) {
             if (requestSeq !== latestDetailRequestSeq) return;
-            ErrorAlert({ message: messageOf(error, "메일을 불러오지 못했습니다.") });
+            ErrorAlert({ message: messageOf(error, t("loadMailFailed")) });
             context.setValue("selectedSeq", 0);
             context.setValue("detail", null);
         } finally {
@@ -337,9 +338,9 @@ export const applyMessageAction =
         const rows = context.getValue("messages") as MailMessageListItem[];
         const singleOfThread = !threads && rows.some((row) => targets.includes(row.seq) && Number(row.thread_count ?? 1) > 1);
         try {
-            unwrap(await mailApi.bulkMessages(targets, action, move, threads), "처리하지 못했습니다.");
+            unwrap(await mailApi.bulkMessages(targets, action, move, threads), t("actionFailed"));
         } catch (error) {
-            ErrorAlert({ message: messageOf(error, "처리하지 못했습니다.") });
+            ErrorAlert({ message: messageOf(error, t("actionFailed")) });
             return false;
         }
         if (action === "read" || action === "unread") {
@@ -354,25 +355,29 @@ export const applyMessageAction =
         } else {
             removeLocalMessages(context, targets);
             const folders = context.getValue("folders") as MailUserFolder[];
-            const moveLabel =
+            // 한 문장 열쇠 + 건수 — 언어마다 어순이 달라 "N건을" + "…했습니다" 로 잇지 않는다
+            const count = targets.length;
+            const toTrash = () => t("bulkMovedTrash", { count });
+            const toSpam = () => t("bulkMovedSpam", { count });
+            const moveMessage = () =>
                 move?.folder === "custom"
-                    ? `"${folders.find((f) => f.seq === move.mail_folder_seq)?.name ?? "메일함"}"(으)로 이동했습니다.`
+                    ? t("bulkMovedFolder", { count, name: folders.find((f) => f.seq === move.mail_folder_seq)?.name ?? t("mailbox") })
                     : move?.folder === "spam"
-                      ? "스팸함으로 이동했습니다."
+                      ? toSpam()
                       : move?.folder === "trash"
-                        ? "휴지통으로 이동했습니다."
-                        : "받은편지함으로 이동했습니다.";
-            const label =
+                        ? toTrash()
+                        : t("bulkMovedInbox", { count });
+            SuccessAlert(
                 action === "move"
-                    ? moveLabel
+                    ? moveMessage()
                     : action === "trash"
-                      ? "휴지통으로 이동했습니다."
+                      ? toTrash()
                       : action === "spam"
-                        ? "스팸함으로 이동했습니다."
+                        ? toSpam()
                         : action === "restore"
-                          ? "복원했습니다."
-                          : "영구 삭제했습니다.";
-            SuccessAlert(`${targets.length}건을 ${label}`);
+                          ? t("bulkRestored", { count })
+                          : t("bulkDeletedForever", { count })
+            );
             if (singleOfThread) void loadMessages()(context, { silent: true });
         }
         return true;
@@ -386,7 +391,7 @@ export const syncNow =
         const targets =
             mailAccountSeq > 0 ? accounts.filter((a) => a.seq === mailAccountSeq) : accounts.filter((a) => a.enabled);
         if (targets.length === 0) {
-            ErrorAlert({ message: "동기화할 메일 계정이 없습니다. 먼저 계정을 등록하세요." });
+            ErrorAlert({ message: t("noAccountToSync") });
             return;
         }
         // 동기화 중 표시는 계정별로 — 눌린 계정(또는 전체 대상)만 켜고, 각 계정이 끝날 때마다 내린다.
@@ -404,7 +409,7 @@ export const syncNow =
         try {
             for (const account of targets) {
                 try {
-                    const result = unwrap(await mailApi.syncAccount(account.seq), "동기화에 실패했습니다.");
+                    const result = unwrap(await mailApi.syncAccount(account.seq), t("syncFailed"));
                     added += Number(result.added) || 0;
                     if (result.error) errors.push(`${account.email}: ${result.error}`);
                     if (result.account) {
@@ -417,7 +422,7 @@ export const syncNow =
                         );
                     }
                 } catch (error) {
-                    errors.push(`${account.email}: ${messageOf(error, "동기화 실패")}`);
+                    errors.push(`${account.email}: ${messageOf(error, t("syncFailedShort"))}`);
                 } finally {
                     markDone(account.seq);
                 }
@@ -426,7 +431,7 @@ export const syncNow =
             targetSeqs.forEach(markDone);
         }
         if (errors.length > 0) ErrorAlert({ message: errors.join("\n") });
-        else SuccessAlert(added > 0 ? `새 메일 ${added}건을 받았습니다.` : "새 메일이 없습니다.");
+        else SuccessAlert(added > 0 ? t("newMailReceived", { count: added }) : t("noNewMail"));
     };
 
 /** 사용자 메일함 목록을 읽는다. */
@@ -434,7 +439,7 @@ export const loadFolders =
     () =>
     async (context: ActionContext<MailState>): Promise<MailUserFolder[]> => {
         try {
-            const data = unwrap(await mailApi.listFolders(), "메일함을 불러오지 못했습니다.");
+            const data = unwrap(await mailApi.listFolders(), t("loadFoldersFailed"));
             const items = Array.isArray(data.items) ? data.items : [];
             context.setValue("folders", items);
             return items;
@@ -448,7 +453,7 @@ export const loadLabels =
     () =>
     async (context: ActionContext<MailState>): Promise<MailLabel[]> => {
         try {
-            const data = unwrap(await mailApi.listLabels(), "라벨을 불러오지 못했습니다.");
+            const data = unwrap(await mailApi.listLabels(), t("loadLabelsFailed"));
             const items = Array.isArray(data.items) ? data.items : [];
             context.setValue("labels", items);
             const filters = context.getValue("filters") as MailFilters;
@@ -474,9 +479,9 @@ export const applyLabels =
         const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
         if (targets.length === 0 || (add.length === 0 && remove.length === 0)) return false;
         try {
-            unwrap(await mailApi.applyLabels(targets, add, remove), "라벨을 바꾸지 못했습니다.");
+            unwrap(await mailApi.applyLabels(targets, add, remove), t("labelChangeFailed"));
         } catch (error) {
-            ErrorAlert({ message: messageOf(error, "라벨을 바꾸지 못했습니다.") });
+            ErrorAlert({ message: messageOf(error, t("labelChangeFailed")) });
             return false;
         }
         const rows = context.getValue("messages") as MailMessageListItem[];
@@ -502,12 +507,12 @@ export const loadRules =
     () =>
     async (context: ActionContext<MailState>): Promise<MailRule[]> => {
         try {
-            const data = unwrap(await mailApi.listRules(), "규칙을 불러오지 못했습니다.");
+            const data = unwrap(await mailApi.listRules(), t("loadRulesFailed"));
             const items = Array.isArray(data.items) ? data.items : [];
             context.setValue("rules", items);
             return items;
         } catch (error) {
-            ErrorAlert({ message: messageOf(error, "규칙을 불러오지 못했습니다.") });
+            ErrorAlert({ message: messageOf(error, t("loadRulesFailed")) });
             return [];
         }
     };

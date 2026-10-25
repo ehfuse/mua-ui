@@ -1,6 +1,3 @@
-/**
- * 메일 계정 등록/수정 다이얼로그 컨트롤러 — useGlobalForm + useModal.
- */
 import type { MuaModalControl } from "../types/modal";
 import type { MailAccountForm, MailAccountRequest, MailConnectionTestResult } from "../models/types";
 interface MailAccountFormControllerOptions {

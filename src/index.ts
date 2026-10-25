@@ -92,3 +92,7 @@ export { useMailRealtime, type MailChangedData } from "./apis/useMailRealtime";
 
 // 메일 본문 뷰어(정제 + 샌드박스 iframe) — 메일 화면 밖에서 메일 본문을 그릴 때(보안메일 열람 페이지).
 export { MailBodyFrame } from "./views/components/MailBodyFrame";
+
+// 화면 문구 언어(기본 한국어 — 2026-10-26)
+export { setMuaUiLocale, getMuaUiLocale } from "./i18n";
+export type { MuaUiLang } from "./i18n";

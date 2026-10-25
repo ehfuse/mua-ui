@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 받는 사람 · 참조 · 숨은참조 칸 — 치는 동안 주소록에서 이름 · 주소 · 소속이 맞는 사람을 칸 아래에 띄운다(2026-10-16).
  *
@@ -28,7 +29,7 @@ function loadContacts(): Promise<MailContact[]> {
     contactsLoading = mailApi
         .listContacts("")
         .then((res) => {
-            const items = unwrap(res, "주소록을 불러오지 못했습니다.").items ?? [];
+            const items = unwrap(res, t("loadContactsFailed2")).items ?? [];
             contactsCache = { at: Date.now(), items };
             return items;
         })

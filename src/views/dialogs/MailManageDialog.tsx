@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 메일 관리 다이얼로그 — 계정 / 메일함 / 규칙 중 **하나**를 창 하나로 연다(2026-10-01).
  * 전에는 세 목록을 상단 탭(switchContent)으로 한 창에 두었는데, 메일함·규칙을 찾으려면 창을 열고 탭을 다시 골라야 했다.
@@ -19,12 +20,17 @@ import { MailRulesList } from "./MailRulesList";
 /** 관리 탭 키 */
 export type MailManageTab = "accounts" | "folders" | "rules" | "labels";
 const ADD_LABEL: Record<MailManageTab, string> = {
-    accounts: "계정 추가",
-    folders: "메일함 만들기",
-    rules: "규칙 추가",
-    labels: "라벨 만들기",
+    get accounts() { return t("addAccountButton"); },
+    get folders() { return t("createFolderButton"); },
+    get rules() { return t("addRuleButton"); },
+    get labels() { return t("createLabelButton"); },
 };
-const TITLE: Record<MailManageTab, string> = { accounts: "메일 계정 관리", folders: "메일함 관리", rules: "메일 규칙", labels: "라벨 관리" };
+const TITLE: Record<MailManageTab, string> = {
+    get accounts() { return t("manageAccounts"); },
+    get folders() { return t("manageFolders"); },
+    get rules() { return t("mailRules"); },
+    get labels() { return t("manageLabels"); },
+};
 
 interface MailManageDialogProps {
     open: boolean; // 열림
@@ -98,7 +104,7 @@ export function MailManageDialog({
             fullWidth={isMobile}
             sx={isMobile ? { minHeight: 48, whiteSpace: "nowrap" } : { minWidth: 80 }}
         >
-            닫기
+            {t("close")}
         </Button>
     );
     return (
@@ -124,7 +130,7 @@ export function MailManageDialog({
                 title={{ text: TITLE[tab] }}
                 titleIcons={{ delete: { visible: false } }}
                 tabs={{ visible: false }}
-                locale="ko"
+                locale={formDialogLocale()}
                 // 계정 줄이 [아이콘][이름·주소·서버][칩][액션] 네 칸이라 sm(600)에서는 주소가 눌리고
                 // md(900)는 남는 자리가 커 헐거워 보인다 — mfd 의 width 로 그 사이를 직접 잡는다(2026-09-07).
                 // sx 로는 안 된다 — mfd 의 sx 는 DialogTitle/Content/Actions 세 칸짜리 설정 객체라 조용히 무시된다.
@@ -136,7 +142,7 @@ export function MailManageDialog({
                     {
                         key: "accounts" as MailManageTab,
                         id: "mail-manage-accounts",
-                        tabTitle: "계정",
+                        tabTitle: t("accountTab"),
                         showTitle: false,
                         children: (
                             <MailAccountsList
@@ -152,14 +158,14 @@ export function MailManageDialog({
                     {
                         key: "folders" as MailManageTab,
                         id: "mail-manage-folders",
-                        tabTitle: "메일함",
+                        tabTitle: t("foldersTab"),
                         showTitle: false,
                         children: <MailFoldersList folders={folders} onChanged={onFoldersChanged} />,
                     },
                     {
                         key: "rules" as MailManageTab,
                         id: "mail-manage-rules",
-                        tabTitle: "규칙",
+                        tabTitle: t("rulesTab"),
                         showTitle: false,
                         children: (
                             <MailRulesList
@@ -173,7 +179,7 @@ export function MailManageDialog({
                     {
                         key: "labels" as MailManageTab,
                         id: "mail-manage-labels",
-                        tabTitle: "라벨",
+                        tabTitle: t("labelsTab"),
                         showTitle: false,
                         children: <MailLabelsList labels={labels} onChanged={(items) => onLabelsChanged?.(items)} />,
                     },

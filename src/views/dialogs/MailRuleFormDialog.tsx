@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 규칙 등록/수정(mfd) — 이름 · 조건(대상/비교/값, 여러 개 + 모두/하나라도) · 동작(이동/읽음/중요) · 사용 · 뒤 규칙 중단.
  * 폼은 로컬 상태로 다룬다(조건 배열 편집이 잦아 forma 바인딩보다 단순하다).
@@ -47,17 +48,17 @@ interface MailRuleFormDialogProps {
 }
 
 const FIELD_OPTIONS: { value: MailRuleCondition["field"]; label: string }[] = [
-    { value: "from", label: "보낸 사람" },
-    { value: "to", label: "받는 사람" },
-    { value: "subject", label: "제목" },
-    { value: "body", label: "본문" },
+    { value: "from", get label() { return t("from"); } },
+    { value: "to", get label() { return t("to"); } },
+    { value: "subject", get label() { return t("subject"); } },
+    { value: "body", get label() { return t("body"); } },
 ];
 const OP_OPTIONS: { value: MailRuleCondition["op"]; label: string }[] = [
-    { value: "contains", label: "포함" },
-    { value: "not_contains", label: "미포함" },
-    { value: "equals", label: "일치" },
-    { value: "starts", label: "시작" },
-    { value: "ends", label: "끝" },
+    { value: "contains", get label() { return t("contains"); } },
+    { value: "not_contains", get label() { return t("notContains"); } },
+    { value: "equals", get label() { return t("equals"); } },
+    { value: "starts", get label() { return t("startsWith"); } },
+    { value: "ends", get label() { return t("endsWith"); } },
 ];
 
 /** 규칙 → 폼 */
@@ -159,31 +160,31 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     const save = useCallback(async () => {
         const body = toRequest(values);
         if (!body.conditions || body.conditions.length === 0) {
-            WarningAlert({ message: "조건 값을 하나 이상 입력하세요." });
+            WarningAlert({ message: t("enterConditionValue") });
             return;
         }
         if (!values.move_to && !values.mark_read && !values.star) {
-            WarningAlert({ message: "동작을 하나 이상 고르세요." });
+            WarningAlert({ message: t("pickAction") });
             return;
         }
         if (values.move_to === "custom" && !(values.mail_folder_seq > 0)) {
-            WarningAlert({ message: "이동할 메일함을 고르세요." });
+            WarningAlert({ message: t("pickMoveFolder") });
             return;
         }
         setBusy(true);
         try {
             let seq = values.seq;
-            if (values.seq > 0) unwrap(await mailApi.updateRule(values.seq, body), "규칙을 저장하지 못했습니다.");
-            else seq = unwrap(await mailApi.createRule(body), "규칙을 저장하지 못했습니다.").seq;
+            if (values.seq > 0) unwrap(await mailApi.updateRule(values.seq, body), t("ruleSaveFailed"));
+            else seq = unwrap(await mailApi.createRule(body), t("ruleSaveFailed")).seq;
             if (applyNow && seq > 0 && values.enabled) {
                 // 저장 직후 받은편지함의 기존 메일에 이 규칙을 적용
-                const res = unwrap(await mailApi.applyRules(seq), "규칙을 적용하지 못했습니다.");
-                SuccessAlert(`규칙을 저장하고 받은편지함 ${res.scanned}건 중 ${res.affected}건에 적용했습니다.`);
-            } else SuccessAlert("규칙을 저장했습니다.");
+                const res = unwrap(await mailApi.applyRules(seq), t("ruleApplyFailed"));
+                SuccessAlert(t("ruleSavedApplied", { scanned: res.scanned, affected: res.affected }));
+            } else SuccessAlert(t("ruleSaved"));
             onSaved();
             onClose();
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "규칙을 저장하지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("ruleSaveFailed") });
         } finally {
             setBusy(false);
         }
@@ -192,17 +193,17 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
     const remove = useCallback(() => {
         if (!(values.seq > 0)) return;
         ConfirmDialog({
-            title: "규칙 삭제",
-            message: "이 규칙을 삭제하시겠습니까?",
+            title: t("deleteRule"),
+            message: t("deleteRuleConfirm"),
             onConfirm: () =>
                 void (async () => {
                     try {
-                        unwrap(await mailApi.deleteRule(values.seq), "규칙을 삭제하지 못했습니다.");
-                        SuccessAlert("규칙을 삭제했습니다.");
+                        unwrap(await mailApi.deleteRule(values.seq), t("ruleDeleteFailed"));
+                        SuccessAlert(t("ruleDeleted"));
                         onSaved();
                         onClose();
                     } catch (error) {
-                        ErrorAlert({ message: error instanceof Error ? error.message : "규칙을 삭제하지 못했습니다." });
+                        ErrorAlert({ message: error instanceof Error ? error.message : t("ruleDeleteFailed") });
                     }
                 })(),
         });
@@ -218,27 +219,27 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                 sx={isMobile ? MOBILE_FULL_WIDTH_ACTIONS_SX : undefined}
                 open={open}
                 onClose={requestClose}
-                title={{ text: values.seq > 0 ? "규칙 수정" : "규칙 만들기" }}
+                title={{ text: values.seq > 0 ? t("editRule") : t("createRule") }}
                 titleIcons={{ delete: { visible: values.seq > 0 } }}
                 onDelete={values.seq > 0 ? remove : undefined}
                 tabs={{ visible: false }}
-                locale="ko"
+                locale={formDialogLocale()}
                 maxWidth="sm"
                 scrollPastLastSection={false}
                 contentBottomPadding={24}
                 sections={[
                     {
                         id: "mail-rule-basic",
-                        title: "기본",
+                        title: t("basic"),
                         showTitle: true,
                         children: (
                             <Box sx={{ display: "grid", gap: 2, width: "100%" }}>
                                 <TextField
-                                    label="규칙 이름"
+                                    label={t("ruleName")}
                                     fullWidth
                                     value={values.name}
                                     onChange={(e) => patch({ name: e.target.value })}
-                                    placeholder="예) 공고 메일은 공고함으로"
+                                    placeholder={t("ruleNamePlaceholder")}
                                     sx={INPUT_SX}
                                 />
                                 <Stack
@@ -253,7 +254,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                                 onChange={(_, v) => patch({ enabled: v })}
                                             />
                                         }
-                                        label="규칙 사용"
+                                        label={t("ruleEnabled")}
                                     />
                                     <FormControlLabel
                                         control={
@@ -262,7 +263,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                                 onChange={(_, v) => patch({ stop_processing: v })}
                                             />
                                         }
-                                        label="적용 시 다음 규칙 건너뜀"
+                                        label={t("stopProcessing")}
                                     />
                                 </Stack>
                             </Box>
@@ -270,7 +271,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     },
                     {
                         id: "mail-rule-conditions",
-                        title: "조건",
+                        title: t("conditions"),
                         showTitle: true,
                         children: (
                             <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
@@ -279,14 +280,14 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                         value={values.match}
                                         onChange={(v) => patch({ match: (v ?? "all") as "all" | "any" })}
                                         options={[
-                                            { value: "all", label: "모두 만족" },
-                                            { value: "any", label: "하나라도 만족" },
+                                            { value: "all", label: t("matchAll") },
+                                            { value: "any", label: t("matchAny") },
                                         ]}
                                     />
                                 </Stack>
                                 {values.conditions.length === 0 ? (
                                     <Typography sx={{ fontSize: "15px", color: "#475569" }}>
-                                        조건이 없습니다. [조건 추가]로 보낸 사람·제목·받는 사람 등을 넣으세요.
+                                        {t("noConditions")}
                                     </Typography>
                                 ) : null}
                                 {values.conditions.map((c, index) => (
@@ -339,7 +340,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                         <TextField
                                             fullWidth
                                             value={c.value}
-                                            placeholder={c.field === "from" ? "이름 또는 메일 주소" : "단어"}
+                                            placeholder={c.field === "from" ? t("nameOrEmail") : t("word")}
                                             onChange={(e) => patchCondition(index, { value: e.target.value })}
                                             sx={{ ...INPUT_SX, gridColumn: { xs: "1 / span 2", sm: "auto" } }}
                                             slotProps={{
@@ -351,7 +352,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                                                   <InputAdornment position="end">
                                                                       <IconButton
                                                                           size="small"
-                                                                          aria-label="보낸 사람 후보"
+                                                                          aria-label={t("senderSuggestions")}
                                                                           onClick={(e) =>
                                                                               setFromMenu({
                                                                                   index,
@@ -370,7 +371,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                         />
                                         <IconButton
                                             size="small"
-                                            aria-label="조건 삭제"
+                                            aria-label={t("removeCondition")}
                                             onClick={() =>
                                                 patch({ conditions: values.conditions.filter((_, i) => i !== index) })
                                             }
@@ -387,7 +388,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                         onClick={addCondition}
                                         disabled={values.conditions.length >= 20}
                                     >
-                                        조건 추가
+                                        {t("addCondition")}
                                     </Button>
                                 </Box>
                             </Box>
@@ -395,14 +396,14 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     },
                     {
                         id: "mail-rule-actions",
-                        title: "동작",
+                        title: t("actions"),
                         showTitle: true,
                         children: (
                             <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
                                 {/* 1행 [이동 select] / 2행 [읽음 스위치][중요 스위치] */}
                                 <TextField
                                     select
-                                    label="이동"
+                                    label={t("move")}
                                     value={
                                         values.move_to === "custom"
                                             ? `custom:${values.mail_folder_seq || 0}`
@@ -417,12 +418,12 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     sx={{ ...INPUT_SX, width: { xs: "100%", sm: 260 } }}
                                 >
                                     <MenuItem value="" sx={{ fontSize: 15 }}>
-                                        이동하지 않음
+                                        {t("dontMove")}
                                     </MenuItem>
                                     {/* 사용자 메일함은 각각 항목으로(별도 메일함 선택 없이) */}
                                     {folders.map((f) => (
                                         <MenuItem key={f.seq} value={`custom:${f.seq}`} sx={{ fontSize: 15 }}>
-                                            "{f.name}" 메일함으로 이동
+                                            {t("moveToFolderNamed", { name: f.name })}
                                         </MenuItem>
                                     ))}
                                     {values.move_to === "custom" &&
@@ -433,14 +434,14 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                             sx={{ fontSize: 15 }}
                                             disabled
                                         >
-                                            (삭제된 메일함)으로 이동
+                                            {t("moveToDeletedFolder")}
                                         </MenuItem>
                                     ) : null}
                                     <MenuItem value="spam" sx={{ fontSize: 15 }}>
-                                        스팸함으로 이동
+                                        {t("moveToSpam")}
                                     </MenuItem>
                                     <MenuItem value="trash" sx={{ fontSize: 15 }}>
-                                        휴지통으로 이동
+                                        {t("moveToTrash")}
                                     </MenuItem>
                                 </TextField>
                                 <Stack
@@ -455,21 +456,21 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                                 onChange={(_, v) => patch({ mark_read: v })}
                                             />
                                         }
-                                        label="읽음으로 표시"
+                                        label={t("markRead")}
                                         sx={{ ml: 0 }}
                                     />
                                     <FormControlLabel
                                         control={
                                             <Switch checked={values.star} onChange={(_, v) => patch({ star: v })} />
                                         }
-                                        label="중요 표시"
+                                        label={t("star")}
                                         sx={{ ml: 0 }}
                                     />
                                     {/* 모바일은 액션바가 좁아 "기존 메일에도 적용" 스위치를 본문(동작 섹션 끝)에 둔다 */}
                                     {isMobile ? (
                                         <FormControlLabel
                                             control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
-                                            label="받은편지함 기존 메일에도 적용"
+                                            label={t("applyToExisting")}
                                             sx={{ ml: 0 }}
                                         />
                                     ) : null}
@@ -492,7 +493,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                           disabled={busy}
                                           sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                       >
-                                          취소
+                                          {t("cancel")}
                                       </Button>
                                       <Button
                                           variant="contained"
@@ -500,7 +501,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                           disabled={busy}
                                           sx={{ flex: 1, minWidth: 0, whiteSpace: "nowrap" }}
                                       >
-                                          저장
+                                          {t("save")}
                                       </Button>
                                   </Stack>
                               ),
@@ -509,17 +510,17 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                               left: (
                                   <FormControlLabel
                                       control={<Switch checked={applyNow} onChange={(_, v) => setApplyNow(v)} />}
-                                      label="받은편지함 기존 메일에도 적용"
+                                      label={t("applyToExisting")}
                                       sx={{ ml: 0 }}
                                   />
                               ),
                               right: (
                                   <Stack direction="row" spacing={1}>
                                       <Button variant="outlined" onClick={requestClose} disabled={busy}>
-                                          취소
+                                          {t("cancel")}
                                       </Button>
                                       <Button variant="contained" onClick={() => void save()} disabled={busy}>
-                                          저장
+                                          {t("save")}
                                       </Button>
                                   </Stack>
                               ),
@@ -545,7 +546,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                         }}
                     >
                         <span style={{ color: "#64748b", fontSize: 13, width: 30, flexShrink: 0 }}>
-                            {option === (hints?.from_address ?? "").trim() ? "주소" : "이름"}
+                            {option === (hints?.from_address ?? "").trim() ? t("address") : t("name")}
                         </span>
                         {option}
                     </MenuItem>

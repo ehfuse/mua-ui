@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 메일 목록 모바일 머리(0.3.131) — 접히는 검색칸과 갈래 탭(전체 · 안 읽음 · 별표 · 라벨).
  *
@@ -44,9 +45,9 @@ interface MailMobileTopProps {
 const SEARCH_DEBOUNCE_MS = 300;
 
 const TABS: { key: MailMobileScope; label: string }[] = [
-    { key: "all", label: "전체" },
-    { key: "unread", label: "안 읽음" },
-    { key: "starred", label: "별표" },
+    { key: "all", get label() { return t("all"); } },
+    { key: "unread", get label() { return t("unread"); } },
+    { key: "starred", get label() { return t("starred"); } },
 ];
 
 export function MailMobileTop({
@@ -65,7 +66,7 @@ export function MailMobileTop({
     const [draft, setDraft] = useState(search);
     // 라벨 메뉴 — 탭을 누른 때의 탭 아래 좌표에 띄운다(갈래가 바뀌며 탭이 다시 그려져도 메뉴가 왼쪽 위로 튀지 않게).
     const [labelMenuAt, setLabelMenuAt] = useState<{ top: number; left: number } | null>(null);
-    const tabs = labels ? [...TABS, { key: "label" as const, label: "라벨" }] : TABS;
+    const tabs = labels ? [...TABS, { key: "label" as const, label: t("label") }] : TABS;
     const pickedLabel = labels?.find((label) => label.seq === labelSeq) ?? null;
     const inputRef = useRef<HTMLInputElement | null>(null);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -99,7 +100,7 @@ export function MailMobileTop({
                         inputRef={inputRef}
                         size="medium"
                         fullWidth
-                        placeholder="제목, 보낸 사람 검색"
+                        placeholder={t("searchSubjectSender")}
                         value={draft}
                         onChange={(event) => change(event.target.value)}
                         slotProps={{
@@ -117,7 +118,7 @@ export function MailMobileTop({
                 </Box>
             </Collapse>
             {/* 갈래 탭 — 세 칸이 폭을 똑같이 나눈다. 고른 탭만 파란 굵은 글자 + 아래 굵은 줄. */}
-            <Box role="tablist" aria-label="메일 보기" sx={{ display: "flex" }}>
+            <Box role="tablist" aria-label={t("mailView")} sx={{ display: "flex" }}>
                 {tabs.map((tab) => {
                     const selected = scope === tab.key;
                     const isLabel = tab.key === "label";
@@ -183,7 +184,7 @@ export function MailMobileTop({
                     slotProps={{ paper: { sx: { minWidth: 200, maxHeight: 420 } } }}
                 >
                     {labels.length === 0 ? (
-                        <Typography sx={{ px: 2, py: 1, fontSize: 15, color: "text.secondary" }}>만든 라벨이 없습니다</Typography>
+                        <Typography sx={{ px: 2, py: 1, fontSize: 15, color: "text.secondary" }}>{t("noLabelsShort")}</Typography>
                     ) : null}
                     {labels.map((label) => (
                         <MenuItem
@@ -211,7 +212,7 @@ export function MailMobileTop({
                             sx={{ fontSize: 15, gap: 1 }}
                         >
                             <SettingsOutlinedIcon sx={{ fontSize: 20, color: "#475569" }} />
-                            라벨 관리
+                            {t("manageLabels")}
                         </MenuItem>
                     ) : null}
                 </Menu>

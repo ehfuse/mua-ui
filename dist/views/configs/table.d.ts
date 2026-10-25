@@ -1,6 +1,3 @@
-/**
- * 메일 목록 컬럼 설정 — 중요 · 상대 · 제목/미리보기 · 첨부 · 일시.
- */
 import type { DataColumn } from "@ehfuse/mui-virtual-data-table";
 import type { MailLabel, MailMessageListItem } from "../../models/types";
 /** 복수 선택 상태(체크박스 컬럼) */

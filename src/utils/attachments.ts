@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 작성 첨부 파일 읽기 유틸 — File → base64.
  */
@@ -11,7 +12,7 @@ export const MAX_ATTACHMENT_MB = 20;
 export function readFileAsAttachment(file: File): Promise<ComposeAttachment> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onerror = () => reject(reader.error ?? new Error("파일을 읽지 못했습니다."));
+        reader.onerror = () => reject(reader.error ?? new Error(t("fileReadFailedShort")));
         reader.onload = () => {
             const result = String(reader.result ?? "");
             const base64 = result.includes(",") ? result.slice(result.indexOf(",") + 1) : result;

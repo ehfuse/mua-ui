@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 계정 등록/수정 다이얼로그 컨트롤러 — useGlobalForm + useModal.
  */
@@ -74,11 +75,11 @@ export function toRequest(values: MailAccountForm): MailAccountRequest {
 /** 필수값 검증 — 문제 있으면 메시지, 없으면 null. */
 function validate(values: MailAccountForm): string | null {
     if (!values.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim()))
-        return "메일 주소를 올바르게 입력하세요.";
-    if (!values.incoming_host.trim()) return "수신 서버 호스트를 입력하세요.";
-    if (!values.seq && !values.incoming_password) return "수신 서버 비밀번호를 입력하세요.";
-    if (!values.smtp_host.trim()) return "SMTP 서버 호스트를 입력하세요.";
-    if (!values.smtp_use_incoming_auth && !values.seq && !values.smtp_password) return "SMTP 비밀번호를 입력하세요.";
+        return t("enterValidEmail");
+    if (!values.incoming_host.trim()) return t("enterIncomingHost");
+    if (!values.seq && !values.incoming_password) return t("enterIncomingPassword");
+    if (!values.smtp_host.trim()) return t("enterSmtpHost");
+    if (!values.smtp_use_incoming_auth && !values.seq && !values.smtp_password) return t("enterSmtpPassword");
     return null;
 }
 
@@ -133,16 +134,16 @@ export function useMailAccountFormController({ onSaved }: MailAccountFormControl
             try {
                 const body = toRequest(values);
                 if (values.seq > 0) {
-                    unwrap(await mailApi.updateAccount(values.seq, body), "계정을 저장하지 못했습니다.");
+                    unwrap(await mailApi.updateAccount(values.seq, body), t("accountSaveFailed"));
                 } else {
-                    unwrap(await mailApi.createAccount(body), "계정을 등록하지 못했습니다.");
+                    unwrap(await mailApi.createAccount(body), t("accountAddFailed"));
                 }
-                SuccessAlert("메일 계정을 저장했습니다.");
+                SuccessAlert(t("accountSaved"));
                 modal.close();
                 onSaved?.();
                 return true;
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "계정을 저장하지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("accountSaveFailed") });
                 return false;
             }
         },
@@ -164,10 +165,10 @@ export function useMailAccountFormController({ onSaved }: MailAccountFormControl
         setTesting(true);
         setTestResult(null);
         try {
-            const result = unwrap(await mailApi.testAccount(toRequest(values)), "접속 테스트에 실패했습니다.");
+            const result = unwrap(await mailApi.testAccount(toRequest(values)), t("testFailed"));
             setTestResult(result);
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "접속 테스트에 실패했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("testFailed") });
         } finally {
             setTesting(false);
         }
@@ -177,12 +178,12 @@ export function useMailAccountFormController({ onSaved }: MailAccountFormControl
     const removeAccount = useCallback(
         async (seq: number) => {
             try {
-                unwrap(await mailApi.deleteAccount(seq), "계정을 삭제하지 못했습니다.");
-                SuccessAlert("메일 계정을 삭제했습니다.");
+                unwrap(await mailApi.deleteAccount(seq), t("accountDeleteFailed"));
+                SuccessAlert(t("accountDeleted"));
                 modal.close();
                 onSaved?.();
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "계정을 삭제하지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("accountDeleteFailed") });
             }
         },
         [modal, onSaved]

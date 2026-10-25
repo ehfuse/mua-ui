@@ -1,3 +1,4 @@
+import { intlTag, t } from "../../i18n";
 /**
  * 메일 상세 패널 — 헤더(제목/주소/일시) · 액션(답장/전체답장/전달/휴지통/복원/삭제) · 첨부 · 본문.
  */
@@ -96,7 +97,8 @@ interface MessageDetailPanelProps {
 /** "YYYY-MM-DD HH:mm:ss"(한국 시간) → "10월 11일 12:16" */
 function formatOpenTime(value: string): string {
     const m = /^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(value);
-    return m ? `${Number(m[1])}월 ${Number(m[2])}일 ${m[3]}` : value;
+    // 월 · 일은 화면 언어의 Intl 꼴(한국어 "10월 11일") + 시각
+    return m ? `${new Intl.DateTimeFormat(intlTag(), { month: "short", day: "numeric" }).format(new Date(2000, Number(m[1]) - 1, Number(m[2])))} ${m[3]}` : value;
 }
 
 /** 받는 사람 한 명의 수신확인 한 줄 — 주소 뒤에 읽은 때(또는 읽지 않음 · 발송 실패). */
@@ -108,10 +110,12 @@ function ReceiptLine({ receipt }: { receipt: MailReceipt }) {
             {receipt.recipient}{" "}
             <Box component="span" sx={{ color: failed ? "#dc2626" : opened ? "#2563eb" : "#475569", whiteSpace: "nowrap" }}>
                 {failed
-                    ? "발송 실패"
+                    ? t("sendFailed")
                     : opened
-                      ? `읽음 ${formatOpenTime(receipt.first_open_at)}${receipt.open_count > 1 ? ` (${receipt.open_count}회)` : ""}`
-                      : "읽지 않음"}
+                      ? receipt.open_count > 1
+                        ? t("readAtTimes", { time: formatOpenTime(receipt.first_open_at), count: receipt.open_count })
+                        : t("readAt", { time: formatOpenTime(receipt.first_open_at) })
+                      : t("notRead")}
             </Box>
         </Typography>
     );
@@ -139,7 +143,7 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
             }
             await saveBlob(blob, attachment.name);
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "첨부를 내려받지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("attachmentDownloadFailed") });
         } finally {
             setDownloading(false);
         }
@@ -224,10 +228,10 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const handleResend = async () => {
         if (!detail) return;
         try {
-            unwrap(await mailApi.resend(detail.seq), "다시 보내지 못했습니다.");
+            unwrap(await mailApi.resend(detail.seq), t("resendFailed"));
             setResentSeq(detail.seq);
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "다시 보내지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("resendFailed") });
         }
     };
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
@@ -316,7 +320,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
             // 목록 제목도 번역 제목으로(서버는 translate 시 translation_shown=true 로 저장한다).
             onTranslationShownChangeRef.current?.(true, next.subject ?? null);
         } catch (err) {
-            ErrorAlert(err instanceof Error ? err.message : "AI 번역에 실패했습니다.");
+            ErrorAlert(err instanceof Error ? err.message : t("translateFailed"));
         } finally {
             setTranslating(false);
         }
@@ -387,24 +391,24 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 {embedded ? <Box sx={{ flex: 1 }} /> : null}
                 {isDraft ? (
                     <Button size="small" variant="contained" onClick={onEditDraft} sx={{ fontSize: "13.5px" }}>
-                        이어서 작성
+                        {t("continueDraft")}
                     </Button>
                 ) : (
                     <>
-                        <Tooltip title="답장">
+                        <Tooltip title={t("reply")}>
                             <IconButton size="small" onClick={() => onReply("reply")}>
                                 <ReplyArrowIcon />
                             </IconButton>
                         </Tooltip>
                         {/* 전체 답장 — 참조가 있을 때만 보인다(없으면 답장과 같다) */}
                         {canReplyAll ? (
-                            <Tooltip title="전체 답장">
+                            <Tooltip title={t("replyAll")}>
                                 <IconButton size="small" onClick={() => onReply("replyAll")}>
                                     <ReplyAllArrowIcon />
                                 </IconButton>
                             </Tooltip>
                         ) : null}
-                        <Tooltip title="전달">
+                        <Tooltip title={t("forward")}>
                             <IconButton size="small" onClick={() => onReply("forward")}>
                                 <ForwardArrowIcon />
                             </IconButton>
@@ -413,20 +417,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 )}
                 {/* 읽지 않음 / 스팸 신고는 툴바에도 아이콘으로 노출(받은편지함), 스팸함에서는 "스팸 아님" */}
                 {detail.folder === "inbox" ? (
-                    <Tooltip title="읽지 않음으로 표시">
+                    <Tooltip title={t("markUnread")}>
                         <IconButton size="small" onClick={onMarkUnread}>
                             <MarkEmailUnreadOutlinedIcon />
                         </IconButton>
                     </Tooltip>
                 ) : null}
                 {isSpam ? (
-                    <Tooltip title="스팸 아님 (받은편지함으로)">
+                    <Tooltip title={t("notSpamToInbox")}>
                         <Button size="small" onClick={onRestore} sx={{ fontSize: "13.5px" }}>
-                            스팸 아님
+                            {t("notSpam")}
                         </Button>
                     </Tooltip>
                 ) : detail.folder === "inbox" ? (
-                    <Tooltip title="스팸 신고">
+                    <Tooltip title={t("reportSpam")}>
                         <IconButton size="small" onClick={(e) => askConfirm("spam", e.currentTarget)}>
                             <ReportGmailerrorredOutlinedIcon />
                         </IconButton>
@@ -434,10 +438,10 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 ) : null}
                 {/* 라벨 — 단 라벨이 있으면 첫 라벨 색으로 채운다(목록 행의 라벨 단추와 같은 모양). */}
                 {labels && onOpenLabelMenu && !isDraft ? (
-                    <Tooltip title="라벨">
+                    <Tooltip title={t("label")}>
                         <IconButton
                             size="small"
-                            aria-label="라벨"
+                            aria-label={t("label")}
                             onClick={(e) => {
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 onOpenLabelMenu({ top: rect.bottom, left: rect.left });
@@ -453,27 +457,27 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 {/* 삭제(휴지통으로) — 휴지통에서는 복원/영구 삭제 */}
                 {isTrash ? (
                     <>
-                        <Tooltip title="복원">
+                        <Tooltip title={t("restore")}>
                             <IconButton size="small" onClick={onRestore}>
                                 <RestoreFromTrashOutlinedIcon />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="영구 삭제">
+                        <Tooltip title={t("deleteForever")}>
                             <IconButton size="small" onClick={(e) => askConfirm("delete", e.currentTarget)}>
                                 <TrashIcon />
                             </IconButton>
                         </Tooltip>
                     </>
                 ) : (
-                    <Tooltip title="삭제">
+                    <Tooltip title={t("delete")}>
                         <IconButton size="small" onClick={(e) => askConfirm("trash", e.currentTarget)}>
                             <TrashIcon />
                         </IconButton>
                     </Tooltip>
                 )}
                 {/* ⋮ 더보기 — 삭제/읽지않음/스팸 등 전체 메뉴 */}
-                <Tooltip title="더보기">
-                    <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label="더보기">
+                <Tooltip title={t("more")}>
+                    <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label={t("more")}>
                         <MoreVertIcon />
                     </IconButton>
                 </Tooltip>
@@ -490,7 +494,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                   <ListItemIcon>
                                       <ReplyArrowIcon fontSize="small" />
                                   </ListItemIcon>
-                                  <ListItemText primary="답장" />
+                                  <ListItemText primary={t("reply")} />
                               </MenuItem>,
                               ...(canReplyAll
                                   ? [
@@ -498,7 +502,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                             <ListItemIcon>
                                                 <ReplyAllArrowIcon fontSize="small" />
                                             </ListItemIcon>
-                                            <ListItemText primary="전체 답장" />
+                                            <ListItemText primary={t("replyAll")} />
                                         </MenuItem>,
                                     ]
                                   : []),
@@ -506,7 +510,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                   <ListItemIcon>
                                       <ForwardArrowIcon fontSize="small" />
                                   </ListItemIcon>
-                                  <ListItemText primary="전달" />
+                                  <ListItemText primary={t("forward")} />
                               </MenuItem>,
                               <Divider key="d1" />,
                           ]
@@ -517,13 +521,13 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                   <ListItemIcon>
                                       <RestoreFromTrashOutlinedIcon fontSize="small" />
                                   </ListItemIcon>
-                                  <ListItemText primary="복원" />
+                                  <ListItemText primary={t("restore")} />
                               </MenuItem>,
                               <MenuItem key="forever" onClick={() => (closeMenu(), askConfirm("delete", menuAnchor))}>
                                   <ListItemIcon>
                                       <TrashIcon fontSize="small" />
                                   </ListItemIcon>
-                                  <ListItemText primary="영구 삭제" />
+                                  <ListItemText primary={t("deleteForever")} />
                               </MenuItem>,
                           ]
                         : [
@@ -531,7 +535,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                   <ListItemIcon>
                                       <TrashIcon fontSize="small" />
                                   </ListItemIcon>
-                                  <ListItemText primary="삭제" />
+                                  <ListItemText primary={t("delete")} />
                               </MenuItem>,
                           ]}
                     {detail.folder === "inbox" ? (
@@ -539,7 +543,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             <ListItemIcon>
                                 <MarkEmailUnreadOutlinedIcon fontSize="small" />
                             </ListItemIcon>
-                            <ListItemText primary="읽지 않음으로 표시" />
+                            <ListItemText primary={t("markUnread")} />
                         </MenuItem>
                     ) : null}
                     {/* 이동 ▸ / 규칙 만들기 — 우클릭 메뉴와 같은 항목(임시보관은 제외) */}
@@ -552,7 +556,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                             <ListItemIcon>
                                                 <DriveFileMoveOutlinedIcon fontSize="small" />
                                             </ListItemIcon>
-                                            <ListItemText primary="이동" />
+                                            <ListItemText primary={t("move")} />
                                             <ArrowRightIcon fontSize="small" sx={{ color: "#64748b", ml: 1 }} />
                                         </MenuItem>,
                                     ]
@@ -563,7 +567,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                             <ListItemIcon>
                                                 <RuleOutlinedIcon fontSize="small" />
                                             </ListItemIcon>
-                                            <ListItemText primary="규칙 만들기" />
+                                            <ListItemText primary={t("createRule")} />
                                         </MenuItem>,
                                     ]
                                   : []),
@@ -572,7 +576,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                   <ListItemIcon>
                                       <CodeOutlinedIcon fontSize="small" />
                                   </ListItemIcon>
-                                  <ListItemText primary="원문 보기" />
+                                  <ListItemText primary={t("showOriginal")} />
                               </MenuItem>,
                           ]
                         : null}
@@ -582,14 +586,14 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             <ListItemIcon>
                                 <ReportGmailerrorredOutlinedIcon fontSize="small" />
                             </ListItemIcon>
-                            <ListItemText primary="스팸 아님 (받은편지함으로)" />
+                            <ListItemText primary={t("notSpamToInbox")} />
                         </MenuItem>
                     ) : detail.folder === "inbox" ? (
                         <MenuItem onClick={() => (closeMenu(), askConfirm("spam", menuAnchor))}>
                             <ListItemIcon>
                                 <ReportGmailerrorredOutlinedIcon fontSize="small" />
                             </ListItemIcon>
-                            <ListItemText primary="스팸 신고" />
+                            <ListItemText primary={t("reportSpam")} />
                         </MenuItem>
                     ) : null}
                 </Menu>
@@ -634,7 +638,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 </Menu>
                 {embedded ? null : <Box sx={{ flex: 1 }} />}
                 {embedded ? null : (
-                    <Tooltip title="닫기 (Esc)">
+                    <Tooltip title={t("closeEsc")}>
                         <IconButton size="small" onClick={onClose}>
                             <CloseIcon />
                         </IconButton>
@@ -648,13 +652,13 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 zIndex={1400}
                 title={
                     confirm?.kind === "spam"
-                        ? "이 메일을 스팸으로 신고할까요?"
+                        ? t("reportSpamConfirm")
                         : confirm?.kind === "delete"
-                          ? "이 메일을 영구 삭제할까요? 되돌릴 수 없습니다."
-                          : "이 메일을 삭제할까요?"
+                          ? t("deleteForeverAsk")
+                          : t("deleteConfirm")
                 }
-                confirmText={confirm?.kind === "spam" ? "스팸 신고" : confirm?.kind === "delete" ? "영구 삭제" : "삭제"}
-                cancelText="취소"
+                confirmText={confirm?.kind === "spam" ? t("reportSpam") : confirm?.kind === "delete" ? t("deleteForever") : t("delete")}
+                cancelText={t("cancel")}
                 onCancel={() => setConfirm(null)}
                 onConfirm={runConfirmed}
             />
@@ -675,7 +679,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     {/* [별표][제목] — 중요 토글은 제목 왼쪽. 버튼 높이를 제목 첫 줄 높이(27px)와 같게 두고 그 안에서
                         아이콘을 가운데 놓아, 제목이 여러 줄이어도 첫 줄 세로 중앙에 정확히 맞는다(오프셋 계산 불필요). */}
                     <Stack direction="row" alignItems="flex-start" spacing={0.75}>
-                        <Tooltip title={detail.is_starred ? "중요 해제" : "중요 표시"}>
+                        <Tooltip title={detail.is_starred ? t("unstar") : t("star")}>
                             <IconButton
                                 onClick={onToggleStar}
                                 sx={{ p: 0, width: 27, height: 27, ml: "-2px", flexShrink: 0 }}
@@ -701,7 +705,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             }}
                         >
                             {/* 번역본 보기 상태면 제목도 번역 제목으로(원문 보기로 되돌리면 원문 제목). */}
-                            {(showTranslation && translation?.subject) || detail.subject || "(제목 없음)"}
+                            {(showTranslation && translation?.subject) || detail.subject || t("noSubject")}
                         </Typography>
                     </Stack>
                     {/* 단 라벨 — 제목 글자 줄에 맞춰(별표 칸 27px + 간격 6px 만큼 들여) 둔다. */}
@@ -723,7 +727,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         }}
                     >
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                            보낸 사람
+                            {t("from")}
                         </Typography>
                         {/* 보낸 사람 — 텍스트(flex 1) + 주소록 추가 아이콘을 별도 칸으로 둔다.
                             인라인으로 끼우면 긴 주소가 줄바꿈될 때 아이콘이 밀리거나 잘려 모바일에서 안 보였다(2026-08-30). */}
@@ -767,10 +771,10 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             </Typography>
                             {/* 주소록 추가 — 주소록에 없는 보낸 사람에게만. 줄 높이(26px)에 맞춘 버튼, 모바일은 터치 크기. */}
                             {detail.from && onAddContact ? (
-                                <Tooltip title="주소록에 추가">
+                                <Tooltip title={t("addToContacts")}>
                                     <IconButton
                                         size="small"
-                                        aria-label="주소록에 추가"
+                                        aria-label={t("addToContacts")}
                                         onClick={() => onAddContact(detail.from!.address, detail.from!.name ?? "")}
                                         sx={{
                                             p: 0,
@@ -787,7 +791,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             ) : null}
                         </Box>
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                            받는 사람
+                            {t("to")}
                         </Typography>
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
                             {formatAddressList(detail.to) || "-"}
@@ -795,21 +799,21 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         {detail.cc.length > 0 ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                                    참조
+                                    {t("cc")}
                                 </Typography>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
                                     {formatAddressList(detail.cc)}
                                 </Typography>
                             </>
                         ) : null}
-                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>일시</Typography>
+                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>{t("date")}</Typography>
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px" }}>
                             {formatMailFullDate(detail.date_time)}
                         </Typography>
                         {detail.send_at ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                                    예약 발송
+                                    {t("scheduledSend")}
                                 </Typography>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px" }}>
                                     {formatMailFullDate(detail.send_at)}
@@ -818,7 +822,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         ) : null}
                         {sendState === "sending" ? (
                             <>
-                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>발송</Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>{t("sending")}</Typography>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: sendStateColor(sendState) }}>
                                     {sendStateLabel(sendState)}
                                 </Typography>
@@ -827,7 +831,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         {detail.send_error && sendState !== "sending" ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                                    {sendStateLabel(sendState) || "예약 실패"}
+                                    {sendStateLabel(sendState) || t("scheduleFailed")}
                                 </Typography>
                                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, flexWrap: "wrap", minWidth: 0 }}>
                                     <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#dc2626", wordBreak: "break-all", minWidth: 0 }}>
@@ -836,7 +840,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                     {/* 일부만 실패한 메일은 다시 보내지 않는다 — 이미 받은 사람에게 또 간다. */}
                                     {sendState === "failed" ? (
                                         <Button variant="outlined" size="small" onClick={handleResend} sx={{ flexShrink: 0, fontSize: "14px" }}>
-                                            다시 보내기
+                                            {t("resend")}
                                         </Button>
                                     ) : null}
                                 </Box>
@@ -845,18 +849,18 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         {detail.secure ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                                    보안메일
+                                    {t("secureMail")}
                                 </Typography>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
-                                    {`${formatOpenTime(detail.secure.expires_at)}까지 열람`}
-                                    {detail.secure.hint ? ` · 힌트: ${detail.secure.hint}` : ""}
+                                    {t("viewableUntil", { time: formatOpenTime(detail.secure.expires_at) })}
+                                    {detail.secure.hint ? ` · ${t("hintWith", { hint: detail.secure.hint })}` : ""}
                                 </Typography>
                             </>
                         ) : null}
                         {receipts.length > 0 ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                                    수신확인
+                                    {t("readReceipt")}
                                 </Typography>
                                 <Box sx={{ minWidth: 0 }}>
                                     {receipts.map((receipt) => (
@@ -891,7 +895,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             }}
                         >
                             <Typography sx={{ fontSize: "13.5px", color: "#991b1b" }}>
-                                외부 이미지를 차단했습니다.
+                                {t("externalImagesBlocked")}
                             </Typography>
                             <Button
                                 size="small"
@@ -899,7 +903,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 onClick={() => setAllowRemoteImages(true)}
                                 sx={{ fontSize: "13.5px" }}
                             >
-                                이미지 표시
+                                {t("showImages")}
                             </Button>
                         </Box>
                     ) : null}
@@ -909,7 +913,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 {thread.length > 1 && (
                     <Box sx={{ mx: 2, mb: 1.5, border: "1px solid #e2e8f0", borderRadius: 1.5, overflow: "hidden" }}>
                         <Typography sx={{ px: 1.5, py: 0.75, fontSize: 14, fontWeight: 600, color: "#475569", bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                            이 대화 {thread.length}통
+                            {t("threadCount", { count: thread.length })}
                         </Typography>
                         {thread.map((item) => {
                             const current = item.seq === detail.seq;
@@ -934,7 +938,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                     }}
                                 >
                                     <Box component="span" sx={{ flexShrink: 0, maxWidth: "40%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: item.is_read ? 500 : 700, color: "#111827" }}>
-                                        {item.folder === "sent" || item.folder === "draft" ? `나 → ${item.to_summary || ""}` : item.from_name || item.from_address || "(발신자 없음)"}
+                                        {item.folder === "sent" || item.folder === "draft" ? t("meTo", { to: item.to_summary || "" }) : item.from_name || item.from_address || t("noSender")}
                                     </Box>
                                     <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#64748b" }}>
                                         {item.snippet || item.subject || ""}
@@ -957,8 +961,8 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     sx={{ px: 2, pt: 2 }}
                 >
                     {/* 본문 복사 — 번역하기 왼쪽 */}
-                    <Tooltip title="본문 복사">
-                        <IconButton size="small" onClick={copyBody} aria-label="본문 복사">
+                    <Tooltip title={t("copyBody")}>
+                        <IconButton size="small" onClick={copyBody} aria-label={t("copyBody")}>
                             {bodyCopied ? (
                                 <CheckIcon sx={{ fontSize: 20, color: "#2f9e5b" }} />
                             ) : (
@@ -978,7 +982,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             onClick={() => void handleTranslate()}
                             sx={{ fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
                         >
-                            {translation && showTranslation ? "원문 보기" : "번역하기"}
+                            {translation && showTranslation ? t("showOriginal") : t("translate")}
                         </Button>
                     ) : null}
                 </Stack>
@@ -1002,7 +1006,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         <TranslateIcon sx={{ fontSize: 30, color: "#2563eb", flexShrink: 0, mx: 1.5 }} />
                         <Box sx={{ flex: 1, minWidth: 0 }}>
                             <Typography sx={{ fontSize: 16, color: "#1e3a8a", fontWeight: 600 }}>
-                                AI 번역 (Gemini) · 원문과 다를 수 있습니다
+                                {t("aiTranslateNote")}
                             </Typography>
                             {translation.summary ? (
                                 <Typography

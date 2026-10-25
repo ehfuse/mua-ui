@@ -1,6 +1,3 @@
-/**
- * 메일 본문 뷰어 — 정제한 HTML 을 샌드박스 iframe(srcDoc)에 그린다(스크립트 불가, 링크는 새 창).
- */
 interface MailBodyFrameProps {
     html: string;
     text: string;

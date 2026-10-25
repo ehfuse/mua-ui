@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 주소록 연락처 등록/수정 다이얼로그 컨트롤러 — useGlobalForm + useModal.
  */
@@ -66,21 +67,21 @@ export function useContactFormController({ onSaved, onRemoved }: ContactFormCont
         onSubmit: async (values) => {
             const email = values.email.trim();
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                WarningAlert({ message: "메일 주소를 올바르게 입력하세요." });
+                WarningAlert({ message: t("enterValidEmail") });
                 return false;
             }
             try {
                 const body = toRequest(values);
                 const saved =
                     values.seq > 0
-                        ? unwrap(await mailApi.updateContact(values.seq, body), "연락처를 저장하지 못했습니다.")
-                        : unwrap(await mailApi.createContact(body), "연락처를 저장하지 못했습니다.");
-                SuccessAlert("연락처를 저장했습니다.");
+                        ? unwrap(await mailApi.updateContact(values.seq, body), t("contactSaveFailed"))
+                        : unwrap(await mailApi.createContact(body), t("contactSaveFailed"));
+                SuccessAlert(t("contactSaved"));
                 modal.close();
                 onSaved?.(saved);
                 return true;
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "연락처를 저장하지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("contactSaveFailed") });
                 return false;
             }
         },
@@ -91,12 +92,12 @@ export function useContactFormController({ onSaved, onRemoved }: ContactFormCont
     const removeContact = useCallback(
         async (seq: number) => {
             try {
-                unwrap(await mailApi.deleteContact(seq), "연락처를 삭제하지 못했습니다.");
-                SuccessAlert("연락처를 삭제했습니다.");
+                unwrap(await mailApi.deleteContact(seq), t("contactDeleteFailed"));
+                SuccessAlert(t("contactDeleted"));
                 modal.close();
                 onRemoved?.(seq);
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "연락처를 삭제하지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("contactDeleteFailed") });
             }
         },
         [modal, onRemoved]

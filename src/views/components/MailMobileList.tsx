@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 메일 목록 모바일 카드(서브페이지 다이얼로그 본문).
  *
@@ -166,11 +167,11 @@ export function MailMobileRow({
                     onChange={() => onToggleCheck(row.seq)}
                     onClick={(event) => event.stopPropagation()}
                     sx={{ p: 0.75 }}
-                    inputProps={{ "aria-label": "선택" }}
+                    inputProps={{ "aria-label": t("select") }}
                 />
                 <IconButton
                     size="small"
-                    aria-label={row.is_starred ? "중요 해제" : "중요 표시"}
+                    aria-label={row.is_starred ? t("unstar") : t("star")}
                     onClick={(event) => {
                         event.stopPropagation();
                         onToggleStar(row);
@@ -240,7 +241,7 @@ export function MailMobileRow({
                                 {sendStateLabel(row.send_state)}
                             </Box>
                         ) : null}
-                        {row.translated_subject || row.subject || "(제목 없음)"}
+                        {row.translated_subject || row.subject || t("noSubject")}
                     </Typography>
                     {row.has_attachment ? (
                         <AttachFileIcon sx={{ color: "#64748b", fontSize: 20, flexShrink: 0, mt: 0.25 }} />
@@ -274,7 +275,7 @@ export function ThreadCount({ row, fontSize }: { row: MailMessageListItem; fontS
     const count = Number(row.thread_count ?? 1);
     if (count < 2) return null;
     return (
-        <Box component="span" sx={{ flexShrink: 0, ml: 0.75, fontSize, fontWeight: 400, color: "#64748b" }} aria-label={`대화 ${count}통`}>
+        <Box component="span" sx={{ flexShrink: 0, ml: 0.75, fontSize, fontWeight: 400, color: "#64748b" }} aria-label={t("threadOf", { count })}>
             {count}
         </Box>
     );

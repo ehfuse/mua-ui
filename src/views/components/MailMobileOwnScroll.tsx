@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 하단 탭(페이지 모드) 메일 목록 — 자기 스크롤을 가진 VDT 가상 목록(0.3.168, 2026-10-19 업무함 사용자 지정 "모바일 메일 목록도 아트릭트 홈처럼").
  *
@@ -68,7 +69,7 @@ const HEAD_SEQ = -2;
 /** 표 줄 — 메일이거나 첫 줄 · 끝 줄 */
 type Row = MailMessageListItem | { seq: typeof MORE_SEQ | typeof HEAD_SEQ };
 /** 표 열 — 카드 한 칸으로 그리므로 하나면 된다(VDT 는 열이 있어야 한다) */
-const COLUMNS: DataColumn<Row>[] = [{ id: "subject", text: "메일" }];
+const COLUMNS: DataColumn<Row>[] = [{ id: "subject", get text() { return t("mail"); } }];
 
 interface MailMobileOwnScrollProps {
     config: MuaMobileOwnScroll; // 앱 셸 설정

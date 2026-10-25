@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 작성 다이얼로그 컨트롤러 — 새 메일/답장/전체답장/전달/임시보관 열기, 발송, 임시저장.
  */
@@ -227,7 +228,7 @@ const openForwardMany =
             // 크기는 본문 길이 + 첨부 합계로 어림한다(서버가 조립하기 전엔 정확히 알 수 없다).
             size: (d.body_html?.length ?? 0) + d.attachments.reduce((sum, a) => sum + (a.size || 0), 0),
         }));
-        const subject = prefixSubject(first.subject, "Fwd") + (details.length > 1 ? ` 외 ${details.length - 1}건` : "");
+        const subject = prefixSubject(first.subject, "Fwd") + (details.length > 1 ? t("fwdMoreSuffix", { count: details.length - 1 }) : "");
         context.reset();
         context.setValues({
             ...freshComposeForm(),
@@ -291,44 +292,44 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
         initialValues: defaultComposeForm,
         onSubmit: async (values) => {
             if (!(values.mail_account_seq > 0)) {
-                WarningAlert({ message: "보내는 계정을 선택하세요." });
+                WarningAlert({ message: t("pickSendAccount") });
                 return false;
             }
             const request = toComposeRequest(values, true);
             if (request.to.length + request.cc.length + request.bcc.length === 0) {
-                WarningAlert({ message: "받는 사람을 입력하세요." });
+                WarningAlert({ message: t("enterRecipient") });
                 return false;
             }
             if (values.scheduled) {
                 const at = parseScheduleInput(values.send_at);
                 if (!at || at.getTime() < Date.now() + 60_000) {
-                    WarningAlert({ message: "예약 시각을 지금보다 뒤로 정하세요." });
+                    WarningAlert({ message: t("scheduleInFuture") });
                     return false;
                 }
             }
             if (values.secure && values.secure_password.length < 4) {
-                WarningAlert({ message: "보안메일 열람 비밀번호를 4자 이상 입력하세요." });
+                WarningAlert({ message: t("securePasswordMin") });
                 return false;
             }
             setSending(true);
             try {
-                const sent = unwrap(await mailApi.send(request), "메일을 보내지 못했습니다.");
+                const sent = unwrap(await mailApi.send(request), t("sendMailFailed"));
                 if (!values.secure) saveReadReceiptPref(values.read_receipt);
                 const failed = sent.failed_recipients ?? [];
                 // 받는 사람마다 따로 보내므로 일부만 실패할 수 있다 — 누구에게 안 갔는지 알려야 다시 보낸다.
                 if (failed.length > 0)
-                    WarningAlert({ message: `보내지 못한 받는 사람이 있습니다: ${failed.join(", ")}` });
+                    WarningAlert({ message: t("someRecipientsFailed", { list: failed.join(", ") }) });
                 else
                     // 첨부가 큰 메일은 서버가 뒤에서 보낸다(pending) — 보낸편지함에 "보내는 중" 으로 보이고, 실패하면 거기 "발송 실패" 로 남는다.
                     SuccessAlert(
-                        sent.scheduled ? `${values.send_at} 에 보내도록 예약했습니다.` : sent.pending ? "메일을 보내고 있습니다. 보낸편지함에서 확인할 수 있습니다." : "메일을 보냈습니다."
+                        sent.scheduled ? t("scheduledAt", { time: values.send_at }) : sent.pending ? t("sendingInBackground") : t("mailSent")
                     );
                 sentRef.current = true;
                 modal.close();
                 onSent?.();
                 return true;
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "메일을 보내지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("sendMailFailed") });
                 return false;
             } finally {
                 setSending(false);
@@ -350,12 +351,12 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
         const silent = Boolean(options.silent);
         const values = form.getFormValues();
         if (!(values.mail_account_seq > 0)) {
-            if (!silent) WarningAlert({ message: "보내는 계정을 선택하세요." });
+            if (!silent) WarningAlert({ message: t("pickSendAccount") });
             return false;
         }
         setSavingDraft(true);
         try {
-            const saved = unwrap(await mailApi.saveDraft(toComposeRequest(values)), "임시저장하지 못했습니다.");
+            const saved = unwrap(await mailApi.saveDraft(toComposeRequest(values)), t("draftSaveFailed"));
             form.setFormValue("seq", saved.seq);
             form.setFormValue("mode", "draft");
             // 새로 올린 첨부는 서버 uuid 로 바뀌었으므로 base64 를 버리고 서버 메타로 교체한다.
@@ -368,12 +369,12 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
             // 임시저장은 예약을 푼다(서버) — 예약해 둔 메일을 고쳐 저장했으면 그 사실을 알린다.
             SuccessAlert(
                 values.mode === "draft" && values.scheduled
-                    ? "예약을 풀고 임시보관함에 저장했습니다. 다시 예약하려면 [예약] 을 누르세요."
-                    : "임시보관함에 저장했습니다."
+                    ? t("draftUnscheduled")
+                    : t("draftSaved")
             );
             return true;
         } catch (error) {
-            if (!silent) ErrorAlert({ message: error instanceof Error ? error.message : "임시저장하지 못했습니다." });
+            if (!silent) ErrorAlert({ message: error instanceof Error ? error.message : t("draftSaveFailed") });
             return false;
         } finally {
             setSavingDraft(false);

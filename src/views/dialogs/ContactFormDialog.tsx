@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 연락처 등록/수정 다이얼로그(mfd) — 이름 · 메일 · 소속 · 전화 · 메모 · 즐겨찾기. 수정 모드는 [메일 보내기] 와 삭제(휴지통 아이콘).
  */
@@ -27,8 +28,8 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
     const handleDelete = useCallback(() => {
         if (!(seq > 0)) return;
         ConfirmDialog({
-            title: "연락처 삭제",
-            message: "이 연락처를 삭제하시겠습니까?",
+            title: t("deleteContact"),
+            message: t("deleteContactConfirm"),
             onConfirm: () => void removeContact(seq),
         });
     }, [seq, removeContact]);
@@ -45,11 +46,11 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
             mobilePresentation={isMobile ? "slide" : "dialog"}
             open={modal.isOpen}
             onClose={modal.close}
-            title={{ text: seq > 0 ? "연락처 수정" : "연락처 추가" }}
+            title={{ text: seq > 0 ? t("editContact") : t("addContact") }}
             titleIcons={{ delete: { visible: seq > 0 && canManage } }}
             onDelete={seq > 0 && canManage ? handleDelete : undefined}
             tabs={{ visible: false }}
-            locale="ko"
+            locale={formDialogLocale()}
             maxWidth="xs"
             scrollPastLastSection={false}
             contentBottomPadding={24}
@@ -59,18 +60,18 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
                     showTitle: false,
                     children: (
                         <Box sx={{ display: "grid", gap: 2.5, width: "100%" }}>
-                            <ClearTextField name="name" label="이름" form={form} fullWidth autoFocus />
-                            <ClearTextField name="email" label="메일 주소 *" form={form} fullWidth autoComplete="off" />
-                            <ClearTextField name="organization" label="소속" form={form} fullWidth />
-                            <ClearTextField name="phone" label="전화번호" form={form} fullWidth />
-                            <ClearTextField name="memo" label="메모" form={form} fullWidth multiline minRows={2} />
+                            <ClearTextField name="name" label={t("name")} form={form} fullWidth autoFocus />
+                            <ClearTextField name="email" label={t("emailRequired")} form={form} fullWidth autoComplete="off" />
+                            <ClearTextField name="organization" label={t("organization")} form={form} fullWidth />
+                            <ClearTextField name="phone" label={t("phone")} form={form} fullWidth />
+                            <ClearTextField name="memo" label={t("memo")} form={form} fullWidth multiline minRows={2} />
                             <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                                <Switch form={form} name="is_favorite" label="즐겨찾기" />
-                                <Switch form={form} name="is_shared" label="공용 주소록" disabled={!canManage} />
+                                <Switch form={form} name="is_favorite" label={t("favorite")} />
+                                <Switch form={form} name="is_shared" label={t("sharedContacts")} disabled={!canManage} />
                             </Box>
                             {!canManage ? (
                                 <Typography sx={{ fontSize: "14px", color: "#b45309" }}>
-                                    공용 연락처는 관리자 또는 등록자만 수정·삭제할 수 있습니다.
+                                    {t("sharedContactEditOnly")}
                                 </Typography>
                             ) : null}
                         </Box>
@@ -83,7 +84,7 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
                 left:
                     seq > 0 && onCompose ? (
                         <Button variant="outlined" onClick={handleCompose} disabled={isSubmitting}>
-                            메일 보내기
+                            {t("sendMail")}
                         </Button>
                     ) : undefined,
                 right: (
@@ -92,7 +93,7 @@ export function ContactFormDialog({ controller, onCompose }: ContactFormDialogPr
                         onClick={() => void form.submit()}
                         disabled={isSubmitting || !canManage}
                     >
-                        저장
+                        {t("save")}
                     </Button>
                 ),
             }}

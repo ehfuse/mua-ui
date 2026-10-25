@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 관리 UI 호스트 — 관리 다이얼로그(계정/메일함/규칙 탭)·계정 등록/수정 폼·규칙 폼·**새 메일 작성**을 한 곳에서 그린다.
  *
@@ -151,8 +152,8 @@ export function MailManageHost() {
     const handleDeleteAccount = useCallback(
         (account: MailAccount) => {
             ConfirmDialog({
-                title: "메일 계정 삭제",
-                message: `"${account.name || account.email}" 계정과 받은/보낸 메일이 모두 삭제됩니다. 삭제하시겠습니까?`,
+                title: t("deleteAccount"),
+                message: t("deleteAccountNamedConfirm", { name: account.name || account.email }),
                 onConfirm: () => void accountForm.removeAccount(account.seq),
             });
         },
@@ -181,13 +182,13 @@ export function MailManageHost() {
             .then((res) => {
                 // 그 사이 닫았거나 다른 편지를 열었으면 버린다.
                 if (request !== viewRequest.current) return;
-                setViewing({ seq, detail: unwrap(res, "메일을 불러오지 못했습니다."), loading: false });
+                setViewing({ seq, detail: unwrap(res, t("loadMailFailed")), loading: false });
                 if (markRead) void state.actions.loadCounts();
             })
             .catch((error) => {
                 if (request !== viewRequest.current) return;
                 setViewing(null);
-                ErrorAlert({ message: error instanceof Error ? error.message : "메일을 불러오지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("loadMailFailed") });
             });
     }, [state.actions]);
     const viewDetail = viewing?.detail ?? null;
@@ -265,7 +266,7 @@ export function MailManageHost() {
                 <MobileDetailDialog
                     modalId="mail-message-view"
                     open={Boolean(viewing)}
-                    title={MAIL_FOLDER_LABELS[viewDetail?.folder as MailListFolder] ?? "메일"}
+                    title={MAIL_FOLDER_LABELS[viewDetail?.folder as MailListFolder] ?? t("mail")}
                     onClose={closeView}
                 >
                     <Box sx={{ bgcolor: "#fff", borderRadius: 2, overflow: "hidden", boxShadow: "0 1px 3px rgba(15,23,42,0.12)" }}>{viewPanel}</Box>

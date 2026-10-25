@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 색상 라벨 화면 조각(0.3.158) — 칩 · 색 점 · 고정 색 견본 · 라벨 고르기 메뉴.
  * config.labels 를 켠 앱에서만 그려진다(서버에 라벨 API 가 있어야 한다).
@@ -17,15 +18,15 @@ import type { MailLabel } from "../../models/types";
  * 칩은 색 바탕 + 흰 글자라 흰 글자가 읽히는 진한 쪽만 둔다(노랑도 갈색에 가까운 진한 노랑).
  */
 export const LABEL_COLORS: { color: string; name: string }[] = [
-    { color: "#dc2626", name: "빨강" },
-    { color: "#ea580c", name: "주황" },
-    { color: "#b45309", name: "노랑" },
-    { color: "#16a34a", name: "초록" },
-    { color: "#0d9488", name: "청록" },
-    { color: "#2563eb", name: "파랑" },
-    { color: "#7c3aed", name: "보라" },
-    { color: "#db2777", name: "분홍" },
-    { color: "#64748b", name: "회색" },
+    { color: "#dc2626", get name() { return t("colorRed"); } },
+    { color: "#ea580c", get name() { return t("colorOrange"); } },
+    { color: "#b45309", get name() { return t("colorYellow"); } },
+    { color: "#16a34a", get name() { return t("colorGreen"); } },
+    { color: "#0d9488", get name() { return t("colorTeal"); } },
+    { color: "#2563eb", get name() { return t("colorBlue"); } },
+    { color: "#7c3aed", get name() { return t("colorPurple"); } },
+    { color: "#db2777", get name() { return t("colorPink"); } },
+    { color: "#64748b", get name() { return t("colorGray"); } },
 ];
 
 /** 바탕색에 올릴 글자색 — 밝은 바탕(서버에 견본 밖 색이 들어온 경우)이면 진한 글자. */
@@ -155,7 +156,7 @@ export function MailLabelMenu({
             slotProps={{ paper: { sx: { minWidth: 220, maxHeight: 420 } } }}
         >
             {labels.length === 0 ? (
-                <Typography sx={{ px: 2, py: 1, fontSize: 15, color: "text.secondary" }}>만든 라벨이 없습니다</Typography>
+                <Typography sx={{ px: 2, py: 1, fontSize: 15, color: "text.secondary" }}>{t("noLabelsShort")}</Typography>
             ) : null}
             {labels.map((label) => {
                 const state = states.get(label.seq) ?? "none";
@@ -180,7 +181,7 @@ export function MailLabelMenu({
                 sx={{ fontSize: 15, gap: 1 }}
             >
                 <AddIcon sx={{ fontSize: 20, color: "#475569" }} />
-                새 라벨 만들기
+                {t("createLabel")}
             </MenuItem>
             {onManage ? (
                 <MenuItem
@@ -191,7 +192,7 @@ export function MailLabelMenu({
                     sx={{ fontSize: 15, gap: 1 }}
                 >
                     <SettingsOutlinedIcon sx={{ fontSize: 20, color: "#475569" }} />
-                    라벨 관리
+                    {t("manageLabels")}
                 </MenuItem>
             ) : null}
         </Menu>

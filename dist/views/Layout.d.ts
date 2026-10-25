@@ -1,9 +1,3 @@
-/**
- * 메일(MUA) 레이아웃 — ListLayout(툴바 헤더 + 메시지 목록 + 오른쪽 상세 패널).
- *
- * 데이터는 로그인 토큰의 사용자(account_seq) 기준으로 AS 가 스코핑하므로 코드마켓/대시보드 어느 셸에 마운트해도 동작한다.
- * 목록 재조회는 필터(계정/폴더/검색/미읽음/중요) 변화를 effect 가 보고 호출하고, realtime(mua.mail.changed)은 조용히 갱신한다.
- */
 import type { MailListFolder } from "../models/types";
 interface MailLayoutProps {
     /**

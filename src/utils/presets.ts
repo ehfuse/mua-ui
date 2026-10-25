@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 주소 도메인별 서버 프리셋 — 계정 등록 시 호스트/포트를 자동 채운다.
  */
@@ -23,9 +24,9 @@ const PRESETS: Record<string, MailServerPreset> = {
         smtp_host: "smtp.gmail.com",
         smtp_port: 465,
         smtp_security: "ssl",
-        note: "Gmail 은 2단계 인증 후 발급한 앱 비밀번호를 사용해야 합니다.",
+        get note() { return t("gmailNote"); },
         note_url: "https://support.google.com/accounts/answer/185833?hl=ko",
-        note_link_label: "앱 비밀번호 만드는 방법",
+        get note_link_label() { return t("gmailNoteLink"); },
     },
     "naver.com": {
         imap_host: "imap.naver.com",
@@ -33,9 +34,9 @@ const PRESETS: Record<string, MailServerPreset> = {
         smtp_host: "smtp.naver.com",
         smtp_port: 465,
         smtp_security: "ssl",
-        note: "네이버 메일 환경설정에서 IMAP/POP3 사용을 켜야 합니다.",
+        get note() { return t("naverNote"); },
         note_url: "https://help.naver.com/service/5640/contents/8342?lang=ko",
-        note_link_label: "설정 방법 보기",
+        get note_link_label() { return t("howToSetUp"); },
     },
     "daum.net": {
         imap_host: "imap.daum.net",

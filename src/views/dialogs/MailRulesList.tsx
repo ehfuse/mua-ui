@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 규칙 목록(메일 관리 다이얼로그의 "규칙" 탭) — 규칙마다 조건 요약·동작 요약·사용 스위치·[지금 적용]·수정·삭제.
  */
@@ -25,21 +26,26 @@ interface MailRulesListProps {
     onChanged: () => void; // 변경 후(목록·메일 재조회)
 }
 
-const FIELD_LABEL: Record<string, string> = { from: "보낸 사람", to: "받는 사람", subject: "제목", body: "본문" };
+const FIELD_LABEL: Record<string, string> = {
+    get from() { return t("from"); },
+    get to() { return t("to"); },
+    get subject() { return t("subject"); },
+    get body() { return t("body"); },
+};
 const OP_LABEL: Record<string, string> = {
-    contains: "포함",
-    not_contains: "포함 안 함",
-    equals: "일치",
-    starts: "시작",
-    ends: "끝",
+    get contains() { return t("contains"); },
+    get not_contains() { return t("notContains"); },
+    get equals() { return t("equals"); },
+    get starts() { return t("startsWith"); },
+    get ends() { return t("endsWith"); },
 };
 
 /** 조건 요약 */
 function summarizeConditions(rule: MailRule): string {
     const parts = rule.conditions.map(
-        (c) => `${FIELD_LABEL[c.field] ?? c.field}이(가) "${c.value}" ${OP_LABEL[c.op] ?? c.op}`
+        (c) => t("conditionSummary", { field: FIELD_LABEL[c.field] ?? c.field, value: c.value, op: OP_LABEL[c.op] ?? c.op })
     );
-    return parts.join(rule.match === "any" ? " 또는 " : " 그리고 ");
+    return parts.join(rule.match === "any" ? t("joinOr") : t("joinAnd"));
 }
 
 /** 동작 요약 */
@@ -47,12 +53,12 @@ function summarizeActions(rule: MailRule, folders: MailUserFolder[]): string {
     const a = rule.actions;
     const parts: string[] = [];
     if (a.move_to === "custom")
-        parts.push(`"${folders.find((f) => f.seq === a.mail_folder_seq)?.name ?? "메일함"}"(으)로 이동`);
-    else if (a.move_to === "spam") parts.push("스팸함으로 이동");
-    else if (a.move_to === "trash") parts.push("휴지통으로 이동");
-    else if (a.move_to === "inbox") parts.push("받은편지함으로 이동");
-    if (a.mark_read) parts.push("읽음으로 표시");
-    if (a.star) parts.push("중요 표시");
+        parts.push(t("moveToFolderNamed", { name: folders.find((f) => f.seq === a.mail_folder_seq)?.name ?? t("mailbox") }));
+    else if (a.move_to === "spam") parts.push(t("moveToSpam"));
+    else if (a.move_to === "trash") parts.push(t("moveToTrash"));
+    else if (a.move_to === "inbox") parts.push(t("moveToInbox"));
+    if (a.mark_read) parts.push(t("markRead"));
+    if (a.star) parts.push(t("star"));
     return parts.join(" · ") || "-";
 }
 
@@ -76,10 +82,10 @@ function RuleRow({
     const toggle = useCallback(
         async (enabled: boolean) => {
             try {
-                unwrap(await mailApi.updateRule(rule.seq, { enabled }), "저장하지 못했습니다.");
+                unwrap(await mailApi.updateRule(rule.seq, { enabled }), t("saveFailed"));
                 onChanged();
             } catch (error) {
-                ErrorAlert({ message: error instanceof Error ? error.message : "저장하지 못했습니다." });
+                ErrorAlert({ message: error instanceof Error ? error.message : t("saveFailed") });
             }
         },
         [rule.seq, onChanged]
@@ -87,26 +93,26 @@ function RuleRow({
     const apply = useCallback(async () => {
         setApplying(true);
         try {
-            const res = unwrap(await mailApi.applyRules(rule.seq), "규칙을 적용하지 못했습니다.");
-            SuccessAlert(`받은편지함 ${res.scanned}건 중 ${res.affected}건에 적용했습니다.`);
+            const res = unwrap(await mailApi.applyRules(rule.seq), t("ruleApplyFailed"));
+            SuccessAlert(t("ruleApplied", { scanned: res.scanned, affected: res.affected }));
             onChanged();
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "규칙을 적용하지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("ruleApplyFailed") });
         } finally {
             setApplying(false);
         }
     }, [rule.seq, onChanged]);
     const remove = useCallback(() => {
         ConfirmDialog({
-            title: "규칙 삭제",
-            message: `"${rule.name || summarizeConditions(rule)}" 규칙을 삭제하시겠습니까?`,
+            title: t("deleteRule"),
+            message: t("deleteRuleNamedConfirm", { name: rule.name || summarizeConditions(rule) }),
             onConfirm: () =>
                 void (async () => {
                     try {
-                        unwrap(await mailApi.deleteRule(rule.seq), "규칙을 삭제하지 못했습니다.");
+                        unwrap(await mailApi.deleteRule(rule.seq), t("ruleDeleteFailed"));
                         onChanged();
                     } catch (error) {
-                        ErrorAlert({ message: error instanceof Error ? error.message : "규칙을 삭제하지 못했습니다." });
+                        ErrorAlert({ message: error instanceof Error ? error.message : t("ruleDeleteFailed") });
                     }
                 })(),
         });
@@ -139,7 +145,7 @@ function RuleRow({
                 ref={setActivatorNodeRef}
                 {...attributes}
                 {...listeners}
-                aria-label="순서 이동"
+                aria-label={t("reorder")}
                 sx={{
                     display: "flex",
                     alignItems: "center",
@@ -153,12 +159,12 @@ function RuleRow({
             >
                 <DragIndicatorIcon fontSize="small" />
             </Box>
-            <Tooltip title={rule.enabled ? "사용 중 — 끄기" : "사용 안 함 — 켜기"}>
+            <Tooltip title={rule.enabled ? t("ruleOnTurnOff") : t("ruleOffTurnOn")}>
                 <Switch checked={rule.enabled} onChange={(_, v) => void toggle(v)} />
             </Tooltip>
             <Box sx={{ minWidth: 0, ...(isMobile ? { gridColumn: "1 / -1", gridRow: 2 } : {}) }}>
                 <Typography noWrap sx={{ fontSize: "16px", fontWeight: 700, color: "#111" }}>
-                    {rule.name || "(이름 없음)"}
+                    {rule.name || t("noNameParen")}
                 </Typography>
                 <Typography sx={{ fontSize: "15px", color: "#111", mt: 0.25, wordBreak: "break-word" }}>
                     {summarizeConditions(rule)}
@@ -176,25 +182,25 @@ function RuleRow({
                 alignItems="center"
                 sx={isMobile ? { gridColumn: 4, gridRow: 1 } : undefined}
             >
-                <Tooltip title="지금 적용 (받은편지함의 기존 메일에)">
+                <Tooltip title={t("applyNowTooltip")}>
                     <span>
                         <IconButton
                             size="small"
                             onClick={() => void apply()}
                             disabled={applying || !rule.enabled}
-                            aria-label="지금 적용"
+                            aria-label={t("applyNow")}
                         >
                             <PlayArrowIcon fontSize="small" />
                         </IconButton>
                     </span>
                 </Tooltip>
-                <Tooltip title="수정">
-                    <IconButton size="small" onClick={onEdit} aria-label="수정">
+                <Tooltip title={t("edit")}>
+                    <IconButton size="small" onClick={onEdit} aria-label={t("edit")}>
                         <EditOutlinedIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
-                <Tooltip title="삭제">
-                    <IconButton size="small" onClick={remove} aria-label="삭제">
+                <Tooltip title={t("delete")}>
+                    <IconButton size="small" onClick={remove} aria-label={t("delete")}>
                         <TrashIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
@@ -220,10 +226,10 @@ export function MailRulesList({ rules, folders, onEdit, onChanged }: MailRulesLi
             setOrdered(next);
             void (async () => {
                 try {
-                    unwrap(await mailApi.reorderRules(next.map((r) => r.seq)), "순서를 저장하지 못했습니다.");
+                    unwrap(await mailApi.reorderRules(next.map((r) => r.seq)), t("reorderFailed"));
                     onChanged();
                 } catch (error) {
-                    ErrorAlert({ message: error instanceof Error ? error.message : "순서를 저장하지 못했습니다." });
+                    ErrorAlert({ message: error instanceof Error ? error.message : t("reorderFailed") });
                     setOrdered(rules);
                 }
             })();
@@ -244,12 +250,11 @@ export function MailRulesList({ rules, folders, onEdit, onChanged }: MailRulesLi
                     lineHeight: 1.6,
                 }}
             >
-                규칙은 새 메일을 받을 때 위에서부터 차례로 적용됩니다(왼쪽 핸들을 끌어 순서를 바꿀 수 있습니다). 기존
-                메일에는 각 규칙의 ▶(지금 적용)으로 적용할 수 있습니다.
+                {t("rulesNote")}
             </Typography>
             {ordered.length === 0 ? (
                 <Typography sx={{ fontSize: "15px", color: "#111", py: 2, textAlign: "center" }}>
-                    만든 규칙이 없습니다. 아래 [규칙 추가]로 만드세요.
+                    {t("noRules")}
                 </Typography>
             ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

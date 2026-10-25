@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 본문 HTML 정제/인용 유틸.
  */
@@ -115,12 +116,12 @@ export function buildQuotedBody(detail: MailMessageDetail, mode: "reply" | "forw
     const original = sanitizeMailHtml(detail.body_html || escapeHtml(detail.body_text).replace(/\n/g, "<br>"), true);
     const header =
         mode === "forward"
-            ? `<div>---------- 전달된 메일 ----------</div>
-<div>보낸 사람: ${escapeHtml(formatAddressLabel(detail.from))}</div>
-<div>날짜: ${escapeHtml(formatMailFullDate(detail.date_time))}</div>
-<div>제목: ${escapeHtml(detail.subject || "")}</div>
-<div>받는 사람: ${escapeHtml(formatAddressList(detail.to))}</div>`
-            : `<div>${escapeHtml(formatMailFullDate(detail.date_time))}에 ${escapeHtml(formatAddressLabel(detail.from))} 님이 작성:</div>`;
+            ? `<div>${escapeHtml(t("quoteForwarded"))}</div>
+<div>${escapeHtml(t("quoteFrom", { value: formatAddressLabel(detail.from) }))}</div>
+<div>${escapeHtml(t("quoteDate", { value: formatMailFullDate(detail.date_time) }))}</div>
+<div>${escapeHtml(t("quoteSubject", { value: detail.subject || "" }))}</div>
+<div>${escapeHtml(t("quoteTo", { value: formatAddressList(detail.to) }))}</div>`
+            : `<div>${escapeHtml(t("quoteWrote", { date: formatMailFullDate(detail.date_time), sender: formatAddressLabel(detail.from) }))}</div>`;
     return `<p><br></p><p><br></p><div style="color:#475569;font-size:13px;">${header}</div><blockquote style="margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e1;">${original}</blockquote>`;
 }
 

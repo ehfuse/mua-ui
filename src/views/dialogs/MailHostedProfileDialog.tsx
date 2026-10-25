@@ -1,3 +1,4 @@
+import { formDialogLocale, t } from "../../i18n";
 /**
  * 기업메일 사서함 프로필 다이얼로그 — 보내는 사람 이름 · 기본 발신 · 서명.
  *
@@ -68,7 +69,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
 
     const editorConfig = useMemo<EditorConfig>(
         () => ({
-            placeholder: "서명을 입력하세요 (메일 본문 끝에 붙습니다)",
+            placeholder: t("signaturePlaceholder"),
             minHeight: isMobile ? 140 : 180,
             showToolbar: !isMobile,
             autoHeight: isMobile,
@@ -89,15 +90,15 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                     signature,
                     is_default: isDefault,
                 }),
-                "저장하지 못했습니다."
+                t("saveFailed")
             );
-            SuccessAlert("저장했습니다.");
+            SuccessAlert(t("saved"));
             // 저장했으니 초안은 끝났다 — 다음에 열면 서버(목록) 값으로 다시 채운다.
             draftSeq.current = null;
             onClose();
             onSaved();
         } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : "저장하지 못했습니다." });
+            ErrorAlert({ message: error instanceof Error ? error.message : t("saveFailed") });
         } finally {
             setSaving(false);
         }
@@ -114,13 +115,13 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                             disabled 가 아니라 readOnly 다 — 지금 못 쓰는 칸이 아니라 못 **고치는** 값이라,
                             글자는 다른 칸과 같은 검정으로 읽혀야 한다(회색이면 값이 비활성처럼 보인다). */}
                         <TextField
-                            label="메일 주소"
+                            label={t("emailAddress")}
                             value={account?.email ?? ""}
                             fullWidth
                             slotProps={{ input: { readOnly: true } }}
                         />
                         <TextField
-                            label="보내는 사람 이름"
+                            label={t("senderName")}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             fullWidth
@@ -148,8 +149,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                             />
                         </Box>
                         <Typography sx={NOTE_SX}>
-                            서명은 새 메일·답장 본문 끝에 자동으로 붙습니다. 주소와 수신 설정은 팀 관리 › 기업메일에서
-                            바꿉니다.
+                            {t("hostedProfileNote")}
                         </Typography>
                     </Box>
                 ),
@@ -164,12 +164,12 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
             backdropClick={false}
             open={open}
             onClose={onClose}
-            title={{ text: "기업메일 사서함 설정" }}
+            title={{ text: t("hostedMailboxSettings") }}
             titleIcons={{ delete: { visible: false } }}
             fullScreen={isMobile}
             mobilePresentation={isMobile ? "slide" : "dialog"}
             tabs={{ visible: false }}
-            locale="ko"
+            locale={formDialogLocale()}
             maxWidth="sm"
             scrollPastLastSection={false}
             sections={sections}
@@ -180,7 +180,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                 left: (
                     <FormControlLabel
                         control={<Switch checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />}
-                        label="기본 발신 계정"
+                        label={t("defaultSendAccount")}
                         sx={{ ml: 0 }}
                     />
                 ),
@@ -192,7 +192,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                         disabled={saving}
                         sx={{ minWidth: 80 }}
                     >
-                        {saving ? <CircularProgress size={20} color="inherit" /> : "저장"}
+                        {saving ? <CircularProgress size={20} color="inherit" /> : t("save")}
                     </Button>
                 ),
             }}

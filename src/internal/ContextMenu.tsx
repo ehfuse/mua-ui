@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 우클릭(contextmenu) 메뉴 (코드샵 www components/ui/ContextMenu 복사본) — 기본 브라우저 컨텍스트메뉴 대신 백드롭 없는 Portal div 메뉴를 우클릭 위치에 띄운다.
  * MUI Menu(Modal/백드롭)는 클릭을 가로채 "메뉴 이동/좌클릭 닫힘"이 어긋나므로, 클릭 차단이 없는 Portal div 로 그린다.
@@ -278,7 +279,7 @@ function ContextMenuRow<T>({
                     }
                 >
                     {visibleChildren.length === 0 ? (
-                        <Box sx={{ px: 2, py: 1, fontSize: 15, color: "text.disabled" }}>없음</Box>
+                        <Box sx={{ px: 2, py: 1, fontSize: 15, color: "text.disabled" }}>{t("none")}</Box>
                     ) : (
                         visibleChildren.map((child, childIndex) => {
                             const childDisabled =

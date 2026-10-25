@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 메일 본문 뷰어 — 정제한 HTML 을 샌드박스 iframe(srcDoc)에 그린다(스크립트 불가, 링크는 새 창).
  */
@@ -203,7 +204,7 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
         <Box sx={{ width: "100%", bgcolor: "#fff" }}>
             <iframe
                 ref={frameRef}
-                title="메일 본문"
+                title={t("mailBody")}
                 srcDoc={srcDoc}
                 sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin"
                 referrerPolicy="no-referrer"

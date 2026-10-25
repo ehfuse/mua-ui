@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 메일 헤더 오른쪽 액션 — 새로고침(동기화) · 계정 설정(톱니). (계정 선택 버튼은 검색칸 옆 필터 그룹에 있다)
  */
@@ -37,13 +38,13 @@ export function MailHeaderActions({
         // 간격은 gap 으로 준다(2026-10-16) — Stack spacing 은 둘째 칸부터 margin-left 를 덮어써 토글의 mx 가 왼쪽에서 먹지 않았고,
         // 새로고침 단추와 보기 토글이 붙어 보였다. 토글 양옆은 gap + mx 로 한 단계 더 띄운다.
         <Stack direction="row" alignItems="center" sx={{ columnGap: 1 }}>
-            <Tooltip title="새로고침 (새 메일 받기)">
+            <Tooltip title={t("refreshTooltip")}>
                 <span>
                     <IconButton
                         size="small"
                         onClick={onSync}
                         disabled={syncing || accounts.length === 0}
-                        aria-label="새로고침"
+                        aria-label={t("refresh")}
                     >
                         {syncing ? <CircularProgress size={18} /> : <SyncIcon />}
                     </IconButton>
@@ -57,7 +58,7 @@ export function MailHeaderActions({
                         {
                             value: "list",
                             label: (
-                                <Tooltip title="목록형">
+                                <Tooltip title={t("listView")}>
                                     <FormatListBulletedIcon fontSize="small" />
                                 </Tooltip>
                             ),
@@ -65,7 +66,7 @@ export function MailHeaderActions({
                         {
                             value: "split",
                             label: (
-                                <Tooltip title="분할형">
+                                <Tooltip title={t("splitView")}>
                                     <VerticalSplitOutlinedIcon fontSize="small" />
                                 </Tooltip>
                             ),
@@ -74,8 +75,8 @@ export function MailHeaderActions({
                     sx={{ mx: 1, "& .MuiToggleButtonGroup-grouped": { px: 1.25, py: 0.5 } }}
                 />
             ) : null}
-            <Tooltip title={hasError ? "메일 계정 설정 (동기화 오류 있음)" : "메일 계정 설정"}>
-                <IconButton size="small" onClick={onOpenSettings} aria-label="계정 설정">
+            <Tooltip title={hasError ? t("accountSettingsError") : t("accountSettings")}>
+                <IconButton size="small" onClick={onOpenSettings} aria-label={t("accountSettingsShort")}>
                     <Badge color="error" variant="dot" invisible={!hasError}>
                         <SettingsOutlinedIcon />
                     </Badge>

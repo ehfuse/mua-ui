@@ -1,3 +1,4 @@
+import { t } from "../../i18n";
 /**
  * 메일 목록 컬럼 설정 — 중요 · 상대 · 제목/미리보기 · 첨부 · 일시.
  */
@@ -44,7 +45,7 @@ export function getMailColumns(
                     onChange={selection.onToggleAll}
                     onClick={(event) => event.stopPropagation()}
                     sx={{ p: 0.5 }}
-                    inputProps={{ "aria-label": "전체 선택" }}
+                    inputProps={{ "aria-label": t("selectAll") }}
                 />
             ),
             width: 40,
@@ -57,7 +58,7 @@ export function getMailColumns(
                     onChange={() => selection.onToggle(row.seq)}
                     onClick={(event) => event.stopPropagation()}
                     sx={{ p: 0.5 }}
-                    inputProps={{ "aria-label": "선택" }}
+                    inputProps={{ "aria-label": t("select") }}
                 />
             ),
         },
@@ -71,7 +72,7 @@ export function getMailColumns(
                 <Box sx={{ display: "inline-flex", alignItems: "center" }}>
                 <IconButton
                     size="small"
-                    aria-label={row.is_starred ? "중요 해제" : "중요 표시"}
+                    aria-label={row.is_starred ? t("unstar") : t("star")}
                     onClick={(event) => {
                         event.stopPropagation();
                         onToggleStar(row);
@@ -88,7 +89,7 @@ export function getMailColumns(
                 {onLabelClick ? (
                     <IconButton
                         size="small"
-                        aria-label="라벨"
+                        aria-label={t("label")}
                         onClick={(event) => {
                             event.stopPropagation();
                             onLabelClick(row, event.currentTarget);
@@ -111,7 +112,7 @@ export function getMailColumns(
         },
         {
             id: "from_name",
-            text: "보낸 사람",
+            text: t("from"),
             // 분할형 상세가 열려 목록이 좁아지면 보낸 사람 컬럼도 줄인다
             width: showSnippet ? 200 : 140,
             render: (row) => (
@@ -127,7 +128,7 @@ export function getMailColumns(
         },
         {
             id: "subject",
-            text: "제목",
+            text: t("subject"),
             render: (row) => (
                 <Box sx={{ minWidth: 0, display: "flex", alignItems: "baseline", gap: 1 }}>
                     {/* 색상 라벨 칩 — 지메일처럼 제목 앞. 칩이 많아도 제목 자리를 다 먹지 않게 칩마다 폭을 묶는다. */}
@@ -149,7 +150,7 @@ export function getMailColumns(
                                 {sendStateLabel(row.send_state)}
                             </Box>
                         ) : null}
-                        <HighlightText text={row.translated_subject || row.subject || "(제목 없음)"} query={search} />
+                        <HighlightText text={row.translated_subject || row.subject || t("noSubject")} query={search} />
                     </Typography>
                     {showSnippet ? (
                         <Typography noWrap sx={{ color: "#64748b", fontSize: "13.5px", minWidth: 0 }}>
@@ -170,7 +171,7 @@ export function getMailColumns(
         },
         {
             id: "date_time",
-            text: "일시",
+            text: t("date"),
             width: 110,
             align: "right",
             style: { textAlign: "right" },

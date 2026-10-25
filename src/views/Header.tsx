@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /**
  * 메일 목록 헤더 설정(useHeaderConfig) — 검색(300ms 디바운스) + 검색칸 오른쪽 "안 읽음" 스위치(filter custom — 계정은 사이드바 계정별 받은편지함이 고른다) + 좌/우 슬롯.
  */
@@ -74,7 +75,7 @@ export function useHeaderConfig({
                 />
             }
             // 이름은 "안 읽음"(0.3.122) — "안 읽은 메일만" 은 길어 검색칸과 한 줄에 서지 못했다.
-            label="안 읽음"
+            label={t("unread")}
             sx={{
                 ml: 0.5,
                 mr: 0,
@@ -104,7 +105,7 @@ export function useHeaderConfig({
         right: rightSlot,
         showSearch: true,
         // 모바일은 짧게(0.3.123) — "안 읽음" 스위치와 한 줄을 나눠 쓰면서 칸이 좁아져 긴 안내 글이 "제목, 보낸 사ㅌ" 처럼 잘렸다. 폭 360 폰에서는 글이 설 자리가 75px 뿐이라 "제목·보낸 사람" 도 넘친다(실측).
-        searchPlaceholder: isMobile ? "메일 검색" : "제목, 보낸 사람 검색",
+        searchPlaceholder: isMobile ? t("searchMail") : t("searchSubjectSender"),
         searchWidth: isMobile ? mobileSearchWidth : undefined,
         // 모바일은 medium(56px) — 게시판·내 문서의 제목줄 검색칸과 같은 높이라야 탭을 오가도 같은 판으로 읽힌다(mdl 3.3.68).
         searchSize: isMobile ? "medium" : undefined,

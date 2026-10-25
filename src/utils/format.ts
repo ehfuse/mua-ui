@@ -1,3 +1,4 @@
+import { intlTag, t } from "../i18n";
 /**
  * 메일 표시 포맷 유틸.
  */
@@ -24,12 +25,10 @@ export function formatMailListDate(value: string | null | undefined): string {
     const pad = (n: number) => String(n).padStart(2, "0");
     if (date.toDateString() === now.toDateString()) {
         // 오늘은 "오후 6:31" 처럼 12시간제(0시 = 오전 12시).
-        const hours = date.getHours();
-        const meridiem = hours < 12 ? "오전" : "오후";
-        const hour12 = hours % 12 === 0 ? 12 : hours % 12;
-        return `${meridiem} ${hour12}:${pad(date.getMinutes())}`;
+        // 화면 언어의 Intl 꼴(한국어 "오후 6:31")
+        return new Intl.DateTimeFormat(intlTag(), { hour: "numeric", minute: "2-digit", hour12: true }).format(date);
     }
-    if (date.getFullYear() === now.getFullYear()) return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+    if (date.getFullYear() === now.getFullYear()) return new Intl.DateTimeFormat(intlTag(), { month: "short", day: "numeric" }).format(date);
     return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`;
 }
 
@@ -37,16 +36,17 @@ export function formatMailListDate(value: string | null | undefined): string {
 export function formatMailFullDate(value: string | null | undefined): string {
     const date = parseMailDate(value);
     if (!date) return "";
-    const days = ["일", "월", "화", "수", "목", "금", "토"];
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 (${days[date.getDay()]}) ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    // 날짜 · 요일은 화면 언어의 Intl 꼴(한국어 "2026년 10월 26일 (월)") + 24시간 시각
+    const day = new Intl.DateTimeFormat(intlTag(), { year: "numeric", month: "long", day: "numeric", weekday: "short" }).format(date);
+    return `${day} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 /** 뒤에서 보내는 메일의 상태 글자 — 보낸편지함 목록의 제목 앞과 상세에 쓴다. 다 보낸 메일은 빈 문자열. */
 export function sendStateLabel(state: string | null | undefined): string {
-    if (state === "sending") return "보내는 중";
-    if (state === "failed") return "발송 실패";
-    if (state === "partial") return "일부 발송 실패";
+    if (state === "sending") return t("sendingNow");
+    if (state === "failed") return t("sendFailed");
+    if (state === "partial") return t("partialSendFailed");
     return "";
 }
 
@@ -60,7 +60,7 @@ export function scheduledPrefix(sendAt: string | null | undefined): string {
     const date = parseMailDate(sendAt);
     if (!date) return "";
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `[예약 ${date.getMonth() + 1}월 ${date.getDate()}일 ${pad(date.getHours())}:${pad(date.getMinutes())}] `;
+    return `[${t("scheduledPrefix", { date: `${new Intl.DateTimeFormat(intlTag(), { month: "short", day: "numeric" }).format(date)} ${pad(date.getHours())}:${pad(date.getMinutes())}` })}] `;
 }
 
 /** 주소를 "이름 <addr>" 또는 "addr" 로 표시한다. */
@@ -77,9 +77,9 @@ export function formatAddressList(list: MailAddress[] | undefined): string {
 /** 목록 행의 상대(발신자 또는 수신자) 표시명을 만든다. */
 export function formatCounterpart(row: MailMessageListItem): string {
     if (row.folder === "sent" || row.folder === "draft") {
-        return row.to_summary || "(받는 사람 없음)";
+        return row.to_summary || t("noRecipient");
     }
-    return row.from_name || row.from_address || "(발신자 없음)";
+    return row.from_name || row.from_address || t("noSender");
 }
 
 /** 바이트를 읽기 쉬운 크기로 만든다. */

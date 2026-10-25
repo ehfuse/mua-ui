@@ -1,6 +1,3 @@
-/**
- * 주소록 연락처 등록/수정 다이얼로그 컨트롤러 — useGlobalForm + useModal.
- */
 import type { MailContact, MailContactForm } from "../models/types";
 import type { MuaModalControl } from "../types/modal";
 interface ContactFormControllerOptions {

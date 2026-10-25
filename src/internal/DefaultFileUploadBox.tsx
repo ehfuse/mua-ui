@@ -1,3 +1,4 @@
+import { t } from "../i18n";
 /** 기본 첨부 선택 박스 — 드래그앤드롭/클릭 선택 + 선택 파일 칩(앱의 FileUploadBox 가 없을 때 쓴다). */
 
 import { useCallback, useRef, useState, type DragEvent } from "react";
@@ -13,7 +14,7 @@ export function DefaultFileUploadBox({
     height = 64,
     acceptedFileTypes = [],
     maxFileSize = 20,
-    dropzoneText = "파일을 끌어놓거나 클릭하여 첨부하세요",
+    dropzoneText = t("attachDropShort"),
     onAttachedFilesChange,
 }: MuaFileUploadBoxProps) {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -31,13 +32,13 @@ export function DefaultFileUploadBox({
             const accepted: File[] = [];
             for (const file of incoming) {
                 if (file.size > limit) {
-                    WarningAlert({ message: `"${file.name}" 은(는) ${maxFileSize}MB 를 넘어 첨부할 수 없습니다.` });
+                    WarningAlert({ message: t("fileOverLimit", { name: file.name, max: maxFileSize }) });
                     continue;
                 }
                 if (acceptedFileTypes.length > 0) {
                     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
                     if (!acceptedFileTypes.map((e) => e.replace(/^\./, "").toLowerCase()).includes(ext)) {
-                        WarningAlert({ message: `"${file.name}" 은(는) 허용되지 않는 형식입니다.` });
+                        WarningAlert({ message: t("fileTypeNotAllowed", { name: file.name }) });
                         continue;
                     }
                 }
