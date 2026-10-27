@@ -156,6 +156,19 @@ export declare const mailApi: {
         deleted: boolean;
         detached: number;
     }>>;
+    /** 휴지통 · 스팸함 비우기(영구 삭제) — mailAccountSeq 0 이면 내가 쓸 수 있는 모든 계정 */
+    emptySpecialFolder: (folder: "trash" | "spam", mailAccountSeq?: number) => Promise<ApiOk<{
+        deleted: number;
+    }>>;
+    /** 사서함 사용량 · 스팸 수 · 크기(기업메일 사서함만 한도가 있다 — 받은편지함 탭 줄 게이지, 2026-10-27) */
+    getAccountUsage: (seq: number) => Promise<ApiOk<{
+        seq: number;
+        kind: string;
+        quota_mb: number;
+        used_bytes: number;
+        spam_count: number;
+        spam_bytes: number;
+    }>>;
     /** 주소록 전용 라벨(2026-10-27 — 메일 라벨과 따로). 모양 · 규칙은 메일 라벨과 같다. */
     listContactLabels: () => Promise<ApiOk<{
         items: MailLabel[];

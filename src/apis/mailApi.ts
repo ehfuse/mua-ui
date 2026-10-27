@@ -196,6 +196,14 @@ export const mailApi = {
     reorderLabels: (seqs: number[]) => entityAppServer.http.post<ApiOk<{ items: MailLabel[] }>>("/v1/mua/labels/reorder", { seqs }),
     /** 라벨 지우기 — 단 메일에서도 떼어진다(메일은 그대로) */
     deleteLabel: (seq: number) => entityAppServer.http.delete<ApiOk<{ deleted: boolean; detached: number }>>(`/v1/mua/labels/${seq}`, {}),
+    /** 휴지통 · 스팸함 비우기(영구 삭제) — mailAccountSeq 0 이면 내가 쓸 수 있는 모든 계정 */
+    emptySpecialFolder: (folder: "trash" | "spam", mailAccountSeq = 0) =>
+        entityAppServer.http.post<ApiOk<{ deleted: number }>>("/v1/mua/messages/empty", { folder, mail_account_seq: mailAccountSeq }),
+    /** 사서함 사용량 · 스팸 수 · 크기(기업메일 사서함만 한도가 있다 — 받은편지함 탭 줄 게이지, 2026-10-27) */
+    getAccountUsage: (seq: number) =>
+        entityAppServer.http.get<ApiOk<{ seq: number; kind: string; quota_mb: number; used_bytes: number; spam_count: number; spam_bytes: number }>>(
+            `/v1/mua/accounts/${seq}/usage`
+        ),
     /** 주소록 전용 라벨(2026-10-27 — 메일 라벨과 따로). 모양 · 규칙은 메일 라벨과 같다. */
     listContactLabels: () => entityAppServer.http.get<ApiOk<{ items: MailLabel[] }>>("/v1/mua/contact-labels"),
     createContactLabel: (body: { name: string; color: string }) =>

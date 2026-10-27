@@ -132,6 +132,11 @@ export interface MuaConfig {
      * 받는 사람 고르기 창(0.4.3) — 주면 받는 사람 · 참조 · 숨은참조 칸 왼쪽에 사람 아이콘이 서고, 누르면 이것을 부른다.
      * 앱이 제 고르기 창(조직도 등)을 띄우고 고른 사람들을 돌려준다(취소면 null). 이미 칸에 있는 주소는 다시 넣지 않는다.
      */
+    /**
+     * 폴더 화면 주소(2026-10-27) — 패키지 안에서 다른 폴더로 보내야 할 때(사용량 게이지의 [스팸 비우기]) 앱 라우트로 옮긴다.
+     * 없으면 주소는 그대로 두고 목록만 그 폴더로 바꾼다.
+     */
+    folderPath?: (folder: "inbox" | "sent" | "spam" | "trash" | "draft" | "starred") => string;
     pickRecipients?: (field: "to" | "cc" | "bcc") => Promise<Array<{ name?: string; email: string }> | null | undefined>;
     /**
      * 메일 쓰기 자동 임시저장(0.3.155) — 켜면 [임시저장] 단추 대신 내용이 바뀌고 잠시 입력이 멈추면 조용히 임시보관함에 저장하고,

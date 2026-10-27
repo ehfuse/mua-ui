@@ -7,7 +7,7 @@ import { t } from "../i18n";
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
-import { useLocation, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Box, Button, Checkbox, Drawer, Fab, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EditIcon from "@mui/icons-material/Edit";
@@ -76,6 +76,7 @@ import { LabelCheckIcon, MailLabelDot, MailLabelMenu, labelCheckStates, labelCol
 import { MailLabelFormDialog } from "./dialogs/MailLabelsList";
 import { ComposeDialog } from "./dialogs/ComposeDialog";
 import { toRouteFolder } from "../utils/routeFolder";
+import { MailboxUsageGauge } from "./components/MailboxUsageGauge";
 
 /** 보기 타입 저장 키 */
 const VIEW_MODE_STORAGE_KEY = "mua-mail-view-mode";
@@ -138,6 +139,7 @@ function MobileListShell({
 export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const controller = useMailController();
     const params = useParams<{ folder?: string; accountSeq?: string; folderSeq?: string }>();
+    const navigate = useNavigate();
     // ⚠️ 아래 effect 의존성은 embedded 객체가 아니라 원시값으로 둔다 — 호출부(MailSubPages)가 렌더마다 새 객체를
     //    만들고, 서브페이지 제목/건수 스토어 갱신이 호스트를 다시 그리므로 객체 의존성이면 무한 갱신 루프가 된다.
     const isEmbedded = Boolean(embedded);
@@ -870,6 +872,24 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         void mailApi.updatePreferences({ view_mode: mode }).catch(() => undefined);
     }, []);
     const isSplit = !isMobile && viewMode === "split";
+    // 휴지통 · 스팸함 비우기(2026-10-27) — 보던 계정이 있으면 그 계정만. 영구 삭제라 한 번 묻는다.
+    const handleEmptySpecial = useCallback(() => {
+        const folder = filters.folder === "trash" ? "trash" : "spam";
+        ConfirmDialog({
+            title: folder === "trash" ? t("emptyTrash") : t("emptySpam"),
+            message: t(folder === "trash" ? "emptyTrashConfirm" : "emptySpamConfirm", { count: total }),
+            onConfirm: () =>
+                void mailApi
+                    .emptySpecialFolder(folder, filters.mailAccountSeq)
+                    .then((res) => {
+                        if (res && res.ok === false) throw new Error(res.error || t("emptyFailed"));
+                        state.actions.clearSelection();
+                        refreshList();
+                        void state.actions.loadCounts();
+                    })
+                    .catch((error) => ErrorAlert({ message: error instanceof Error ? error.message : t("emptyFailed") })),
+        });
+    }, [filters.folder, filters.mailAccountSeq, total, state.actions, refreshList]);
 
     const headerActions = (
         <MailHeaderActions
@@ -879,6 +899,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             syncing={syncing}
             onSync={() => void state.actions.syncNow(filters.mailAccountSeq).then(() => refreshList())}
             onOpenSettings={handleManageAccounts}
+            emptyAction={
+                isTrashFolder || isSpamFolder
+                    ? { label: isTrashFolder ? t("emptyTrash") : t("emptySpam"), onClick: handleEmptySpecial, disabled: total === 0 }
+                    : undefined
+            }
         />
     );
 
@@ -1427,6 +1452,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const desktopUnread = filters.folder === "inbox" ? counts.inbox_unread : 0;
     const scopeTabsPanel = desktopScopeTabs ? (
         <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+            {/* 탭 줄 오른쪽 끝 — 사서함 사용량 게이지(기업메일 사서함을 볼 때만, 2026-10-27). 밑줄은 줄 전체에 건다. */}
+            <Box sx={{ display: "flex", alignItems: "center", borderBottom: "1px solid #e2e8f0", flexShrink: 0, minWidth: 0 }}>
             <Tabs
                 value={desktopScope}
                 onChange={(_event, value: string) => {
@@ -1436,7 +1463,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 // 라벨이 많으면 탭 줄이 가로로 넘어간다 — 넘칠 때만 양끝에 넘김 단추가 선다.
                 variant="scrollable"
                 scrollButtons="auto"
-                sx={{ minHeight: 44, borderBottom: "1px solid #e2e8f0", flexShrink: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
+                sx={{ minHeight: 44, flex: 1, minWidth: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
             >
                 <Tab value="all" label={t("all")} />
                 <Tab value="unread" label={desktopUnread > 0 ? t("unreadCount", { count: desktopUnread }) : t("unread")} />
@@ -1462,6 +1489,17 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     />
                 ))}
             </Tabs>
+            <MailboxUsageGauge
+                accounts={allAccounts}
+                mailAccountSeq={filters.mailAccountSeq}
+                refreshKey={`${filters.folder}:${total}`}
+                onOpenSpam={() => {
+                    const path = muaConfig.folderPath?.("spam");
+                    if (path) navigate(path);
+                    else state.actions.setFilters({ folder: "spam", mailFolderSeq: 0 });
+                }}
+            />
+            </Box>
             <Box sx={{ flex: 1, minHeight: 0 }}>
                 <VirtualDataTable {...listTableProps} />
             </Box>
