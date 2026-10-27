@@ -21,6 +21,32 @@ import { useMuaFormDialog } from "../../MuaProvider";
 import type { MailLabel } from "../../models/types";
 import { LABEL_COLORS, MailLabelChip, labelColor, labelTextColor } from "../components/MailLabels";
 
+/**
+ * 라벨 저장 API — 메일 라벨(기본)과 주소록 라벨(2026-10-27, 따로 둔다)이 같은 관리 · 만들기 창을 쓴다.
+ * modalKey 는 기기 뒤로가기 칸 이름 — 두 화면이 함께 떠 있어도 겹치지 않게 다르게 준다.
+ */
+export interface LabelApi {
+    create: typeof mailApi.createLabel;
+    update: typeof mailApi.updateLabel;
+    reorder: typeof mailApi.reorderLabels;
+    remove: typeof mailApi.deleteLabel;
+    modalKey: string;
+}
+export const mailLabelApi: LabelApi = {
+    create: mailApi.createLabel,
+    update: mailApi.updateLabel,
+    reorder: mailApi.reorderLabels,
+    remove: mailApi.deleteLabel,
+    modalKey: "mail-label",
+};
+export const contactLabelApi: LabelApi = {
+    create: mailApi.createContactLabel,
+    update: mailApi.updateContactLabel,
+    reorder: mailApi.reorderContactLabels,
+    remove: mailApi.deleteContactLabel,
+    modalKey: "contact-label",
+};
+
 /** 오류 문구 */
 const messageOf = (error: unknown, fallback: string) => (error instanceof Error && error.message ? error.message : fallback);
 
@@ -87,7 +113,15 @@ function LabelRow({
 }
 
 /** 라벨 목록(관리 창 본문) — 바뀌면 onChanged(items) 로 새 목록을 알린다. */
-export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onChanged: (items?: MailLabel[]) => void }) {
+export function MailLabelsList({
+    labels,
+    onChanged,
+    api = mailLabelApi,
+}: {
+    labels: MailLabel[];
+    onChanged: (items?: MailLabel[]) => void;
+    api?: LabelApi;
+}) {
     const [editing, setEditing] = useState<MailLabel | null>(null);
     const move = useCallback(
         async (index: number, dir: -1 | 1) => {
@@ -95,13 +129,13 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
             const [item] = next.splice(index, 1);
             next.splice(index + dir, 0, item);
             try {
-                const res = unwrap(await mailApi.reorderLabels(next.map((l) => l.seq)), t("reorderFailed"));
+                const res = unwrap(await api.reorder(next.map((l) => l.seq)), t("reorderFailed"));
                 onChanged(res.items);
             } catch (error) {
                 ErrorAlert({ message: messageOf(error, t("reorderFailed")) });
             }
         },
-        [labels, onChanged]
+        [labels, onChanged, api]
     );
     const remove = useCallback(
         (label: MailLabel) =>
@@ -111,7 +145,7 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
                 onConfirm: () =>
                     void (async () => {
                         try {
-                            unwrap(await mailApi.deleteLabel(label.seq), t("labelDeleteFailed"));
+                            unwrap(await api.remove(label.seq), t("labelDeleteFailed"));
                             SuccessAlert(t("labelDeleted"));
                             onChanged();
                         } catch (error) {
@@ -119,7 +153,7 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
                         }
                     })(),
             }),
-        [onChanged]
+        [onChanged, api]
     );
     return (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, width: "100%" }}>
@@ -139,7 +173,7 @@ export function MailLabelsList({ labels, onChanged }: { labels: MailLabel[]; onC
                     onDelete={() => remove(label)}
                 />
             ))}
-            <MailLabelFormDialog open={Boolean(editing)} label={editing} onClose={() => setEditing(null)} onSaved={() => onChanged()} />
+            <MailLabelFormDialog open={Boolean(editing)} label={editing} api={api} onClose={() => setEditing(null)} onSaved={() => onChanged()} />
         </Box>
     );
 }
@@ -190,15 +224,17 @@ export function MailLabelFormDialog({
     label,
     onClose,
     onSaved,
+    api = mailLabelApi,
 }: {
     open: boolean;
     label?: MailLabel | null;
     onClose: () => void;
     onSaved: (label: MailLabel) => void;
+    api?: LabelApi;
 }) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
-    const { requestClose } = useDialogBackClose({ open, onClose, modalId: label ? "mail-label-edit-dialog" : "mail-label-form-dialog" });
+    const { requestClose } = useDialogBackClose({ open, onClose, modalId: `${api.modalKey}-${label ? "edit" : "form"}-dialog` });
     const isEdit = Boolean(label && label.seq > 0);
     const [name, setName] = useState("");
     const [color, setColor] = useState(LABEL_COLORS[5].color);
@@ -216,8 +252,8 @@ export function MailLabelFormDialog({
         try {
             const saved =
                 isEdit && label
-                    ? unwrap(await mailApi.updateLabel(label.seq, { name: next, color }), t("labelSaveFailed"))
-                    : unwrap(await mailApi.createLabel({ name: next, color }), t("labelCreateFailed"));
+                    ? unwrap(await api.update(label.seq, { name: next, color }), t("labelSaveFailed"))
+                    : unwrap(await api.create({ name: next, color }), t("labelCreateFailed"));
             onClose();
             onSaved(saved);
         } catch (error) {
@@ -225,7 +261,7 @@ export function MailLabelFormDialog({
         } finally {
             setBusy(false);
         }
-    }, [name, color, busy, isEdit, label, onClose, onSaved]);
+    }, [name, color, busy, isEdit, label, onClose, onSaved, api]);
 
     const preview: MailLabel = { seq: 0, name: name.trim() || t("label"), color, sort_no: 0 };
     const saveButton = (

@@ -196,6 +196,16 @@ export const mailApi = {
     reorderLabels: (seqs: number[]) => entityAppServer.http.post<ApiOk<{ items: MailLabel[] }>>("/v1/mua/labels/reorder", { seqs }),
     /** 라벨 지우기 — 단 메일에서도 떼어진다(메일은 그대로) */
     deleteLabel: (seq: number) => entityAppServer.http.delete<ApiOk<{ deleted: boolean; detached: number }>>(`/v1/mua/labels/${seq}`, {}),
+    /** 주소록 전용 라벨(2026-10-27 — 메일 라벨과 따로). 모양 · 규칙은 메일 라벨과 같다. */
+    listContactLabels: () => entityAppServer.http.get<ApiOk<{ items: MailLabel[] }>>("/v1/mua/contact-labels"),
+    createContactLabel: (body: { name: string; color: string }) =>
+        entityAppServer.http.post<ApiOk<MailLabel>>("/v1/mua/contact-labels", body),
+    updateContactLabel: (seq: number, body: { name?: string; color?: string }) =>
+        entityAppServer.http.patch<ApiOk<MailLabel>>(`/v1/mua/contact-labels/${seq}`, body),
+    reorderContactLabels: (seqs: number[]) =>
+        entityAppServer.http.post<ApiOk<{ items: MailLabel[] }>>("/v1/mua/contact-labels/reorder", { seqs }),
+    deleteContactLabel: (seq: number) =>
+        entityAppServer.http.delete<ApiOk<{ deleted: boolean; detached: number }>>(`/v1/mua/contact-labels/${seq}`, {}),
     /** 여러 메일에 라벨 달기·떼기 */
     applyLabels: (seqs: number[], add: number[], remove: number[]) =>
         entityAppServer.http.post<ApiOk<{ affected: number; changed: number }>>("/v1/mua/messages/labels", { seqs, add, remove }),

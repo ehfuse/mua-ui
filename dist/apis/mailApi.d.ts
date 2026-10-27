@@ -156,6 +156,25 @@ export declare const mailApi: {
         deleted: boolean;
         detached: number;
     }>>;
+    /** 주소록 전용 라벨(2026-10-27 — 메일 라벨과 따로). 모양 · 규칙은 메일 라벨과 같다. */
+    listContactLabels: () => Promise<ApiOk<{
+        items: MailLabel[];
+    }>>;
+    createContactLabel: (body: {
+        name: string;
+        color: string;
+    }) => Promise<ApiOk<MailLabel>>;
+    updateContactLabel: (seq: number, body: {
+        name?: string;
+        color?: string;
+    }) => Promise<ApiOk<MailLabel>>;
+    reorderContactLabels: (seqs: number[]) => Promise<ApiOk<{
+        items: MailLabel[];
+    }>>;
+    deleteContactLabel: (seq: number) => Promise<ApiOk<{
+        deleted: boolean;
+        detached: number;
+    }>>;
     /** 여러 메일에 라벨 달기·떼기 */
     applyLabels: (seqs: number[], add: number[], remove: number[]) => Promise<ApiOk<{
         affected: number;

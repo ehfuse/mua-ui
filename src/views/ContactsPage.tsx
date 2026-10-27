@@ -8,6 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Fab, IconButton, Tab, Tabs, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import LabelIcon from "@mui/icons-material/Label";
+import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import { VirtualDataTable, type DataColumn } from "@ehfuse/mui-virtual-data-table";
 import { ListLayout, type ListLayoutProps } from "@ehfuse/mui-dashboard-layout";
 import { ErrorAlert } from "@ehfuse/alerts";
@@ -24,7 +26,9 @@ import { getMuaSubPageBridge } from "../internal/subPageBridge";
 import { useIsMobile } from "../internal/useIsMobile";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
 import type { MailContact, MailLabel } from "../models/types";
-import { MailLabelChips, MailLabelDot, labelColor } from "./components/MailLabels";
+import { MailLabelChips, MailLabelDot, MailLabelMenu, labelCheckStates, labelColor } from "./components/MailLabels";
+import { ContactLabelsDialog } from "./dialogs/ContactLabelsDialog";
+import { MailLabelFormDialog, contactLabelApi } from "./dialogs/MailLabelsList";
 import { ComposeDialog } from "./dialogs/ComposeDialog";
 import { ContactFormDialog } from "./dialogs/ContactFormDialog";
 
@@ -71,7 +75,6 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const mobileConfig = useMuaConfig().mobile;
     const MobileCardListLayout = mobileConfig?.CardListLayout ?? DefaultMobileCardListLayout;
     const mobileSearchWidth = mobileConfig?.searchWidth ?? "100%";
-    const labelsEnabled = Boolean(useMuaConfig().labels);
 
     const [contacts, setContacts] = useState<MailContact[]>([]);
     const [loading, setLoading] = useState(false);
@@ -79,21 +82,33 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     // 목록 위 갈래 탭(2026-10-16) — 메일 목록처럼 전체 · 별표 · 라벨마다(2026-10-27). 주소록은 한 번에 다 읽으므로 화면에서 거른다.
     // 라벨 탭 값은 "label:<seq>".
     const [scope, setScope] = useState<string>("all");
-    // 내 라벨 — 메일 라벨과 같은 것(config.labels 를 켠 앱만 읽는다). 라벨은 메일 관리 창에서 만든다.
+    // 내 주소록 라벨 — 메일 라벨과 따로다(2026-10-27 사용자 지시). 줄의 라벨 아이콘 메뉴 · 관리 창에서 만든다.
     const [labels, setLabels] = useState<MailLabel[]>([]);
+    const loadLabels = useCallback(async (items?: MailLabel[]) => {
+        if (items) {
+            setLabels(items);
+            return items;
+        }
+        try {
+            const res = await mailApi.listContactLabels();
+            const next = res && res.ok !== false && Array.isArray(res.data?.items) ? res.data.items : [];
+            setLabels(next);
+            return next;
+        } catch {
+            return [];
+        }
+    }, []);
     useEffect(() => {
-        if (!labelsEnabled || !logined) return;
-        let cancelled = false;
-        mailApi
-            .listLabels()
-            .then((res) => {
-                if (!cancelled && res && res.ok !== false) setLabels(Array.isArray(res.data?.items) ? res.data.items : []);
-            })
-            .catch(() => undefined);
-        return () => {
-            cancelled = true;
-        };
-    }, [labelsEnabled, logined]);
+        if (logined) void loadLabels();
+    }, [logined, loadLabels]);
+    // 줄의 라벨 아이콘 메뉴 — 단추는 메뉴를 여는 순간 목록이 다시 그려져 바뀌므로 누른 때의 좌표를 쥔다(메일 목록과 같다).
+    const [rowLabelMenu, setRowLabelMenu] = useState<{ position: { top: number; left: number }; seq: number } | null>(null);
+    const [labelFormFor, setLabelFormFor] = useState<number | null>(null); // 새 라벨을 만들어 달 연락처 seq(0 = 만들기만)
+    const [labelsManageOpen, setLabelsManageOpen] = useState(false);
+    const openRowLabelMenu = (contact: MailContact, anchor: HTMLElement) => {
+        const rect = anchor.getBoundingClientRect();
+        setRowLabelMenu({ position: { top: rect.bottom, left: rect.left }, seq: contact.seq });
+    };
     // 보던 라벨이 지워졌으면 전체로
     useEffect(() => {
         if (scope.startsWith("label:") && !labels.some((label) => `label:${label.seq}` === scope)) setScope("all");
@@ -152,6 +167,24 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
             compose.form.actions.openNew(account, email);
         },
         [accounts, compose.form.actions, contactForm.modal]
+    );
+
+    /** 연락처 하나에 주소록 라벨 달기·떼기(낙관적 반영) — 내 라벨만 바꾼다(공용 연락처도). */
+    const toggleContactLabel = useCallback(
+        async (seq: number, labelSeq: number, add: boolean) => {
+            const contact = contacts.find((c) => c.seq === seq);
+            if (!contact) return;
+            const before = contact.label_seqs ?? [];
+            const next = add ? [...before.filter((s) => s !== labelSeq), labelSeq] : before.filter((s) => s !== labelSeq);
+            setContacts((prev) => prev.map((c) => (c.seq === seq ? { ...c, label_seqs: next } : c)));
+            try {
+                unwrap(await mailApi.updateContact(seq, { label_seqs: next }), t("labelChangeFailed"));
+            } catch (error) {
+                setContacts((prev) => prev.map((c) => (c.seq === seq ? { ...c, label_seqs: before } : c)));
+                ErrorAlert({ message: error instanceof Error ? error.message : t("labelChangeFailed") });
+            }
+        },
+        [contacts]
     );
 
     /** 즐겨찾기 토글(낙관적 반영) */
@@ -229,22 +262,44 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
             {
                 id: "is_favorite",
                 text: "",
-                // 칸 좌우 여백(14px)을 빼고도 별 단추(28px)가 들어가는 폭 — 44 였을 때 단추가 넘쳐 오른쪽으로 6px 쏠렸다(2026-10-27).
-                width: 56,
+                // 별 · 라벨 단추 둘(28px씩)에 칸 좌우 여백(14px씩)이 들어가는 폭 — 메일 목록의 별 · 라벨 칸과 같다.
+                // 44 였을 때는 별 하나도 넘쳐 오른쪽으로 6px 쏠렸다(2026-10-27).
+                width: 84,
                 align: "center",
                 style: { textAlign: "center" },
                 render: (row) => (
-                    <IconButton
-                        size="small"
-                        aria-label={row.is_favorite ? t("unfavorite") : t("favorite")}
-                        onClick={(event) => {
-                            event.stopPropagation();
-                            void toggleFavorite(row);
-                        }}
-                        sx={{ p: 0.5 }}
-                    >
-                        <FavoriteStar on={row.is_favorite} />
-                    </IconButton>
+                    <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+                        <IconButton
+                            size="small"
+                            aria-label={row.is_favorite ? t("unfavorite") : t("favorite")}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                void toggleFavorite(row);
+                            }}
+                            sx={{ p: 0.5 }}
+                        >
+                            <FavoriteStar on={row.is_favorite} />
+                        </IconButton>
+                        <IconButton
+                            size="small"
+                            aria-label={t("label")}
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                openRowLabelMenu(row, event.currentTarget);
+                            }}
+                            sx={{ p: 0.5 }}
+                        >
+                            {/* 단 라벨이 있으면 첫 라벨 색으로 채운다 — 없으면 별과 같은 회색 테두리(메일 목록과 같다). */}
+                            {(() => {
+                                const first = labels.find((label) => row.label_seqs?.includes(label.seq));
+                                return first ? (
+                                    <LabelIcon sx={{ fontSize: 20, color: labelColor(first) }} />
+                                ) : (
+                                    <LabelOutlinedIcon sx={{ fontSize: 20, color: "#94a3b8" }} />
+                                );
+                            })()}
+                        </IconButton>
+                    </Box>
                 ),
             },
             {
@@ -298,6 +353,35 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const dialogs = (
         <>
             <ContactFormDialog controller={contactForm} onCompose={handleCompose} labels={labels} />
+            <MailLabelMenu
+                anchorPosition={rowLabelMenu?.position ?? null}
+                onClose={() => setRowLabelMenu(null)}
+                labels={labels}
+                states={labelCheckStates(contacts.filter((c) => c.seq === rowLabelMenu?.seq), labels)}
+                onToggle={(label, add) => rowLabelMenu && void toggleContactLabel(rowLabelMenu.seq, label.seq, add)}
+                onCreate={() => {
+                    setLabelFormFor(rowLabelMenu?.seq ?? 0);
+                    setRowLabelMenu(null);
+                }}
+                onManage={() => setLabelsManageOpen(true)}
+            />
+            <MailLabelFormDialog
+                open={labelFormFor !== null}
+                api={contactLabelApi}
+                onClose={() => setLabelFormFor(null)}
+                onSaved={(label) => {
+                    const target = labelFormFor ?? 0;
+                    void loadLabels().then(() => {
+                        if (target > 0) void toggleContactLabel(target, label.seq, true);
+                    });
+                }}
+            />
+            <ContactLabelsDialog
+                open={labelsManageOpen}
+                labels={labels}
+                onClose={() => setLabelsManageOpen(false)}
+                onChanged={(items) => void loadLabels(items)}
+            />
             <ComposeDialog controller={compose} accounts={accounts} />
         </>
     );
@@ -424,6 +508,24 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                             </Typography>
                                         ) : null}
                                     </Box>
+                                    <IconButton
+                                        size="small"
+                                        aria-label={t("label")}
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            openRowLabelMenu(contact, event.currentTarget);
+                                        }}
+                                        sx={{ p: 0.5, flexShrink: 0 }}
+                                    >
+                                        {(() => {
+                                            const first = labels.find((label) => contact.label_seqs?.includes(label.seq));
+                                            return first ? (
+                                                <LabelIcon sx={{ fontSize: 22, color: labelColor(first) }} />
+                                            ) : (
+                                                <LabelOutlinedIcon sx={{ fontSize: 22, color: "#94a3b8" }} />
+                                            );
+                                        })()}
+                                    </IconButton>
                                 </Box>
                             ))}
                         </MobileCardStack>
