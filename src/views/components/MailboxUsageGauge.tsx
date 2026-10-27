@@ -1,7 +1,7 @@
 import { t } from "../../i18n";
 /**
  * 사서함 사용량 게이지(2026-10-27 사용자 지시 "받은편지함 목록 상단 탭 줄 오른쪽 끝에 사용량 게이지, 80% 넘으면 늘리라고, 스팸이 많으면 비우라고").
- * 기업메일 사서함(kind=hosted)을 보고 있을 때만 그린다 — 외부 계정은 한도를 모른다. 전체 계정 보기면 사서함이 하나뿐일 때 그 사서함.
+ * 기업메일 사서함(kind=hosted)을 보고 있을 때만 그린다 — 외부 계정은 한도를 모른다. 전체 계정 보기면 내 개인 사서함(없으면 첫 사서함).
  * 한도가 없는 사서함(무제한)은 막대 없이 쓴 양만 적는다. 값은 서버 GET /accounts/:seq/usage(스팸 수 · 크기 포함).
  */
 
@@ -36,7 +36,11 @@ export function MailboxUsageGauge({
     onOpenSpam: () => void;
 }) {
     const hosted = accounts.filter((account) => account.kind === "hosted");
-    const target = mailAccountSeq > 0 ? hosted.find((account) => account.seq === mailAccountSeq) : hosted.length === 1 ? hosted[0] : undefined;
+    // 계정 하나를 보면 그 계정(사서함일 때만). 전체 보기면 내 개인 사서함 → 첫 사서함(사서함이 여럿이어도 하나는 보인다 — 2026-10-27 지적).
+    const target =
+        mailAccountSeq > 0
+            ? hosted.find((account) => account.seq === mailAccountSeq)
+            : (hosted.find((account) => account.scope === "personal") ?? hosted[0]);
     const targetSeq = target?.seq ?? 0;
     const [usage, setUsage] = useState<Usage | null>(null);
 

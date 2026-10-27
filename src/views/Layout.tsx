@@ -78,6 +78,9 @@ import { ComposeDialog } from "./dialogs/ComposeDialog";
 import { toRouteFolder } from "../utils/routeFolder";
 import { MailboxUsageGauge } from "./components/MailboxUsageGauge";
 
+
+/** 지난번 메일 메뉴(폴더 · 계정 · 메일함) — 메뉴를 옮기면 갈래 탭을 전체로 돌리려고 쥔다(모든 메일 화면이 함께 쓴다). */
+let lastMailRouteKey: string | null = null;
 /** 보기 타입 저장 키 */
 const VIEW_MODE_STORAGE_KEY = "mua-mail-view-mode";
 /**
@@ -301,15 +304,23 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     //  - 계정별 받은편지함: 폴더=받은편지함 + 그 계정
     //  - 받은편지함(전체): 폴더=받은편지함 + 전체 계정
     //  - 그 외 폴더: 폴더만 바꾸고 계정 선택은 유지(계정별 받은편지함에서 고른 계정이 다른 폴더에도 이어진다)
+    //  - 메뉴를 옮기면 갈래 탭(안 읽음 · 별표 · 라벨)은 전체로 돌린다(2026-10-27 사용자 지시 — 라벨 탭을 고른 채 다른 메일함으로 가면
+    //    그 메일함에서도 라벨로 걸러져 메일이 없는 것처럼 보였다).
+    //    처음 들어올 때(새로고침)는 지난번에 고른 탭을 그대로 둔다(storeMailScope 로 기억한 값). 메일 화면은 메뉴마다 새로 그려지므로
+    //    "지난 메뉴" 는 컴포넌트 밖(lastMailRouteKey)에 둔다 — 새로고침이면 비어 있다.
     useEffect(() => {
+        const routeKey = `${routeFolder}|${routeAccountSeq}|${routeUserFolderSeq}|${isInboxRoute}`;
+        const moved = lastMailRouteKey !== null && lastMailRouteKey !== routeKey;
+        lastMailRouteKey = routeKey;
+        const scopeReset = moved ? { unreadOnly: false, starredOnly: false, labelSeq: 0 } : {};
         if (routeAccountSeq >= 0) {
-            state.actions.setFilters({ folder: "inbox", mailAccountSeq: routeAccountSeq });
+            state.actions.setFilters({ ...scopeReset, folder: "inbox", mailAccountSeq: routeAccountSeq });
         } else if (isInboxRoute) {
-            state.actions.setFilters({ folder: "inbox", mailAccountSeq: 0 });
+            state.actions.setFilters({ ...scopeReset, folder: "inbox", mailAccountSeq: 0 });
         } else if (routeUserFolderSeq > 0) {
-            state.actions.setFilters({ folder: "custom", mailFolderSeq: routeUserFolderSeq });
+            state.actions.setFilters({ ...scopeReset, folder: "custom", mailFolderSeq: routeUserFolderSeq });
         } else {
-            state.actions.setFilters({ folder: routeFolder, mailFolderSeq: 0 });
+            state.actions.setFilters({ ...scopeReset, folder: routeFolder, mailFolderSeq: 0 });
         }
     }, [routeFolder, routeAccountSeq, routeUserFolderSeq, isInboxRoute, state.actions]);
 
