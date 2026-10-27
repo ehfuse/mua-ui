@@ -8,7 +8,7 @@ import { t } from "../../i18n";
  * 키보드: ↓↑ 고르기 · Enter/Tab 넣기 · Esc 닫기. 목록은 누르는 순간(mousedown) 넣고, 칸의 포커스를 잃지 않는다.
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Box, IconButton, InputAdornment, MenuItem, MenuList, Paper, Popper, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton, MenuItem, MenuList, Paper, Popper, Tooltip, Typography } from "@mui/material";
 import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import { ClearTextField } from "@ehfuse/mui-form-controls";
 import { mailApi, unwrap } from "../../apis/mailApi";
@@ -120,6 +120,7 @@ export function RecipientField({ name, label, form, placeholder, inputRef, readO
      * 사람 아이콘(0.4.3, 업무함 2026-10-27 사용자 지시 "받는 사람 칸에 사람 아이콘 — 조직도에서 선택") — 앱의 고르기 창에서 고른 사람을
      * 칸 끝에 덧붙인다. 이미 칸에 있는 주소는 빼고, 치다 만 이름 조각(주소가 아닌 끝 조각)은 버린다.
      */
+    const showPicker = Boolean(pickRecipients) && !readOnly;
     const pickFromApp = async () => {
         if (!pickRecipients) return;
         const picked = await pickRecipients(name).catch(() => null);
@@ -174,6 +175,8 @@ export function RecipientField({ name, label, form, placeholder, inputRef, readO
     return (
         <Box
             ref={anchorRef}
+            // 사람 아이콘을 칸 오른쪽 끝에 겹쳐 세우는 기준.
+            sx={{ position: "relative" }}
             onFocus={() => {
                 setFocused(true);
                 void loadContacts().then(setContacts);
@@ -191,27 +194,27 @@ export function RecipientField({ name, label, form, placeholder, inputRef, readO
                 placeholder={placeholder}
                 autoComplete="off"
                 clearIcon={readOnly ? false : undefined}
+                // 사람 아이콘 자리만큼 칸 안쪽 오른쪽을 비운다 — 글자와 지우기(×) 단추가 아이콘 앞에서 끝난다.
+                sx={showPicker ? { "& .MuiInputBase-root": { pr: "44px" } } : undefined}
                 slotProps={{
                     ...(shrinkLabel ? { inputLabel: { shrink: true } } : {}),
                     ...(readOnly ? { htmlInput: { readOnly: true } } : {}),
-                    // 오른쪽 끝은 지우기 단추 자리라 사람 아이콘은 왼쪽에 둔다(왼쪽 아이콘이 있으면 라벨도 늘 위에 선다).
-                    ...(pickRecipients && !readOnly
-                        ? {
-                              input: {
-                                  startAdornment: (
-                                      <InputAdornment position="start" sx={{ mr: 0.5 }}>
-                                          <Tooltip title={t("pickRecipients")}>
-                                              <IconButton size="small" edge="start" aria-label={t("pickRecipients")} onClick={() => void pickFromApp()} tabIndex={-1}>
-                                                  <PersonAddAltOutlinedIcon fontSize="small" />
-                                              </IconButton>
-                                          </Tooltip>
-                                      </InputAdornment>
-                                  ),
-                              },
-                          }
-                        : {}),
                 }}
             />
+            {/* 사람 아이콘 — 칸 오른쪽 끝(업무함 2026-10-27 사용자 지시). 칸의 끝 자리(endAdornment)는 지우기 단추가 차지해 겹쳐 세운다. */}
+            {showPicker ? (
+                <Tooltip title={t("pickRecipients")}>
+                    <IconButton
+                        size="small"
+                        aria-label={t("pickRecipients")}
+                        onClick={() => void pickFromApp()}
+                        tabIndex={-1}
+                        sx={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "text.secondary" }}
+                    >
+                        <PersonAddAltOutlinedIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            ) : null}
             <Popper
                 open={open}
                 anchorEl={anchorRef.current}
