@@ -272,6 +272,7 @@
     "pickIcon": "Choisir une icône",
     "pickIconColor": "Choisir l'icône/la couleur",
     "pickMoveFolder": "Choisissez le dossier de destination.",
+    "pickRecipients": "Sélectionner dans l'organigramme",
     "pickSendAccount": "Choisissez le compte d'envoi.",
     "plainTextWarning": "⚠ Une connexion en texte brut peut exposer votre mot de passe.",
     "pop3Note": "POP3 · {{security}} — IMAP est recommandé si vous utilisez plusieurs appareils.",

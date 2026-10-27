@@ -272,6 +272,7 @@
     "pickIcon": "Choose icon",
     "pickIconColor": "Choose icon/color",
     "pickMoveFolder": "Choose a folder to move to.",
+    "pickRecipients": "Choose from org chart",
     "pickSendAccount": "Choose a sending account.",
     "plainTextWarning": "⚠ A plain-text connection can expose your password.",
     "pop3Note": "POP3 · {{security}} — IMAP is recommended if you use several devices.",

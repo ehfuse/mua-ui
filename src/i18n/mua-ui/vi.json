@@ -272,6 +272,7 @@
     "pickIcon": "Chọn biểu tượng",
     "pickIconColor": "Chọn biểu tượng/màu",
     "pickMoveFolder": "Chọn hộp thư để chuyển đến.",
+    "pickRecipients": "Chọn từ sơ đồ tổ chức",
     "pickSendAccount": "Chọn tài khoản gửi.",
     "plainTextWarning": "⚠ Kết nối văn bản thuần (plain-text) có thể làm lộ mật khẩu của bạn.",
     "pop3Note": "POP3 · {{security}} — Khuyên dùng IMAP nếu bạn sử dụng trên nhiều thiết bị.",

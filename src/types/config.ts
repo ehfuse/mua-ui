@@ -129,6 +129,11 @@ export interface MuaConfig {
      */
     recipientDirectory?: Array<{ name: string; email: string; organization?: string }>;
     /**
+     * 받는 사람 고르기 창(0.4.3) — 주면 받는 사람 · 참조 · 숨은참조 칸 왼쪽에 사람 아이콘이 서고, 누르면 이것을 부른다.
+     * 앱이 제 고르기 창(조직도 등)을 띄우고 고른 사람들을 돌려준다(취소면 null). 이미 칸에 있는 주소는 다시 넣지 않는다.
+     */
+    pickRecipients?: (field: "to" | "cc" | "bcc") => Promise<Array<{ name?: string; email: string }> | null | undefined>;
+    /**
      * 메일 쓰기 자동 임시저장(0.3.155) — 켜면 [임시저장] 단추 대신 내용이 바뀌고 잠시 입력이 멈추면 조용히 임시보관함에 저장하고,
      * 보내지 않고 창을 닫을 때도 한 번 저장한다. 예약해 둔 메일은 자동 저장하지 않는다(임시저장이 예약을 풀기 때문).
      */

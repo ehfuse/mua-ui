@@ -272,6 +272,7 @@
     "pickIcon": "Symbol auswählen",
     "pickIconColor": "Symbol/Farbe auswählen",
     "pickMoveFolder": "Zielordner auswählen.",
+    "pickRecipients": "Aus Organigramm auswählen",
     "pickSendAccount": "Absendekonto auswählen.",
     "plainTextWarning": "⚠ Bei einer unverschlüsselten Klartext-Verbindung kann Ihr Passwort offengelegt werden.",
     "pop3Note": "POP3 · {{security}} — Wenn Sie mehrere Geräte nutzen, wird IMAP empfohlen.",

@@ -272,6 +272,7 @@
     "pickIcon": "选择图标",
     "pickIconColor": "选择图标/颜色",
     "pickMoveFolder": "请选择要移动到的文件夹。",
+    "pickRecipients": "从组织架构选择",
     "pickSendAccount": "请选择发件账户。",
     "plainTextWarning": "⚠ 明文连接可能会导致密码泄露。",
     "pop3Note": "POP3 · {{security}} — 如需在多台设备上同时使用，建议使用 IMAP。",

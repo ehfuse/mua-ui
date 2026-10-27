@@ -8,7 +8,8 @@ import { t } from "../../i18n";
  * 키보드: ↓↑ 고르기 · Enter/Tab 넣기 · Esc 닫기. 목록은 누르는 순간(mousedown) 넣고, 칸의 포커스를 잃지 않는다.
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Box, MenuItem, MenuList, Paper, Popper, Typography } from "@mui/material";
+import { Box, IconButton, InputAdornment, MenuItem, MenuList, Paper, Popper, Tooltip, Typography } from "@mui/material";
+import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 import { ClearTextField } from "@ehfuse/mui-form-controls";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import { useMuaConfig } from "../../MuaProvider";
@@ -80,7 +81,7 @@ export function RecipientField({ name, label, form, placeholder, inputRef, readO
     const [dismissed, setDismissed] = useState(false);
 
     // 앱이 준 직원 · 구성원 명단을 주소록 뒤에 붙인다 — 주소록에 같은 주소가 있으면 주소록 쪽을 쓴다.
-    const { recipientDirectory } = useMuaConfig();
+    const { recipientDirectory, pickRecipients } = useMuaConfig();
     const candidates = useMemo(() => {
         if (!recipientDirectory?.length) return contacts;
         const known = new Set(contacts.map((contact) => contact.email.toLowerCase()));
@@ -114,6 +115,27 @@ export function RecipientField({ name, label, form, placeholder, inputRef, readO
     const open = focused && !dismissed && !readOnly && suggestions.length > 0;
 
     useEffect(() => setActive(0), [query]);
+
+    /**
+     * 사람 아이콘(0.4.3, 업무함 2026-10-27 사용자 지시 "받는 사람 칸에 사람 아이콘 — 조직도에서 선택") — 앱의 고르기 창에서 고른 사람을
+     * 칸 끝에 덧붙인다. 이미 칸에 있는 주소는 빼고, 치다 만 이름 조각(주소가 아닌 끝 조각)은 버린다.
+     */
+    const pickFromApp = async () => {
+        if (!pickRecipients) return;
+        const picked = await pickRecipients(name).catch(() => null);
+        if (!picked?.length) return;
+        const current = String(form.getFormValue(name) ?? "");
+        const have = emailsIn(current);
+        const added = picked
+            .filter((person) => person.email && !have.has(person.email.toLowerCase()))
+            .map((person) => (person.name ? `${person.name} <${person.email}>` : person.email));
+        if (!added.length) return;
+        // 끝 조각이 주소가 아니면(이름을 치다 만 것) 버린다 — 주소면 그대로 둔다.
+        const tail = current.match(/[^,;]*$/)?.[0] ?? "";
+        const base = tail.trim() && !tail.includes("@") ? current.slice(0, current.length - tail.length) : current;
+        const kept = base.replace(/[\s,;]*$/, "");
+        form.setFormValue(name, `${kept ? `${kept}, ` : ""}${added.join(", ")}, `);
+    };
 
     /** 고른 사람을 지금 치던 조각 자리에 넣는다. */
     const pick = (contact: MailContact) => {
@@ -172,6 +194,22 @@ export function RecipientField({ name, label, form, placeholder, inputRef, readO
                 slotProps={{
                     ...(shrinkLabel ? { inputLabel: { shrink: true } } : {}),
                     ...(readOnly ? { htmlInput: { readOnly: true } } : {}),
+                    // 오른쪽 끝은 지우기 단추 자리라 사람 아이콘은 왼쪽에 둔다(왼쪽 아이콘이 있으면 라벨도 늘 위에 선다).
+                    ...(pickRecipients && !readOnly
+                        ? {
+                              input: {
+                                  startAdornment: (
+                                      <InputAdornment position="start" sx={{ mr: 0.5 }}>
+                                          <Tooltip title={t("pickRecipients")}>
+                                              <IconButton size="small" edge="start" aria-label={t("pickRecipients")} onClick={() => void pickFromApp()} tabIndex={-1}>
+                                                  <PersonAddAltOutlinedIcon fontSize="small" />
+                                              </IconButton>
+                                          </Tooltip>
+                                      </InputAdornment>
+                                  ),
+                              },
+                          }
+                        : {}),
                 }}
             />
             <Popper

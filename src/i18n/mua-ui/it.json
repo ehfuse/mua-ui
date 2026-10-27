@@ -272,6 +272,7 @@
     "pickIcon": "Seleziona icona",
     "pickIconColor": "Seleziona icona/colore",
     "pickMoveFolder": "Scelga la cartella di destinazione.",
+    "pickRecipients": "Seleziona dall'organigramma",
     "pickSendAccount": "Selezioni un account di invio.",
     "plainTextWarning": "⚠ Una connessione in testo non crittografato può esporre la password.",
     "pop3Note": "POP3 · {{security}} — Se usa più dispositivi, è consigliato IMAP.",

@@ -272,6 +272,7 @@
     "pickIcon": "アイコンを選択",
     "pickIconColor": "アイコン/色を選択",
     "pickMoveFolder": "移動先のフォルダーを選択してください。",
+    "pickRecipients": "組織図から選択",
     "pickSendAccount": "送信アカウントを選択してください。",
     "plainTextWarning": "⚠ 平文接続ではパスワードが漏洩する恐れがあります。",
     "pop3Note": "POP3 · {{security}} — 複数の端末でご利用の場合はIMAPを推奨します。",
