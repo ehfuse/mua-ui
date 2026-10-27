@@ -332,7 +332,13 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                     <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
                         <span>{titleText}</span>
                         {/* 나에게 — 제목 바로 옆(0.4.1). 아래 보내기 옵션 스위치(예약 발송 · 수신확인 · 보안메일)와 같은 부품 · 글자 크기다. */}
-                        <Box component="span" sx={{ fontSize: 16, fontWeight: 400, ml: 1.5, "& .MuiFormControlLabel-label": { fontSize: "inherit" } }}>
+                        {/* 폰(mfd slide)은 [← 제목] 줄 전체가 뒤로가기 단추라 누름이 올라가면 창이 닫힌다(2026-10-27 지적) — 스위치에서 멈춘다. */}
+                        <Box
+                            component="span"
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => event.stopPropagation()}
+                            sx={{ fontSize: 16, fontWeight: 400, ml: 1.5, cursor: "default", "& .MuiFormControlLabel-label": { fontSize: "inherit" } }}
+                        >
                             <Switch checked={toSelf} onChange={handleToSelf} label={t("toSelf")} />
                         </Box>
                         {autoSave && autoSaveStatus ? (
