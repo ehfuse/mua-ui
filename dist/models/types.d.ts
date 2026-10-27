@@ -343,12 +343,15 @@ export interface MailContact {
     phone: string;
     memo: string;
     is_favorite: boolean;
+    source?: string;
     created_time?: string;
     updated_time?: string;
     can_manage?: boolean;
 }
 /** 연락처 등록/수정 요청 */
-export type MailContactRequest = Partial<Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope">>;
+export type MailContactRequest = Partial<Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope">> & {
+    source?: "mail";
+};
 /** 연락처 폼 */
 export interface MailContactForm {
     seq: number;

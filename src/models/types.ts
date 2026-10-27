@@ -357,6 +357,7 @@ export interface MailContact {
     phone: string; // 전화번호
     memo: string; // 메모
     is_favorite: boolean; // 즐겨찾기
+    source?: string; // 넣은 길 — "mail"(메일 읽기 화면의 추가 아이콘) · ""(직접 추가)
     created_time?: string; // 등록 일시
     updated_time?: string; // 수정 일시
     can_manage?: boolean; // 수정/삭제 가능(개인=소유자, 공용=관리자·등록자)
@@ -365,7 +366,7 @@ export interface MailContact {
 /** 연락처 등록/수정 요청 */
 export type MailContactRequest = Partial<
     Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope">
->;
+> & { source?: "mail" };
 
 /** 연락처 폼 */
 export interface MailContactForm {

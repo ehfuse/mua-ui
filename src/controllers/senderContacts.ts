@@ -56,7 +56,7 @@ export function useSenderContacts(fromAddress: string | null | undefined, accoun
             try {
                 // 공용 메일 계정으로 받은 메일에서 추가하면 공용 주소록으로.
                 const scope = account?.scope === "shared" ? "shared" : "personal";
-                const res = await mailApi.createContact({ email, name, scope });
+                const res = await mailApi.createContact({ email, name, scope, source: "mail" });
                 if (res && res.ok === false) {
                     WarningAlert({ message: res.error || t("alreadyInContacts") });
                 } else {
