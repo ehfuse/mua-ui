@@ -28,6 +28,7 @@ function toForm(contact: MailContact): MailContactForm {
         is_favorite: Boolean(contact.is_favorite),
         is_shared: contact.scope === "shared",
         can_manage: contact.can_manage !== false,
+        label_seqs: contact.label_seqs ?? [],
     };
 }
 
@@ -41,6 +42,7 @@ function toRequest(values: MailContactForm): MailContactRequest {
         memo: values.memo,
         is_favorite: Boolean(values.is_favorite),
         scope: values.is_shared ? "shared" : "personal",
+        label_seqs: values.label_seqs ?? [],
     };
 }
 

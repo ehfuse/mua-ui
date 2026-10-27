@@ -23,7 +23,8 @@ import { useMobileSearchOverlay } from "../internal/mobileSearchOverlay";
 import { getMuaSubPageBridge } from "../internal/subPageBridge";
 import { useIsMobile } from "../internal/useIsMobile";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
-import type { MailContact } from "../models/types";
+import type { MailContact, MailLabel } from "../models/types";
+import { MailLabelChips, MailLabelDot, labelColor } from "./components/MailLabels";
 import { ComposeDialog } from "./dialogs/ComposeDialog";
 import { ContactFormDialog } from "./dialogs/ContactFormDialog";
 
@@ -70,12 +71,33 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
     const mobileConfig = useMuaConfig().mobile;
     const MobileCardListLayout = mobileConfig?.CardListLayout ?? DefaultMobileCardListLayout;
     const mobileSearchWidth = mobileConfig?.searchWidth ?? "100%";
+    const labelsEnabled = Boolean(useMuaConfig().labels);
 
     const [contacts, setContacts] = useState<MailContact[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
-    // 목록 위 갈래 탭(2026-10-16) — 메일 목록처럼 전체 · 별표. 주소록은 한 번에 다 읽으므로 별표는 화면에서 거른다.
-    const [scope, setScope] = useState<"all" | "favorite">("all");
+    // 목록 위 갈래 탭(2026-10-16) — 메일 목록처럼 전체 · 별표 · 라벨마다(2026-10-27). 주소록은 한 번에 다 읽으므로 화면에서 거른다.
+    // 라벨 탭 값은 "label:<seq>".
+    const [scope, setScope] = useState<string>("all");
+    // 내 라벨 — 메일 라벨과 같은 것(config.labels 를 켠 앱만 읽는다). 라벨은 메일 관리 창에서 만든다.
+    const [labels, setLabels] = useState<MailLabel[]>([]);
+    useEffect(() => {
+        if (!labelsEnabled || !logined) return;
+        let cancelled = false;
+        mailApi
+            .listLabels()
+            .then((res) => {
+                if (!cancelled && res && res.ok !== false) setLabels(Array.isArray(res.data?.items) ? res.data.items : []);
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, [labelsEnabled, logined]);
+    // 보던 라벨이 지워졌으면 전체로
+    useEffect(() => {
+        if (scope.startsWith("label:") && !labels.some((label) => `label:${label.seq}` === scope)) setScope("all");
+    }, [labels, scope]);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // 모바일: 서브페이지 제목바 돋보기 ↔ 검색 오버레이
@@ -207,7 +229,8 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
             {
                 id: "is_favorite",
                 text: "",
-                width: 44,
+                // 칸 좌우 여백(14px)을 빼고도 별 단추(28px)가 들어가는 폭 — 44 였을 때 단추가 넘쳐 오른쪽으로 6px 쏠렸다(2026-10-27).
+                width: 56,
                 align: "center",
                 style: { textAlign: "center" },
                 render: (row) => (
@@ -230,8 +253,12 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                 width: "18%",
                 style: { fontSize: 15 },
                 render: (row) => (
-                    <Box component="span" sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {row.name || "-"}
+                    // 라벨 칩은 이름 뒤에(메일 목록은 제목 앞이지만 주소록은 이름이 먼저 읽혀야 한다).
+                    <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0 }}>
+                        <Box component="span" sx={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                            {row.name || "-"}
+                        </Box>
+                        <MailLabelChips seqs={row.label_seqs} labels={labels} maxWidth={100} />
                     </Box>
                 ),
             },
@@ -249,10 +276,17 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
             { id: "memo", text: t("memo"), render: (row) => cellText(row.memo || "", true) },
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [toggleFavorite]
+        [toggleFavorite, labels]
     );
 
-    const shown = useMemo(() => (scope === "favorite" ? contacts.filter((c) => c.is_favorite) : contacts), [scope, contacts]);
+    const shown = useMemo(() => {
+        if (scope === "favorite") return contacts.filter((c) => c.is_favorite);
+        if (scope.startsWith("label:")) {
+            const labelSeq = Number(scope.slice("label:".length));
+            return contacts.filter((c) => c.label_seqs?.includes(labelSeq));
+        }
+        return contacts;
+    }, [scope, contacts]);
     const favoriteCount = useMemo(() => contacts.filter((c) => c.is_favorite).length, [contacts]);
 
     const emptyMessage = search
@@ -263,7 +297,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
 
     const dialogs = (
         <>
-            <ContactFormDialog controller={contactForm} onCompose={handleCompose} />
+            <ContactFormDialog controller={contactForm} onCompose={handleCompose} labels={labels} />
             <ComposeDialog controller={compose} accounts={accounts} />
         </>
     );
@@ -278,8 +312,13 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                     inDialog={embedded}
                 >
                     {/* 갈래 탭 — 메일 목록의 폰 탭(MailMobileTop)과 같은 모양: 칸이 폭을 똑같이 나누고 고른 칸만 파란 굵은 글자 + 밑줄. */}
-                    <Box role="tablist" aria-label={t("contactsView")} sx={{ display: "flex", mx: "-16px", mt: "-16px", mb: 1.5, bgcolor: "#fff", borderBottom: "1px solid #e2e8f0" }}>
-                        {(["all", "favorite"] as const).map((key) => {
+                    <Box
+                        role="tablist"
+                        aria-label={t("contactsView")}
+                        sx={{ display: "flex", mx: "-16px", mt: "-16px", mb: 1.5, bgcolor: "#fff", borderBottom: "1px solid #e2e8f0", overflowX: "auto", scrollbarWidth: "none" }}
+                    >
+                        {["all", "favorite", ...labels.map((label) => `label:${label.seq}`)].map((key) => {
+                            const label = key.startsWith("label:") ? labels.find((l) => `label:${l.seq}` === key) : undefined;
                             const selected = scope === key;
                             return (
                                 <Box
@@ -290,8 +329,11 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                     aria-selected={selected}
                                     onClick={() => setScope(key)}
                                     sx={{
-                                        flex: 1,
+                                        // 라벨이 있으면 칸이 늘어 옆으로 밀린다 — 전체 · 별표만일 때는 지금처럼 폭을 똑같이 나눈다.
+                                        flex: labels.length > 0 ? "0 0 auto" : 1,
                                         minWidth: 0,
+                                        px: labels.length > 0 ? 2 : 0,
+                                        whiteSpace: "nowrap",
                                         height: 48,
                                         cursor: "pointer",
                                         border: "none",
@@ -305,7 +347,18 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                         color: selected ? "primary.main" : "#64748b",
                                     }}
                                 >
-                                    {key === "all" ? t("all") : favoriteCount > 0 ? t("starredCount", { count: favoriteCount }) : t("starred")}
+                                    {label ? (
+                                        <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+                                            <MailLabelDot color={labelColor(label)} size={18} />
+                                            {label.name}
+                                        </Box>
+                                    ) : key === "all" ? (
+                                        t("all")
+                                    ) : favoriteCount > 0 ? (
+                                        t("starredCount", { count: favoriteCount })
+                                    ) : (
+                                        t("starred")
+                                    )}
                                 </Box>
                             );
                         })}
@@ -360,6 +413,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                             {contact.organization ? (
                                                 <MobileChip>{contact.organization}</MobileChip>
                                             ) : null}
+                                            <MailLabelChips seqs={contact.label_seqs} labels={labels} maxWidth={90} />
                                         </Box>
                                         <Typography noWrap sx={{ fontSize: mfs(15), color: "#334155" }}>
                                             {contact.email}
@@ -416,7 +470,9 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                     <Box sx={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
                         <Tabs
                             value={scope}
-                            onChange={(_event, value: "all" | "favorite") => setScope(value)}
+                            onChange={(_event, value: string) => setScope(value)}
+                            variant="scrollable"
+                            scrollButtons="auto"
                             sx={{ minHeight: 44, borderBottom: "1px solid #e2e8f0", flexShrink: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
                         >
                             <Tab value="all" label={t("all")} />
@@ -426,6 +482,21 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                                 sx={{ minWidth: 56 }}
                                 label={<StarRoundedIcon sx={{ fontSize: 22, color: "#f59e0b", fill: "currentColor" }} />}
                             />
+                            {/* 라벨 탭 — 메일 목록의 라벨 탭과 같은 모양(꼬리표 · 이름). */}
+                            {labels.map((label) => (
+                                <Tab
+                                    key={label.seq}
+                                    value={`label:${label.seq}`}
+                                    label={
+                                        <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, maxWidth: 160 }}>
+                                            <MailLabelDot color={labelColor(label)} />
+                                            <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                {label.name}
+                                            </Box>
+                                        </Box>
+                                    }
+                                />
+                            ))}
                         </Tabs>
                         <Box sx={{ flex: 1, minHeight: 0 }}>
                             <VirtualDataTable {...tableProps} />

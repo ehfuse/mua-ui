@@ -147,6 +147,7 @@ export const defaultMailContactForm: MailContactForm = {
     is_favorite: false,
     is_shared: false,
     can_manage: true,
+    label_seqs: [],
 };
 
 /** 규칙 폼 기본값 */

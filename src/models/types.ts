@@ -358,6 +358,7 @@ export interface MailContact {
     memo: string; // 메모
     is_favorite: boolean; // 즐겨찾기
     source?: string; // 넣은 길 — "mail"(메일 읽기 화면의 추가 아이콘) · ""(직접 추가)
+    label_seqs?: number[]; // 단 라벨(메일 라벨과 같은 라벨 — 공용 연락처는 남의 라벨 seq 도 섞여 있다)
     created_time?: string; // 등록 일시
     updated_time?: string; // 수정 일시
     can_manage?: boolean; // 수정/삭제 가능(개인=소유자, 공용=관리자·등록자)
@@ -365,7 +366,7 @@ export interface MailContact {
 
 /** 연락처 등록/수정 요청 */
 export type MailContactRequest = Partial<
-    Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope">
+    Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope" | "label_seqs">
 > & { source?: "mail" };
 
 /** 연락처 폼 */
@@ -379,6 +380,7 @@ export interface MailContactForm {
     is_favorite: boolean; // 즐겨찾기
     is_shared: boolean; // 공용 주소록
     can_manage: boolean; // 수정/삭제 가능(수정 모드 안내용)
+    label_seqs: number[]; // 단 라벨(남의 라벨 seq 도 그대로 둔다)
 }
 
 /** 사용자 메일함 */

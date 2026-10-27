@@ -344,12 +344,13 @@ export interface MailContact {
     memo: string;
     is_favorite: boolean;
     source?: string;
+    label_seqs?: number[];
     created_time?: string;
     updated_time?: string;
     can_manage?: boolean;
 }
 /** 연락처 등록/수정 요청 */
-export type MailContactRequest = Partial<Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope">> & {
+export type MailContactRequest = Partial<Pick<MailContact, "name" | "email" | "organization" | "phone" | "memo" | "is_favorite" | "scope" | "label_seqs">> & {
     source?: "mail";
 };
 /** 연락처 폼 */
@@ -363,6 +364,7 @@ export interface MailContactForm {
     is_favorite: boolean;
     is_shared: boolean;
     can_manage: boolean;
+    label_seqs: number[];
 }
 /** 사용자 메일함 */
 export interface MailUserFolder {

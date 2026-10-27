@@ -250,6 +250,9 @@ export const mailApi = {
             `/v1/mua/contacts${toQuery({ search, limit: 500 })}`
         ),
     /** 연락처 등록(같은 주소가 있으면 ok:false + 409 문구, data = 기존 행) */
+    /** 내가 한 번이라도 메일을 보낸 주소(많이 보낸 차례) — 받는 사람 고르기 창의 "보낸 주소" 묶음(2026-10-27) */
+    listSentRecipients: () =>
+        entityAppServer.http.get<ApiOk<{ items: Array<{ name: string; email: string; count: number }> }>>("/v1/mua/contacts/sent"),
     createContact: (body: MailContactRequest) =>
         entityAppServer.http.post<ApiOk<MailContact>>("/v1/mua/contacts", body),
     /** 연락처 수정 */
