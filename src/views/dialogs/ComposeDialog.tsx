@@ -329,19 +329,30 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             // mfd 의 rightIcons 는 제목 줄 오른쪽 끝(글자 크기 · 닫기 옆)에 붙어 제목과 떨어지므로 제목 글자에 함께 싣는다.
             title={{
                 text: (
-                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
-                        <span>{titleText}</span>
+                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.25, minWidth: 0, maxWidth: "100%" }}>
+                        {/* 제목 · 스위치 글자는 꺾지 않는다 — 폰 폭에서 "임시보관 메일" · "나에게" 가 한 글자씩 세로로 꺾였다(2026-10-27 지적). 넘치면 제목이 줄임표로 준다. */}
+                        <Box component="span" sx={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {titleText}
+                        </Box>
                         {/* 나에게 — 제목 바로 옆(0.4.1). 아래 보내기 옵션 스위치(예약 발송 · 수신확인 · 보안메일)와 같은 부품 · 글자 크기다. */}
                         {/* 폰(mfd slide)은 [← 제목] 줄 전체가 뒤로가기 단추라 누름이 올라가면 창이 닫힌다(2026-10-27 지적) — 스위치에서 멈춘다. */}
                         <Box
                             component="span"
                             onClick={(event) => event.stopPropagation()}
                             onKeyDown={(event) => event.stopPropagation()}
-                            sx={{ fontSize: 16, fontWeight: 400, ml: 1.5, cursor: "default", "& .MuiFormControlLabel-label": { fontSize: "inherit" } }}
+                            sx={{
+                                fontSize: 16,
+                                fontWeight: 400,
+                                ml: isMobile ? 0.5 : 1.5,
+                                flexShrink: 0,
+                                cursor: "default",
+                                "& .MuiFormControlLabel-label": { fontSize: "inherit", whiteSpace: "nowrap" },
+                            }}
                         >
                             <Switch checked={toSelf} onChange={handleToSelf} label={t("toSelf")} />
                         </Box>
-                        {autoSave && autoSaveStatus ? (
+                        {/* 폰은 제목 줄이 좁아 저장 시각을 싣지 않는다 — 실패만 알린다(그건 놓치면 안 된다). */}
+                        {autoSave && autoSaveStatus && (!isMobile || autoSaveFailed) ? (
                             <Box component="span" sx={{ fontSize: 14, fontWeight: 400, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
                                 {autoSaveStatus}
                             </Box>
