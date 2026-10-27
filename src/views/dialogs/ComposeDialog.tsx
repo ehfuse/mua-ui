@@ -411,7 +411,17 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                     }}
                                 />
                                 {/* 치면 주소록에서 이름 · 주소 · 소속이 맞는 사람이 뜬다(2026-10-16). */}
-                                <RecipientField name="to" label={t("to")} form={form} inputRef={toInputRef} placeholder={t("recipientPlaceholder")} />
+                                <RecipientField
+                                    name="to"
+                                    label={t("to")}
+                                    form={form}
+                                    inputRef={toInputRef}
+                                    placeholder={t("recipientPlaceholder")}
+                                    // 나에게를 켜면 받는 사람은 고칠 수 없다(0.4.2, 업무함 2026-10-27 사용자 지적) — 끄면 다시 고친다.
+                                    readOnly={toSelf}
+                                    // 창이 열리며 바로 포커스가 가는 칸이라 라벨을 처음부터 위에 둔다(0.4.2).
+                                    shrinkLabel
+                                />
                             </Box>
                             <Box
                                 sx={{

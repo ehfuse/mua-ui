@@ -64,9 +64,13 @@ interface RecipientFieldProps {
     form: any;
     placeholder?: string;
     inputRef?: React.Ref<HTMLInputElement>;
+    /** 읽기 전용(0.4.2) — "나에게" 를 켠 받는 사람 칸. 고칠 수 없고 지우기 단추 · 주소록 제안도 뜨지 않는다. */
+    readOnly?: boolean;
+    /** 라벨을 처음부터 위에 둔다(0.4.2) — 창이 열리며 바로 포커스가 가는 받는 사람 칸은 라벨이 내려왔다 올라가는 것이 보였다. */
+    shrinkLabel?: boolean;
 }
 
-export function RecipientField({ name, label, form, placeholder, inputRef }: RecipientFieldProps) {
+export function RecipientField({ name, label, form, placeholder, inputRef, readOnly = false, shrinkLabel = false }: RecipientFieldProps) {
     const value = String(form.useFormValue(name) ?? "");
     const anchorRef = useRef<HTMLDivElement | null>(null);
     const [contacts, setContacts] = useState<MailContact[]>([]);
@@ -107,7 +111,7 @@ export function RecipientField({ name, label, form, placeholder, inputRef }: Rec
             .sort((a, b) => a.rank - b.rank || Number(b.contact.is_favorite) - Number(a.contact.is_favorite) || a.contact.name.localeCompare(b.contact.name));
         return scored.slice(0, MAX_SUGGESTIONS).map((row) => row.contact);
     }, [candidates, head, query]);
-    const open = focused && !dismissed && suggestions.length > 0;
+    const open = focused && !dismissed && !readOnly && suggestions.length > 0;
 
     useEffect(() => setActive(0), [query]);
 
@@ -156,7 +160,20 @@ export function RecipientField({ name, label, form, placeholder, inputRef }: Rec
             onKeyDownCapture={onKeyDown}
             onInput={() => setDismissed(false)}
         >
-            <ClearTextField name={name} label={label} form={form} inputRef={inputRef} fullWidth placeholder={placeholder} autoComplete="off" />
+            <ClearTextField
+                name={name}
+                label={label}
+                form={form}
+                inputRef={inputRef}
+                fullWidth
+                placeholder={placeholder}
+                autoComplete="off"
+                clearIcon={readOnly ? false : undefined}
+                slotProps={{
+                    ...(shrinkLabel ? { inputLabel: { shrink: true } } : {}),
+                    ...(readOnly ? { htmlInput: { readOnly: true } } : {}),
+                }}
+            />
             <Popper
                 open={open}
                 anchorEl={anchorRef.current}
