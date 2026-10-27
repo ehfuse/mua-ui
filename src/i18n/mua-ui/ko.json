@@ -397,6 +397,7 @@
     "threadCount": "이 대화 {{count}}통",
     "threadOf": "대화 {{count}}통",
     "to": "받는 사람",
+    "toSelf": "나에게",
     "translate": "번역하기",
     "translateFailed": "AI 번역에 실패했습니다.",
     "type": "구분",

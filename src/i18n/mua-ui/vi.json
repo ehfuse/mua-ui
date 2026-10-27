@@ -397,6 +397,7 @@
     "threadCount": "{{count}} thư trong cuộc hội thoại này",
     "threadOf": "{{count}} thư trong cuộc hội thoại",
     "to": "Người nhận",
+    "toSelf": "Gửi cho tôi",
     "translate": "Dịch",
     "translateFailed": "Dịch AI thất bại.",
     "type": "Phân loại",

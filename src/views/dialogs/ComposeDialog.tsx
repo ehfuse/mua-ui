@@ -29,6 +29,11 @@ interface ComposeDialogProps {
 /** 작성 다이얼로그 컴포넌트 */
 export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const { form, modal, sending, savingDraft, saveDraft, sentRef } = controller;
+    // 나에게 — 창을 열 때마다 꺼진 채 시작한다.
+    const [toSelf, setToSelf] = useState(false);
+    useEffect(() => {
+        if (modal.isOpen) setToSelf(false);
+    }, [modal.isOpen]);
     // 고른 보내는 계정을 기억해 두는 자리(전역 메일 상태) — 다음 창의 기본값이 된다.
     const { state } = useMailController();
     // 모바일은 풀스크린 우→좌 슬라이드(다른 모바일 상세/등록 다이얼로그와 동일).
@@ -292,6 +297,19 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     );
 
     const existingAttachments = attachments.filter((a) => refKey(a));
+
+    /** 고른 보내는 계정의 주소 — "나에게" 가 받는 사람 칸에 넣는다. */
+    const selfAddressOf = (seq: number) => accounts.find((a) => a.seq === seq)?.email ?? "";
+    /**
+     * 나에게(0.4.1, 업무함 2026-10-27 사용자 지시 "새 메일 타이틀 옆에 나에게 스위치") — 켜면 받는 사람을 고른 보내는 계정 주소로 채우고,
+     * 끄면 그 주소를 지운다(그새 받는 사람을 고쳤으면 그대로 둔다). 켠 채 보내는 계정을 바꾸면 받는 사람도 따라간다.
+     */
+    const handleToSelf = (_event: unknown, checked: boolean) => {
+        setToSelf(checked);
+        const address = selfAddressOf(Number(form.getFormValue("mail_account_seq") ?? 0));
+        if (checked) form.setFormValue("to", address);
+        else if (String(form.getFormValue("to") ?? "").trim() === address) form.setFormValue("to", "");
+    };
     const titleText =
         mode === "reply" || mode === "replyAll"
             ? t("reply")
@@ -310,17 +328,20 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             // 자동 저장 상태는 제목 글자 바로 오른쪽에 작게(2026-10-19) — 액션바에 두면 단추 줄을 차지해 [보내기] 와 같은 무게로 읽혔다.
             // mfd 의 rightIcons 는 제목 줄 오른쪽 끝(글자 크기 · 닫기 옆)에 붙어 제목과 떨어지므로 제목 글자에 함께 싣는다.
             title={{
-                text:
-                    autoSave && autoSaveStatus ? (
-                        <Box component="span" sx={{ display: "inline-flex", alignItems: "baseline", gap: 1.25, minWidth: 0 }}>
-                            <span>{titleText}</span>
+                text: (
+                    <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+                        <span>{titleText}</span>
+                        {/* 나에게 — 제목 바로 옆(0.4.1). 아래 보내기 옵션 스위치(예약 발송 · 수신확인 · 보안메일)와 같은 부품 · 글자 크기다. */}
+                        <Box component="span" sx={{ fontSize: 16, fontWeight: 400, ml: 1.5, "& .MuiFormControlLabel-label": { fontSize: "inherit" } }}>
+                            <Switch checked={toSelf} onChange={handleToSelf} label={t("toSelf")} />
+                        </Box>
+                        {autoSave && autoSaveStatus ? (
                             <Box component="span" sx={{ fontSize: 14, fontWeight: 400, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
                                 {autoSaveStatus}
                             </Box>
-                        </Box>
-                    ) : (
-                        titleText
-                    ),
+                        ) : null}
+                    </Box>
+                ),
             }}
             titleIcons={{ delete: { visible: false } }}
             tabs={{ visible: false }}
@@ -385,6 +406,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                             }
                                         }
                                         void mailApi.updatePreferences({ last_account_seq: seq }).catch(() => undefined);
+                                        // 나에게를 켠 채면 받는 사람도 새 계정 주소로.
+                                        if (toSelf) form.setFormValue("to", selfAddressOf(seq));
                                     }}
                                 />
                                 {/* 치면 주소록에서 이름 · 주소 · 소속이 맞는 사람이 뜬다(2026-10-16). */}

@@ -397,6 +397,7 @@
     "threadCount": "このスレッド {{count}}件",
     "threadOf": "スレッド {{count}}件",
     "to": "宛先",
+    "toSelf": "自分宛て",
     "translate": "翻訳",
     "translateFailed": "AI翻訳に失敗しました。",
     "type": "区分",

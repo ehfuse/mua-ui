@@ -397,6 +397,7 @@
     "threadCount": "{{count}} Nachrichten in dieser Konversation",
     "threadOf": "{{count}} Nachrichten in Konversation",
     "to": "An",
+    "toSelf": "An mich",
     "translate": "Übersetzen",
     "translateFailed": "KI-Übersetzung fehlgeschlagen.",
     "type": "Typ",

@@ -397,6 +397,7 @@
     "threadCount": "此会话共 {{count}} 封",
     "threadOf": "会话共 {{count}} 封",
     "to": "收件人",
+    "toSelf": "给自己",
     "translate": "翻译",
     "translateFailed": "AI 翻译失败。",
     "type": "类型",

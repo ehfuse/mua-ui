@@ -397,6 +397,7 @@
     "threadCount": "{{count}} messages dans cette conversation",
     "threadOf": "{{count}} messages dans la conversation",
     "to": "À",
+    "toSelf": "À moi",
     "translate": "Traduire",
     "translateFailed": "Échec de la traduction par l'IA.",
     "type": "Type",
