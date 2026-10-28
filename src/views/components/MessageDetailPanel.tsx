@@ -387,7 +387,18 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 direction="row"
                 alignItems="center"
                 spacing={1}
-                sx={{ px: 1.5, py: 1, borderBottom: "1px solid #e2e8f0", flexWrap: "wrap", rowGap: 0.5 }}
+                sx={{
+                    px: 1.5,
+                    py: 1,
+                    borderBottom: "1px solid #e2e8f0",
+                    flexWrap: "wrap",
+                    rowGap: 0.5,
+                    // 아이콘 단추를 업무 상세 머리줄(@ehfuse/taskbox TaskDetailHeader)과 같게(2026-10-28 사용자 지시 "너무 투박하다 · 통일") —
+                    // 단추 36px(여백 8) · 아이콘 20px · 회색 #6b7280, 올리면 진하게. 라벨 단추처럼 아이콘에 색을 따로 준 것은 그 색을 지킨다.
+                    "& .MuiIconButton-root": { p: 1, color: "#6b7280", "&:hover": { color: "#37352f" } },
+                    // 닫기 X 만 기본 크기 — 업무 상세 머리줄도 X 는 다른 아이콘보다 크다.
+                    "& .MuiIconButton-root:not(.mua-detail-close) .MuiSvgIcon-root": { fontSize: 20 },
+                }}
             >
                 {/* 모바일(embedded)은 아이콘 줄을 통째로 오른쪽에 붙인다(2026-10-12 사용자 지시) — 앞에 빈 칸을 두어 민다.
                     전에는 ⋮ 만 오른쪽 끝이고 나머지는 왼쪽이라, 한 손으로 쥔 폰에서 자주 누르는 답장·삭제가 엄지에서 멀었다.
@@ -399,20 +410,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     </Button>
                 ) : (
                     <>
-                        <Tooltip title={t("reply")}>
+                        <Tooltip title={t("reply")} arrow>
                             <IconButton size="small" onClick={() => onReply("reply")}>
                                 <ReplyArrowIcon />
                             </IconButton>
                         </Tooltip>
                         {/* 전체 답장 — 참조가 있을 때만 보인다(없으면 답장과 같다) */}
                         {canReplyAll ? (
-                            <Tooltip title={t("replyAll")}>
+                            <Tooltip title={t("replyAll")} arrow>
                                 <IconButton size="small" onClick={() => onReply("replyAll")}>
                                     <ReplyAllArrowIcon />
                                 </IconButton>
                             </Tooltip>
                         ) : null}
-                        <Tooltip title={t("forward")}>
+                        <Tooltip title={t("forward")} arrow>
                             <IconButton size="small" onClick={() => onReply("forward")}>
                                 <ForwardArrowIcon />
                             </IconButton>
@@ -421,20 +432,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 )}
                 {/* 읽지 않음 / 스팸 신고는 툴바에도 아이콘으로 노출(받은편지함), 스팸함에서는 "스팸 아님" */}
                 {detail.folder === "inbox" ? (
-                    <Tooltip title={t("markUnread")}>
+                    <Tooltip title={t("markUnread")} arrow>
                         <IconButton size="small" onClick={onMarkUnread}>
                             <MarkEmailUnreadOutlinedIcon />
                         </IconButton>
                     </Tooltip>
                 ) : null}
                 {isSpam ? (
-                    <Tooltip title={t("notSpamToInbox")}>
+                    <Tooltip title={t("notSpamToInbox")} arrow>
                         <Button size="small" onClick={onRestore} sx={{ fontSize: "13.5px" }}>
                             {t("notSpam")}
                         </Button>
                     </Tooltip>
                 ) : detail.folder === "inbox" ? (
-                    <Tooltip title={t("reportSpam")}>
+                    <Tooltip title={t("reportSpam")} arrow>
                         <IconButton size="small" onClick={(e) => askConfirm("spam", e.currentTarget)}>
                             <ReportGmailerrorredOutlinedIcon />
                         </IconButton>
@@ -442,7 +453,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 ) : null}
                 {/* 라벨 — 단 라벨이 있으면 첫 라벨 색으로 채운다(목록 행의 라벨 단추와 같은 모양). */}
                 {labels && onOpenLabelMenu && !isDraft ? (
-                    <Tooltip title={t("label")}>
+                    <Tooltip title={t("label")} arrow>
                         <IconButton
                             size="small"
                             aria-label={t("label")}
@@ -461,26 +472,26 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 {/* 삭제(휴지통으로) — 휴지통에서는 복원/영구 삭제 */}
                 {isTrash ? (
                     <>
-                        <Tooltip title={t("restore")}>
+                        <Tooltip title={t("restore")} arrow>
                             <IconButton size="small" onClick={onRestore}>
                                 <RestoreFromTrashOutlinedIcon />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title={t("deleteForever")}>
+                        <Tooltip title={t("deleteForever")} arrow>
                             <IconButton size="small" onClick={(e) => askConfirm("delete", e.currentTarget)}>
                                 <TrashIcon />
                             </IconButton>
                         </Tooltip>
                     </>
                 ) : (
-                    <Tooltip title={t("delete")}>
+                    <Tooltip title={t("delete")} arrow>
                         <IconButton size="small" onClick={(e) => askConfirm("trash", e.currentTarget)}>
                             <TrashIcon />
                         </IconButton>
                     </Tooltip>
                 )}
                 {/* ⋮ 더보기 — 삭제/읽지않음/스팸 등 전체 메뉴 */}
-                <Tooltip title={t("more")}>
+                <Tooltip title={t("more")} arrow>
                     <IconButton size="small" onClick={(e) => setMenuAnchor(e.currentTarget)} aria-label={t("more")}>
                         <MoreVertIcon />
                     </IconButton>
@@ -643,15 +654,15 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 {embedded ? null : <Box sx={{ flex: 1 }} />}
                 {/* 새 창으로 열기(0.4.12) — 메일을 따로 띄워 두고 업무 등 다른 화면을 쓰게. */}
                 {embedded || !onOpenWindow ? null : (
-                    <Tooltip title={t("openInNewWindow")}>
+                    <Tooltip title={t("openInNewWindow")} arrow>
                         <IconButton size="small" onClick={onOpenWindow} aria-label={t("openInNewWindow")}>
                             <OpenInNewIcon />
                         </IconButton>
                     </Tooltip>
                 )}
                 {embedded ? null : (
-                    <Tooltip title={t("closeEsc")}>
-                        <IconButton size="small" onClick={onClose}>
+                    <Tooltip title={t("closeEsc")} arrow>
+                        <IconButton size="small" className="mua-detail-close" aria-label={t("closeEsc")} onClick={onClose}>
                             <CloseIcon />
                         </IconButton>
                     </Tooltip>
