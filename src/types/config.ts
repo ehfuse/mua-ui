@@ -178,6 +178,13 @@ export interface MuaConfig {
      */
     openExternalUrl?: (url: string) => void;
     /**
+     * 메일 상세를 새 창으로 연다(0.4.12) — 주면 넓은 화면 상세 머리줄에 [새 창으로 열기] 가 생긴다. false 를 돌려주면(창이 막힘) 상세를 닫지 않는다.
+     * 창을 띄우고 그 창에서 windowMessageSeq 를 주는 것은 소비처 몫이다.
+     */
+    openMessageWindow?: (seq: number) => boolean | void;
+    /** 이 화면이 메일 창이면 보여 줄 메일 번호(0.4.12) — 주면 목록 없이 그 메일 하나만 창 가득 그린다. */
+    windowMessageSeq?: number;
+    /**
      * 앱이 메일 관리 UI(MailManageHost)를 자기 레이아웃에 직접 둔다는 표시.
      * 켜면 메일 화면(Layout)은 호스트를 그리지 않는다 — 둘 다 그리면 요청을 양쪽이 소비해 다이얼로그가 두 개 뜬다.
      * 사이드바 메일 그룹의 + 처럼 메일 화면 밖에서 관리를 여는 앱이 쓴다.

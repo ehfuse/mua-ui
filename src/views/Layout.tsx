@@ -8,7 +8,7 @@ import { t } from "../i18n";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Box, Button, Checkbox, Drawer, Fab, Stack, Typography } from "@mui/material";
+import { Box, Button, Checkbox, Drawer, Fab, Portal, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
@@ -191,6 +191,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 모바일 셸(카드 목록 래퍼·상세 다이얼로그)은 앱이 주입하면 그것을, 없으면 패키지 기본을 쓴다.
     const { mobile: mobileConfig, appHostsMailManage } = useMuaConfig();
     const muaConfig = useMuaConfig();
+    // 메일 창(0.4.12) — 이 창이 보여 줄 메일(0=보통 화면). 뜨자마자 그 메일을 연다.
+    const windowMessageSeq = Number(muaConfig.windowMessageSeq ?? 0) || 0;
     const MobileCardListLayout = mobileConfig?.CardListLayout ?? DefaultMobileCardListLayout;
     const MobileDetailDialog = mobileConfig?.DetailDialog ?? DefaultMobileDetailDialog;
 
@@ -1063,6 +1065,17 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         return () => observer.disconnect();
     }, [isMobile, hasMore, handleLoadMore, messages.length]);
 
+    // 메일 창이면 뜨자마자 그 메일을 연다(목록에 없어도 번호로 읽는다).
+    useEffect(() => {
+        if (windowMessageSeq > 0) void state.actions.selectMessage(windowMessageSeq);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [windowMessageSeq]);
+    // 메일 창 제목은 메일 제목으로(작업 표시줄에서 어느 창인지 보이게).
+    const windowTitle = windowMessageSeq > 0 ? String(detail?.subject ?? "") : "";
+    useEffect(() => {
+        if (windowTitle) document.title = windowTitle;
+    }, [windowTitle]);
+
     const detailPanel = (
         <MessageDetailPanel
             detail={detail}
@@ -1075,7 +1088,15 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             // 상세의 라벨 단추 — 목록 행 단추와 같은 메뉴(달기·떼기·새 라벨·관리)를 그 메일 하나에 띄운다.
             labels={labelsEnabled ? labels : undefined}
             onOpenLabelMenu={labelsEnabled ? (position) => detail && setRowLabelMenu({ position, row: detail }) : undefined}
-            onClose={() => state.actions.clearSelection()}
+            onClose={() => (windowMessageSeq > 0 ? window.close() : state.actions.clearSelection())}
+            // 새 창으로 열기(0.4.12) — 소비처가 openMessageWindow 를 줄 때만, 메일 창 안에서는 숨긴다. 열면 이 상세는 닫는다.
+            onOpenWindow={
+                muaConfig.openMessageWindow && windowMessageSeq === 0 && detail
+                    ? () => {
+                          if (muaConfig.openMessageWindow?.(detail.seq) !== false) state.actions.clearSelection();
+                      }
+                    : undefined
+            }
             onReply={(mode) => detail && compose.form.actions.openFromMessage(detail, mode, detailAccount)}
             onEditDraft={() => detail && compose.form.actions.openDraft(detail)}
             onComposeTo={handleComposeTo}
@@ -1183,6 +1204,19 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     );
 
     // ── 모바일: 카드 목록 + 상세(mfd 슬라이드) + 새 메일 FAB ─────────────────────────────
+    // 메일 창(0.4.12, 2026-10-28) — 소비처가 windowMessageSeq 를 주면 그 메일 하나만 창 가득 그린다(목록 · 사이드바 없음).
+    // 메일을 따로 띄워 두고 다른 화면(업무 쓰기 등)을 보려는 것이다. X 는 창을 닫는다. 답장 · 전달 창 등 대화상자는 그대로 이 창에서 뜬다.
+    if (windowMessageSeq > 0) {
+        return (
+            <Portal>
+                <Box data-mua-message-window="" sx={{ position: "fixed", inset: 0, bgcolor: "background.paper", display: "flex", flexDirection: "column" }}>
+                    {detailPanel}
+                </Box>
+                {dialogs}
+            </Portal>
+        );
+    }
+
     if (isMobile) {
         const scopeAccount = accounts.find((a) => a.seq === filters.mailAccountSeq);
         const scopeLabel = scopeAccount ? scopeAccount.name || scopeAccount.email : t("allAccounts");

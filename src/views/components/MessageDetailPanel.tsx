@@ -58,6 +58,7 @@ import { formatAddressList, formatBytes, formatMailFullDate, formatMailListDate,
 import { MailBodyFrame } from "./MailBodyFrame";
 import { MailLabelChips, labelColor } from "./MailLabels";
 import LabelIcon from "@mui/icons-material/Label";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 
 interface MessageDetailPanelProps {
@@ -92,6 +93,8 @@ interface MessageDetailPanelProps {
     labels?: MailLabel[];
     /** 라벨 단추 — 누른 단추 아래 좌표를 넘긴다(메뉴는 목록 화면이 띄운다: 달기·떼기·새 라벨·관리가 목록과 같은 메뉴다). */
     onOpenLabelMenu?: (position: { top: number; left: number }) => void;
+    /** 새 창으로 열기(0.4.12) — 주면 닫기 X 왼쪽에 아이콘이 생긴다(넓은 화면 상세만). */
+    onOpenWindow?: () => void;
 }
 
 /** "YYYY-MM-DD HH:mm:ss"(한국 시간) → "10월 11일 12:16" */
@@ -221,6 +224,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         onSelectThreadMessage,
         labels,
         onOpenLabelMenu,
+        onOpenWindow,
     } = props;
     // 다시 보내기를 누르면 서버가 답하는 대로 "보내는 중" 으로 바꿔 그린다 — 목록은 실시간 알림으로 따로 갱신된다.
     const [resentSeq, setResentSeq] = useState(0);
@@ -637,6 +641,14 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     ))}
                 </Menu>
                 {embedded ? null : <Box sx={{ flex: 1 }} />}
+                {/* 새 창으로 열기(0.4.12) — 메일을 따로 띄워 두고 업무 등 다른 화면을 쓰게. */}
+                {embedded || !onOpenWindow ? null : (
+                    <Tooltip title={t("openInNewWindow")}>
+                        <IconButton size="small" onClick={onOpenWindow} aria-label={t("openInNewWindow")}>
+                            <OpenInNewIcon />
+                        </IconButton>
+                    </Tooltip>
+                )}
                 {embedded ? null : (
                     <Tooltip title={t("closeEsc")}>
                         <IconButton size="small" onClick={onClose}>
