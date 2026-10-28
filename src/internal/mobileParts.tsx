@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Box, CircularProgress, Paper } from "@mui/material";
 import { StackContentsLayout } from "@ehfuse/mui-dashboard-layout";
 import { mfs } from "./mobileFontScale";
+import { useMuaConfig } from "../MuaProvider";
 
 /** 라벨칩 색 톤. */
 export type MobileChipTone = "default" | "blue" | "green" | "red" | "amber" | "gray";
@@ -54,6 +55,8 @@ export const MOBILE_LIST_CARD_GAP = { xs: 2, md: 3 };
 
 /** 모바일 초기/새로고침 로딩 — 뷰포트 고정 스피너(앱바 높이 절반만큼 내려 콘텐츠 영역 중앙). */
 export function MobileListLoadingSpinner() {
+    const Custom = useMuaConfig().loadingSpinner;
+    if (Custom) return <Custom />;
     return (
         <Box
             sx={{
