@@ -373,7 +373,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const showRemoteImages = allowRemoteImages || trustedSender;
     const hasAttachments = detail.attachments.length > 0;
 
-    // 모바일 상세 창이 제목바 밑에 자리를 줬으면 아이콘 줄을 거기 그린다 — 제목바와 함께 접히고 펼쳐진다(detailToolbarSlot 참고)
+    // 모바일 상세 창이 제목바 밑에 자리를 줬으면 아이콘 줄을 거기 그린다 — 내려도 늘 보인다(detailToolbarSlot 참고)
     const placeToolbar = (node: ReactNode) => (embedded && toolbarSlot ? createPortal(node, toolbarSlot) : node);
 
     return (

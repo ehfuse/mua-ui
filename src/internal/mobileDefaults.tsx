@@ -61,7 +61,7 @@ export function DefaultMobileDetailDialog({
             locale={formDialogLocale()}
             sx={{ DialogContent: { backgroundColor: "#f1f4f7" } }}
             // 읽는 화면(메일 상세)은 내리는 만큼 제목바를 접어 본문에 높이를 돌려준다(mfd 1.8.12 — 그보다 옛 판은 이 값을 무시한다).
-            // 아이콘 줄 자리는 제목바와 같은 덩어리(mfd 1.9.1 titleBottom) — 함께 접히고 펼쳐진다.
+            // 아이콘 줄 자리는 제목바 밑(mfd 1.9.2 titleBottom) — 제목바만 접히고 아이콘 줄은 늘 보인다.
             {...({
                 collapsibleTitle: flush,
                 titleBottom: flush ? <div ref={setToolbarSlot} style={{ background: "#fff" }} /> : undefined,
