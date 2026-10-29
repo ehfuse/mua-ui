@@ -27,6 +27,8 @@ export interface MuaFileUploadBoxProps {
      * 쓰기 창은 첨부를 모두 위 칩으로 그린다(상자 아래 목록과 위 칩에 같은 파일이 두 번 보이지 않게). 받지 않는 상자는 onAttachedFilesChange 로 동작한다.
      */
     onFilesPicked?: (files: File[]) => void;
+    /** 첨부를 올리는 중 표시(0.4.19) — 상자는 드롭존 안의 안내 문구 대신 이 글과 게이지를 보인다(percent null 이면 진행 중 게이지). */
+    progress?: { label: ReactNode; percent: number | null } | null;
 }
 
 /** 모바일 카드 목록 래퍼 계약(앱의 MobileCardListLayout 과 동일). */

@@ -4,7 +4,7 @@ import { formDialogLocale, getMuaUiLocale, t } from "../../i18n";
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, Chip, CircularProgress, LinearProgress, Stack } from "@mui/material";
+import { Box, Button, Chip, CircularProgress, Stack } from "@mui/material";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
@@ -606,6 +606,29 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
                                 첨부하려고 매번 끝까지 내려야 하고, 붙였는지도 눈에 들어오지 않는다. */}
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                                <FileUploadBox
+                                    multiple
+                                    height={64}
+                                    variant="box"
+                                    acceptedFileTypes={[]}
+                                    maxFileSize={MAX_ATTACHMENT_MB}
+                                    // 모바일은 끌어놓기가 없으니 탭 안내만(데스크톱은 드래그·클릭 둘 다).
+                                    // 용량 제한도 여기 적는다 — 따로 한 줄을 두면 정작 파일을 고르는 순간에는 눈이 가지 않는다.
+                                    dropzoneText={
+                                        isMobile
+                                            ? t("attachTap", { max: MAX_ATTACHMENT_MB })
+                                            : t("attachDrop", { max: MAX_ATTACHMENT_MB })
+                                    }
+                                    onAttachedFilesChange={handleAttachedFilesChange}
+                                    onFilesPicked={handleFilesPicked}
+                                    // 올리는 중 — 드롭존 안의 안내 문구 대신 보인다(0.4.19). 올라간 양을 알면 %, 다 올라가 서버가 저장하는 동안·읽는 중은 진행 중 게이지.
+                                    progress={
+                                        uploadingAttachments
+                                            ? { label: t("attachmentUploading"), percent: uploadPercent !== null && uploadPercent < 100 ? uploadPercent : null }
+                                            : null
+                                    }
+                                />
+                                {/* 첨부 칩은 드롭존과 그 아래 안내 글(상자가 그린다) 밑에 둔다(0.4.20, 업무함 2026-10-29 사용자 지시). */}
                                 {chipAttachments.length > 0 ? (
                                     <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap", minWidth: 0 }}>
                                         {chipAttachments.map(({ item, index }) => (
@@ -630,37 +653,6 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                             />
                                         ))}
                                     </Stack>
-                                ) : null}
-                                <FileUploadBox
-                                    multiple
-                                    height={64}
-                                    variant="box"
-                                    acceptedFileTypes={[]}
-                                    maxFileSize={MAX_ATTACHMENT_MB}
-                                    // 모바일은 끌어놓기가 없으니 탭 안내만(데스크톱은 드래그·클릭 둘 다).
-                                    // 용량 제한도 여기 적는다 — 따로 한 줄을 두면 정작 파일을 고르는 순간에는 눈이 가지 않는다.
-                                    dropzoneText={
-                                        isMobile
-                                            ? t("attachTap", { max: MAX_ATTACHMENT_MB })
-                                            : t("attachDrop", { max: MAX_ATTACHMENT_MB })
-                                    }
-                                    onAttachedFilesChange={handleAttachedFilesChange}
-                                    onFilesPicked={handleFilesPicked}
-                                />
-                                {uploadingAttachments ? (
-                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                        <Box component="div" sx={{ fontSize: 14, color: "text.secondary" }}>
-                                            {/* 올라간 양을 알면 몇 % 인지, 다 올라가 서버가 저장하는 동안(100%)과 읽는 중은 진행 중 게이지 */}
-                                            {uploadPercent !== null && uploadPercent < 100
-                                                ? `${t("attachmentUploading")} ${uploadPercent}%`
-                                                : t("attachmentUploading")}
-                                        </Box>
-                                        {uploadPercent !== null && uploadPercent < 100 ? (
-                                            <LinearProgress variant="determinate" value={uploadPercent} />
-                                        ) : (
-                                            <LinearProgress />
-                                        )}
-                                    </Box>
                                 ) : null}
                             </Box>
                             <Box
