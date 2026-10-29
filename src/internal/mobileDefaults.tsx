@@ -1,11 +1,12 @@
 import { formDialogLocale } from "../i18n";
 /** 모바일 셸 기본 구현 — 앱이 MuaConfig.mobile 로 주입하지 않을 때 쓰는 단순 래퍼/다이얼로그. */
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
 import { useModal } from "@ehfuse/forma";
 import { useMuaFormDialog } from "../MuaProvider";
+import { DetailToolbarSlotContext } from "./detailToolbarSlot";
 import type { MuaMobileCardListLayoutProps, MuaMobileDetailDialogProps } from "../types/config";
 
 /** 기본 카드 목록 래퍼 — 헤더(검색/필터)를 항상 보이고 목록은 부모 스크롤에 맡긴다. */
@@ -37,6 +38,8 @@ export function DefaultMobileDetailDialog({
     const handleClosed = useCallback(() => onClose(), [onClose]);
     const modal = useModal({ modalId, onClose: handleClosed });
     const { open: openModal, close, isOpen } = modal;
+    // 접히는 창(flush — 메일 상세)이면 제목바 밑에 아이콘 줄 자리를 둔다(detailToolbarSlot 참고)
+    const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null);
     useEffect(() => {
         if (open && !isOpen) {
             openModal();
@@ -58,7 +61,11 @@ export function DefaultMobileDetailDialog({
             locale={formDialogLocale()}
             sx={{ DialogContent: { backgroundColor: "#f1f4f7" } }}
             // 읽는 화면(메일 상세)은 내리는 만큼 제목바를 접어 본문에 높이를 돌려준다(mfd 1.8.12 — 그보다 옛 판은 이 값을 무시한다).
-            {...({ collapsibleTitle: flush } as object)}
+            // 아이콘 줄 자리는 제목바와 같은 덩어리(mfd 1.9.1 titleBottom) — 함께 접히고 펼쳐진다.
+            {...({
+                collapsibleTitle: flush,
+                titleBottom: flush ? <div ref={setToolbarSlot} style={{ background: "#fff" }} /> : undefined,
+            } as object)}
             contentPaddingX={flush ? 0 : 16}
             contentTopPadding={flush ? 0 : 16}
             sectionsPaddingTop={0}
@@ -66,7 +73,14 @@ export function DefaultMobileDetailDialog({
             // ⚠️ scrollPastLastSection 을 끄지 않는다(2026-09-11). 끄면 마지막 섹션이 보이는 높이에 맞춰 갇혀,
             // 메일 본문처럼 화면보다 긴 내용이 카드 중간에서 잘리고 그 아래가 안 보였다.
             // 본문 높이는 MailBodyFrame 이 iframe 에 그대로 주므로, 다이얼로그는 길이대로 스크롤하면 된다.
-            sections={[{ id: `${modalId}-body`, title, showTitle: false, children }]}
+            sections={[
+                {
+                    id: `${modalId}-body`,
+                    title,
+                    showTitle: false,
+                    children: <DetailToolbarSlotContext.Provider value={flush ? toolbarSlot : null}>{children}</DetailToolbarSlotContext.Provider>,
+                },
+            ]}
         />
     );
 }

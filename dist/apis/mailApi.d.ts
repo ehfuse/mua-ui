@@ -266,6 +266,11 @@ export declare const mailApi: {
     }>>;
     /** 임시보관 저장 */
     saveDraft: (body: ComposeRequest) => Promise<ApiOk<MailMessageDetail>>;
+    /**
+     * 임시보관 저장 — 같은 본문을 multipart 로 보내 올라간 양을 알린다(0.4.18). 새로 붙인 첨부가 있을 때 쓴다(게이지가 몇 % 인지 보이게).
+     * onProgress(올린 바이트, 전체 바이트).
+     */
+    saveDraftWithProgress: (body: ComposeRequest, onProgress: (loaded: number, total: number) => void) => Promise<ApiOk<MailMessageDetail>>;
     /** 주소록 목록(이름/메일 검색) */
     listContacts: (search?: string) => Promise<ApiOk<{
         items: MailContact[];

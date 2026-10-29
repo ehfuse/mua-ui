@@ -19,6 +19,16 @@ export interface MuaFileUploadBoxProps {
     maxFileSize?: number;
     dropzoneText?: ReactNode;
     onAttachedFilesChange?: (files: File[]) => void;
+    /**
+     * 고르기만 하는 상자(0.4.18) — 상자가 이것을 받으면 고른 파일을 자기 목록에 쌓지 않고 새로 고른 것만 넘긴다.
+     * 쓰기 창은 첨부를 모두 위 칩으로 그린다(상자 아래 목록과 위 칩에 같은 파일이 두 번 보이지 않게). 받지 않는 상자는 onAttachedFilesChange 로 동작한다.
+     */
+    onFilesPicked?: (files: File[]) => void;
+    /** 첨부를 올리는 중 표시(0.4.19) — 상자는 드롭존 안의 안내 문구 대신 이 글과 게이지를 보인다(percent null 이면 진행 중 게이지). */
+    progress?: {
+        label: ReactNode;
+        percent: number | null;
+    } | null;
 }
 /** 모바일 카드 목록 래퍼 계약(앱의 MobileCardListLayout 과 동일). */
 export interface MuaMobileCardListLayoutProps {
@@ -172,6 +182,18 @@ export interface MuaConfig {
      * 앱 웹뷰(Flutter)처럼 새 탭이 없는 환경은 여기서 외부 브라우저 열기 메시지를 보낸다(업무함과 같은 주입).
      */
     openExternalUrl?: (url: string) => void;
+    /**
+     * 메일 상세를 새 창으로 연다(0.4.12) — 주면 넓은 화면 상세 머리줄에 [새 창으로 열기] 가 생긴다. false 를 돌려주면(창이 막힘) 상세를 닫지 않는다.
+     * 창을 띄우고 그 창에서 windowMessageSeq 를 주는 것은 소비처 몫이다.
+     */
+    openMessageWindow?: (seq: number) => boolean | void;
+    /** 이 화면이 메일 창이면 보여 줄 메일 번호(0.4.12) — 주면 목록 없이 그 메일 하나만 창 가득 그린다. */
+    windowMessageSeq?: number;
+    /**
+     * 모바일 목록이 처음 읽는 동안의 스피너(0.4.15) — 미지정이면 회색 원형 스피너를 화면 가운데 띄운다.
+     * 앱이 새로고침 때 띄워 둔 부트 스피너를 이어 쓰게 할 때 준다(스피너가 바뀌며 다시 도는 것처럼 보이지 않게).
+     */
+    loadingSpinner?: ComponentType;
     /**
      * 앱이 메일 관리 UI(MailManageHost)를 자기 레이아웃에 직접 둔다는 표시.
      * 켜면 메일 화면(Layout)은 호스트를 그리지 않는다 — 둘 다 그리면 요청을 양쪽이 소비해 다이얼로그가 두 개 뜬다.

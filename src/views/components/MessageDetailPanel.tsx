@@ -3,7 +3,9 @@ import { intlTag, t } from "../../i18n";
  * 메일 상세 패널 — 헤더(제목/주소/일시) · 액션(답장/전체답장/전달/휴지통/복원/삭제) · 첨부 · 본문.
  */
 
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useContext, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { DetailToolbarSlotContext } from "../../internal/detailToolbarSlot";
 import {
     Box,
     Button,
@@ -239,6 +241,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         }
     };
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
+    const toolbarSlot = useContext(DetailToolbarSlotContext);
     // 스팸 신고/삭제/영구 삭제 확인 팝퍼(앵커 = 누른 아이콘 버튼)
     const [confirm, setConfirm] = useState<{
         anchorEl: HTMLElement | null;
@@ -370,6 +373,9 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const showRemoteImages = allowRemoteImages || trustedSender;
     const hasAttachments = detail.attachments.length > 0;
 
+    // 모바일 상세 창이 제목바 밑에 자리를 줬으면 아이콘 줄을 거기 그린다 — 제목바와 함께 접히고 펼쳐진다(detailToolbarSlot 참고)
+    const placeToolbar = (node: ReactNode) => (embedded && toolbarSlot ? createPortal(node, toolbarSlot) : node);
+
     return (
         <Box
             sx={{
@@ -383,7 +389,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
             }}
         >
             {/* 액션 바 */}
-            <Stack
+            {placeToolbar(<Stack
                 direction="row"
                 alignItems="center"
                 spacing={1}
@@ -667,7 +673,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </IconButton>
                     </Tooltip>
                 )}
-            </Stack>
+            </Stack>)}
             <ConfirmActionPopper
                 open={Boolean(confirm)}
                 anchorEl={confirm?.anchorEl ?? null}

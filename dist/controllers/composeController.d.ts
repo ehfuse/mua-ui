@@ -23,6 +23,7 @@ export declare function useComposeController({ onSent, onDraftSaved }?: ComposeC
     savingDraft: boolean;
     saveDraft: (options?: {
         silent?: boolean;
+        onProgress?: (percent: number) => void;
     }) => Promise<boolean>;
     sentRef: import("react").RefObject<boolean>;
 };

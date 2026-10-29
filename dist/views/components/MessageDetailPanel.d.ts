@@ -33,6 +33,8 @@ interface MessageDetailPanelProps {
         top: number;
         left: number;
     }) => void;
+    /** 새 창으로 열기(0.4.12) — 주면 닫기 X 왼쪽에 아이콘이 생긴다(넓은 화면 상세만). */
+    onOpenWindow?: () => void;
 }
 export declare function MessageDetailPanel(props: MessageDetailPanelProps): import("react").JSX.Element | null;
 export {};
