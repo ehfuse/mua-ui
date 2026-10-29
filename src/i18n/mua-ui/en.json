@@ -31,6 +31,7 @@
     "applyToExisting": "Also apply to existing inbox messages",
     "arrivesInstantly": "Arrives instantly",
     "attachDrop": "Drag files here or click to attach (up to {{max}}MB each)",
+    "attachmentUploading": "Uploading attachments…",
     "attachDropShort": "Drag files here or click to attach",
     "attachTap": "Tap to attach files (up to {{max}}MB each)",
     "attachmentDownloadFailed": "Couldn't download the attachment.",

@@ -4,7 +4,7 @@ import { formDialogLocale, getMuaUiLocale, t } from "../../i18n";
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, Chip, CircularProgress, Stack } from "@mui/material";
+import { Box, Button, Chip, CircularProgress, LinearProgress, Stack } from "@mui/material";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
@@ -164,6 +164,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const savedPrintRef = useRef<string | null>(null);
     const [autoSavedAt, setAutoSavedAt] = useState("");
     const [autoSaveFailed, setAutoSaveFailed] = useState(false);
+    /** 새 첨부를 올리는 동안 올라간 양(%) — 자동 저장이 multipart 로 보낼 때만 안다(0.4.18). null 이면 모른다(진행 중 게이지). */
+    const [uploadPercent, setUploadPercent] = useState<number | null>(null);
     /** 받는 사람 · 제목 · 본문 글자 · 첨부가 모두 비었으면 저장하지 않는다(창만 열었다 닫은 것). */
     const hasContent = () => {
         const v = form.getFormValues();
@@ -178,7 +180,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const runAutoSave = useCallback(async () => {
         if (sending || savingDraft || sentRef.current || autoSaveBlocked() || !hasContent()) return;
         const print = fingerprint;
-        const okSaved = await saveDraft({ silent: true });
+        setUploadPercent(null);
+        const okSaved = await saveDraft({ silent: true, onProgress: setUploadPercent });
+        setUploadPercent(null);
         if (okSaved) {
             savedPrintRef.current = print;
             const now = new Date();
@@ -205,12 +209,13 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     }, [modal.isOpen, autoSave]);
     const fingerprintRef = useRef(fingerprint);
     fingerprintRef.current = fingerprint;
-    // 바뀌고 3초 동안 손을 멈추면 저장한다.
+    // 바뀌고 3초 동안 손을 멈추면 저장한다. 새로 붙인 파일(아직 안 올라간 첨부)이 있으면 바로 올린다(0.4.17) — 게이지가 3초 멈춰 있지 않게.
+    const hasLocalAttachments = attachments.some((a) => !a.uuid && !a.eml_message_seq);
     useEffect(() => {
         if (!autoSave || !modal.isOpen || savedPrintRef.current === null || savedPrintRef.current === fingerprint) return;
-        const timer = setTimeout(() => void runAutoSave(), 3000);
+        const timer = setTimeout(() => void runAutoSave(), hasLocalAttachments ? 300 : 3000);
         return () => clearTimeout(timer);
-    }, [autoSave, modal.isOpen, fingerprint, runAutoSave]);
+    }, [autoSave, modal.isOpen, fingerprint, runAutoSave, hasLocalAttachments]);
     /** 닫기 — 저장 안 된 바뀜이 있으면 한 번 저장하고 닫는다(보내지 않고 나가도 쓴 것이 남게). */
     const closeWithSave = useCallback(() => {
         if (autoSave && savedPrintRef.current !== null && savedPrintRef.current !== fingerprintRef.current) void runAutoSave();
@@ -254,13 +259,38 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         [form]
     );
 
-    /** 드롭존 스테이징 파일을 base64 첨부로 읽어 폼에 추가한다(기존 uuid 첨부는 유지). */
+    /**
+     * 첨부 상자에 지금 들어 있는 파일(0.4.17). 자동 저장이 이 파일을 서버에 올리면 첨부가 서버 uuid 로 바뀌는데,
+     * 그것을 위 칩으로도 그려 같은 파일이 상자 목록과 위 칩에 두 번 보였다(업무함 2026-10-29 사용자 지적).
+     * 상자에 든 파일은 상자 목록에서만 보이고, 상자에서 빼면 올라간 첨부도 같이 뺀다.
+     */
+    const stagedRef = useRef<File[]>([]);
+    const [staged, setStaged] = useState<File[]>([]);
+    /** 상자에서 고른 파일을 읽는 중(0.4.17) — 이때와 자동 저장이 그 파일을 올리는 동안 게이지를 보인다. */
+    const [readingFiles, setReadingFiles] = useState(false);
+    useEffect(() => {
+        if (modal.isOpen) return;
+        stagedRef.current = [];
+        setStaged([]);
+    }, [modal.isOpen]);
+    const sameFile = (a: ComposeAttachment, f: File) => a.name === f.name && (a.size ?? 0) === f.size;
+
+    /** 드롭존 스테이징 파일을 base64 첨부로 읽어 폼에 넣는다 — 새로 고른 것만 읽고, 상자에서 뺀 것은(이미 올라갔어도) 뺀다. */
     const handleAttachedFilesChange = useCallback(
         (files: File[]) => {
+            const removed = stagedRef.current.filter((f) => !files.includes(f));
+            stagedRef.current = files;
+            setStaged(files);
             const token = ++stagingTokenRef.current;
+            const keepOf = (list: ComposeAttachment[]) => list.filter((a) => !removed.some((f) => sameFile(a, f)));
+            const current = keepOf((form.getFormValue("attachments") as ComposeAttachment[] | undefined) ?? []);
+            const toRead = files.filter((f) => !current.some((a) => sameFile(a, f)));
+            form.setFormValue("attachments", current);
+            if (toRead.length === 0) return;
+            setReadingFiles(true);
             void (async () => {
                 const loaded: ComposeAttachment[] = [];
-                for (const file of files) {
+                for (const file of toRead) {
                     if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
                         WarningAlert({ message: t("attachmentTooLarge", { name: file.name, max: MAX_ATTACHMENT_MB }) });
                         continue;
@@ -274,9 +304,47 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                     }
                 }
                 if (stagingTokenRef.current !== token) return;
-                const current = (form.getFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
-                form.setFormValue("attachments", [...current.filter((a) => a.uuid), ...loaded]);
+                setReadingFiles(false);
+                // 읽는 사이 상자에서 또 뺐을 수 있다 — 지금 상자에 있는 것만 넣는다.
+                const latest = (form.getFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
+                const still = loaded.filter((a) => stagedRef.current.some((f) => sameFile(a, f)) && !latest.some((b) => b.name === a.name && (b.size ?? 0) === (a.size ?? 0)));
+                form.setFormValue("attachments", [...latest, ...still]);
             })();
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [form]
+    );
+
+    /** 고르기만 하는 상자에서 새로 고른 파일 — 읽어서 첨부 끝에 붙인다(빼기는 위 칩의 ×). */
+    const handleFilesPicked = useCallback(
+        (files: File[]) => {
+            if (files.length === 0) return;
+            setReadingFiles(true);
+            void (async () => {
+                const loaded: ComposeAttachment[] = [];
+                for (const file of files) {
+                    if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
+                        WarningAlert({ message: t("attachmentTooLarge", { name: file.name, max: MAX_ATTACHMENT_MB }) });
+                        continue;
+                    }
+                    try {
+                        loaded.push(await readFileAsAttachment(file));
+                    } catch (error) {
+                        ErrorAlert({ message: error instanceof Error ? error.message : t("fileReadFailed", { name: file.name }) });
+                    }
+                }
+                setReadingFiles(false);
+                const latest = (form.getFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
+                form.setFormValue("attachments", [...latest, ...loaded]);
+            })();
+        },
+        [form]
+    );
+    /** 위 칩의 × — 몇 번째 첨부인지로 뺀다(아직 안 올라간 첨부는 식별키가 없다). 올라간 것은 다음 자동 저장 때 서버에서도 지워진다. */
+    const handleRemoveAt = useCallback(
+        (index: number) => {
+            const current = (form.getFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
+            form.setFormValue("attachments", current.filter((_, i) => i !== index));
         },
         [form]
     );
@@ -284,19 +352,15 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     /** 참조 첨부(서버 파일 uuid 또는 eml 원문)의 식별키 */
     const refKey = (a: ComposeAttachment) =>
         a.eml_message_seq ? `eml:${a.eml_message_seq}` : a.uuid ? `uuid:${a.uuid}` : "";
-    /** 기존(서버) 첨부·eml 원문 첨부를 뺀다. */
-    const handleRemoveExisting = useCallback(
-        (key: string) => {
-            const current = (form.getFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
-            form.setFormValue(
-                "attachments",
-                current.filter((a) => refKey(a) !== key)
-            );
-        },
-        [form]
-    );
 
-    const existingAttachments = attachments.filter((a) => refKey(a));
+    // 위 칩 — 상자에 든 파일(목록을 그리는 옛 상자)만 빼고 모두. 고르기만 하는 상자면 새로 붙인 파일도 여기 칩으로 보인다.
+    const chipAttachments = attachments
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => !staged.some((f) => sameFile(item, f)));
+    // 상자의 파일을 읽거나(자동 저장이) 올리는 중이면 게이지를 보인다 — 큰 파일은 몇 초 걸리는데 아무 표시가 없었다.
+    // 자동 저장이면 파일을 읽은 뒤 올라갈 때까지(곧 저장된다) 이어서 보인다. 저장이 실패했거나 막혔으면(예약 메일) 보내기 때 함께 나가므로 멈춘다.
+    const uploadingAttachments =
+        readingFiles || (hasLocalAttachments && (savingDraft || (autoSave && !autoSaveFailed && !autoSaveBlocked())));
 
     /** 고른 보내는 계정의 주소 — "나에게" 가 받는 사람 칸에 넣는다. */
     const selfAddressOf = (seq: number) => accounts.find((a) => a.seq === seq)?.email ?? "";
@@ -542,11 +606,11 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                             {/* 첨부는 본문 **위**에 둔다(2026-09-07) — 아래에 있으면 본문이 길어질수록 밀려나
                                 첨부하려고 매번 끝까지 내려야 하고, 붙였는지도 눈에 들어오지 않는다. */}
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                                {existingAttachments.length > 0 ? (
+                                {chipAttachments.length > 0 ? (
                                     <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap", minWidth: 0 }}>
-                                        {existingAttachments.map((item) => (
+                                        {chipAttachments.map(({ item, index }) => (
                                             <Chip
-                                                key={refKey(item)}
+                                                key={refKey(item) || `local:${index}:${item.name}`}
                                                 icon={<FileTypeIcon name={item.name} mime={item.mime} size={20} />}
                                                 label={`${item.name} (${formatBytes(item.size)})`}
                                                 variant="outlined"
@@ -562,7 +626,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                                     minHeight: 32,
                                                     "& .MuiChip-label": { whiteSpace: "normal", overflowWrap: "anywhere", py: 0.5 },
                                                 }}
-                                                onDelete={() => handleRemoveExisting(refKey(item))}
+                                                onDelete={() => handleRemoveAt(index)}
                                             />
                                         ))}
                                     </Stack>
@@ -581,7 +645,23 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                             : t("attachDrop", { max: MAX_ATTACHMENT_MB })
                                     }
                                     onAttachedFilesChange={handleAttachedFilesChange}
+                                    onFilesPicked={handleFilesPicked}
                                 />
+                                {uploadingAttachments ? (
+                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                                        <Box component="div" sx={{ fontSize: 14, color: "text.secondary" }}>
+                                            {/* 올라간 양을 알면 몇 % 인지, 다 올라가 서버가 저장하는 동안(100%)과 읽는 중은 진행 중 게이지 */}
+                                            {uploadPercent !== null && uploadPercent < 100
+                                                ? `${t("attachmentUploading")} ${uploadPercent}%`
+                                                : t("attachmentUploading")}
+                                        </Box>
+                                        {uploadPercent !== null && uploadPercent < 100 ? (
+                                            <LinearProgress variant="determinate" value={uploadPercent} />
+                                        ) : (
+                                            <LinearProgress />
+                                        )}
+                                    </Box>
+                                ) : null}
                             </Box>
                             <Box
                                 sx={{

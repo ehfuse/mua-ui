@@ -31,6 +31,7 @@
     "applyToExisting": "Áp dụng cho cả thư hiện có trong hộp thư đến",
     "arrivesInstantly": "Nhận ngay tức thì",
     "attachDrop": "Kéo thả tệp vào đây hoặc nhấp để đính kèm (tối đa {{max}}MB mỗi tệp)",
+    "attachmentUploading": "Đang tải tệp đính kèm lên…",
     "attachDropShort": "Kéo thả tệp vào đây hoặc nhấp để đính kèm",
     "attachTap": "Chạm để đính kèm tệp (tối đa {{max}}MB mỗi tệp)",
     "attachmentDownloadFailed": "Không thể tải tệp đính kèm xuống.",

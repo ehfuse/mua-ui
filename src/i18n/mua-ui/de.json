@@ -31,6 +31,7 @@
     "applyToExisting": "Auch auf vorhandene E-Mails im Posteingang anwenden",
     "arrivesInstantly": "Wird sofort zugestellt",
     "attachDrop": "Dateien hierher ziehen oder klicken (max. {{max}} MB pro Datei)",
+    "attachmentUploading": "Anhänge werden hochgeladen…",
     "attachDropShort": "Dateien hierher ziehen oder klicken",
     "attachTap": "Tippen, um Dateien anzuhängen (max. {{max}} MB pro Datei)",
     "attachmentDownloadFailed": "Anhang konnte nicht heruntergeladen werden.",

@@ -3,7 +3,7 @@ import { intlTag, t } from "../../i18n";
  * 메일 상세 패널 — 헤더(제목/주소/일시) · 액션(답장/전체답장/전달/휴지통/복원/삭제) · 첨부 · 본문.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
     Box,
     Button,
@@ -54,7 +54,7 @@ import type {
     MailLabel,
     MailThreadEntry,
 } from "../../models/types";
-import { formatAddressList, formatBytes, formatMailFullDate, formatMailListDate, sendStateColor, sendStateLabel } from "../../utils/format";
+import { formatAddressLabel, formatAddressList, formatBytes, formatMailFullDate, formatMailListDate, sendStateColor, sendStateLabel } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
 import { MailLabelChips, labelColor } from "./MailLabels";
 import LabelIcon from "@mui/icons-material/Label";
@@ -67,7 +67,7 @@ interface MessageDetailPanelProps {
     onClose: () => void; // 닫기
     onReply: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전달
     onEditDraft: () => void; // 임시보관 이어쓰기
-    onComposeTo: (address: string) => void; // 주소 클릭 → 그 주소로 새 메일 작성
+    onComposeTo: (address: string) => void; // 보낸 사람 클릭 → 그 사람("이름 <주소>")에게 새 메일 작성
     onAddContact?: (address: string, name: string) => void; // 보낸 사람을 주소록에 추가
     trustedSender?: boolean; // 보낸 사람이 주소록에 있음 — 외부 이미지를 차단하지 않고 바로 보여준다
     onToggleStar: () => void; // 중요 토글
@@ -765,29 +765,37 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 }}
                             >
                                 {detail.from ? (
-                                    <>
-                                        {detail.from.name ? `${detail.from.name} <` : ""}
-                                        {/* 주소 클릭 → 이 주소로 새 메일 작성 (noreply 류 발신 전용 주소는 링크 없이 표시) */}
-                                        {isNoReplyAddress(detail.from.address) ? (
-                                            <span style={{ wordBreak: "break-all" }}>{detail.from.address}</span>
-                                        ) : (
-                                            <Link
-                                                component="button"
-                                                type="button"
-                                                underline="hover"
-                                                onClick={() => onComposeTo(detail.from!.address)}
-                                                sx={{
-                                                    fontSize: "15px",
-                                                    lineHeight: "26px",
-                                                    verticalAlign: "baseline",
-                                                    wordBreak: "break-all",
-                                                }}
-                                            >
-                                                {detail.from.address}
-                                            </Link>
-                                        )}
-                                        {detail.from.name ? ">" : ""}
-                                    </>
+                                    // 이름까지 한 링크다(0.4.17) — 누르면 "이름 <주소>" 그대로 받는 사람에 넣고 새 메일을 연다(답장과 같은 꼴).
+                                    // 단추(button)가 아니라 글자로 둔다 — 단추 안 글자는 끌어서 고를 수 없어 주소를 복사하지 못했다.
+                                    // 끌어서 고른 뒤 손을 뗀 것은 누름으로 치지 않는다(고른 글자가 있으면 새 메일을 열지 않는다).
+                                    // noreply 류 발신 전용 주소는 링크 없이 글자로만 둔다.
+                                    isNoReplyAddress(detail.from.address) ? (
+                                        <span style={{ wordBreak: "break-all" }}>{formatAddressLabel(detail.from)}</span>
+                                    ) : (
+                                        <Link
+                                            component="span"
+                                            role="link"
+                                            tabIndex={0}
+                                            underline="hover"
+                                            onClick={() => {
+                                                if (window.getSelection()?.toString()) return;
+                                                onComposeTo(formatAddressLabel(detail.from));
+                                            }}
+                                            onKeyDown={(event: KeyboardEvent) => {
+                                                if (event.key === "Enter") onComposeTo(formatAddressLabel(detail.from));
+                                            }}
+                                            sx={{
+                                                cursor: "pointer",
+                                                userSelect: "text",
+                                                fontSize: "15px",
+                                                lineHeight: "26px",
+                                                verticalAlign: "baseline",
+                                                wordBreak: "break-all",
+                                            }}
+                                        >
+                                            {formatAddressLabel(detail.from)}
+                                        </Link>
+                                    )
                                 ) : (
                                     "-"
                                 )}

@@ -31,6 +31,7 @@
     "applyToExisting": "同时应用于收件箱中的现有邮件",
     "arrivesInstantly": "实时接收",
     "attachDrop": "拖拽文件至此处或点击添加附件（单个文件最大 {{max}}MB）",
+    "attachmentUploading": "正在上传附件…",
     "attachDropShort": "拖拽文件至此处或点击添加附件",
     "attachTap": "点击添加附件（单个文件最大 {{max}}MB）",
     "attachmentDownloadFailed": "无法下载附件。",

@@ -22,6 +22,11 @@ export interface MuaFileUploadBoxProps {
     maxFileSize?: number; // 파일당 최대 MB
     dropzoneText?: ReactNode; // 드롭존 안내 문구
     onAttachedFilesChange?: (files: File[]) => void; // 선택(스테이징) 파일 변경
+    /**
+     * 고르기만 하는 상자(0.4.18) — 상자가 이것을 받으면 고른 파일을 자기 목록에 쌓지 않고 새로 고른 것만 넘긴다.
+     * 쓰기 창은 첨부를 모두 위 칩으로 그린다(상자 아래 목록과 위 칩에 같은 파일이 두 번 보이지 않게). 받지 않는 상자는 onAttachedFilesChange 로 동작한다.
+     */
+    onFilesPicked?: (files: File[]) => void;
 }
 
 /** 모바일 카드 목록 래퍼 계약(앱의 MobileCardListLayout 과 동일). */

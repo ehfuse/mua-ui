@@ -31,6 +31,7 @@
     "applyToExisting": "받은편지함 기존 메일에도 적용",
     "arrivesInstantly": "받는 즉시 들어옵니다",
     "attachDrop": "파일을 끌어놓거나 클릭하여 첨부하세요 (파일당 최대 {{max}}MB)",
+    "attachmentUploading": "첨부 파일을 올리는 중…",
     "attachDropShort": "파일을 끌어놓거나 클릭하여 첨부하세요",
     "attachTap": "탭하여 파일을 첨부하세요 (파일당 최대 {{max}}MB)",
     "attachmentDownloadFailed": "첨부를 내려받지 못했습니다.",

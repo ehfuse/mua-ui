@@ -31,6 +31,7 @@
     "applyToExisting": "Appliquer aussi aux messages existants de la boîte de réception",
     "arrivesInstantly": "Réception instantanée",
     "attachDrop": "Glissez des fichiers ici ou cliquez pour joindre (max. {{max}} Mo par fichier)",
+    "attachmentUploading": "Envoi des pièces jointes…",
     "attachDropShort": "Glissez des fichiers ici ou cliquez pour joindre",
     "attachTap": "Appuyez pour joindre des fichiers (max. {{max}} Mo par fichier)",
     "attachmentDownloadFailed": "Impossible de télécharger la pièce jointe.",

@@ -347,7 +347,7 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
      * 임시보관함에 저장한다(성공 시 seq 를 폼에 반영해 이후 저장은 갱신이 된다).
      * silent(자동 저장, 0.3.155) — 알림 창을 띄우지 않고 성공 여부만 돌려준다.
      */
-    const saveDraft = useCallback(async (options: { silent?: boolean } = {}): Promise<boolean> => {
+    const saveDraft = useCallback(async (options: { silent?: boolean; onProgress?: (percent: number) => void } = {}): Promise<boolean> => {
         const silent = Boolean(options.silent);
         const values = form.getFormValues();
         if (!(values.mail_account_seq > 0)) {
@@ -356,7 +356,15 @@ export function useComposeController({ onSent, onDraftSaved }: ComposeController
         }
         setSavingDraft(true);
         try {
-            const saved = unwrap(await mailApi.saveDraft(toComposeRequest(values)), t("draftSaveFailed"));
+            // 새로 붙인 첨부(아직 서버에 없는 것)가 있으면 multipart 로 보내 올라간 양(%)을 알린다(0.4.18).
+            const hasNewFiles = (values.attachments ?? []).some((a) => !a.uuid && !a.eml_message_seq);
+            const request = toComposeRequest(values);
+            const saved = unwrap(
+                hasNewFiles && options.onProgress
+                    ? await mailApi.saveDraftWithProgress(request, (loaded, total) => options.onProgress?.(total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0))
+                    : await mailApi.saveDraft(request),
+                t("draftSaveFailed")
+            );
             form.setFormValue("seq", saved.seq);
             form.setFormValue("mode", "draft");
             // 새로 올린 첨부는 서버 uuid 로 바뀌었으므로 base64 를 버리고 서버 메타로 교체한다.

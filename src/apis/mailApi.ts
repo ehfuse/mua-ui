@@ -262,6 +262,15 @@ export const mailApi = {
         entityAppServer.http.get<ApiOk<{ items: MailReceipt[] }>>(`/v1/mua/messages/${seq}/receipts`),
     /** 임시보관 저장 */
     saveDraft: (body: ComposeRequest) => entityAppServer.http.post<ApiOk<MailMessageDetail>>("/v1/mua/drafts", body),
+    /**
+     * 임시보관 저장 — 같은 본문을 multipart 로 보내 올라간 양을 알린다(0.4.18). 새로 붙인 첨부가 있을 때 쓴다(게이지가 몇 % 인지 보이게).
+     * onProgress(올린 바이트, 전체 바이트).
+     */
+    saveDraftWithProgress: (body: ComposeRequest, onProgress: (loaded: number, total: number) => void) => {
+        const form = new FormData();
+        form.append("payload", new Blob([JSON.stringify(body)], { type: "application/json" }), "payload.json");
+        return entityAppServer.requestForm<ApiOk<MailMessageDetail>>("POST", "/v1/mua/drafts/form", form, true, onProgress);
+    },
     /** 주소록 목록(이름/메일 검색) */
     listContacts: (search = "") =>
         entityAppServer.http.get<ApiOk<{ items: MailContact[]; total: number }>>(

@@ -31,6 +31,7 @@
     "applyToExisting": "受信トレイの既存メールにも適用",
     "arrivesInstantly": "受信するとすぐに届きます",
     "attachDrop": "ファイルをドラッグするかクリックして添付（1ファイル最大{{max}}MB）",
+    "attachmentUploading": "添付ファイルをアップロード中…",
     "attachDropShort": "ファイルをドラッグするかクリックして添付",
     "attachTap": "タップしてファイルを添付（1ファイル最大{{max}}MB）",
     "attachmentDownloadFailed": "添付ファイルをダウンロードできませんでした。",
