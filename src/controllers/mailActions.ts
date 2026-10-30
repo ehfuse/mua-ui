@@ -87,10 +87,16 @@ export const setFilters =
     (context: ActionContext<MailState>, patch: Partial<MailFilters>): void => {
         const current = context.getValue("filters") as MailFilters;
         const next = { ...current, ...patch };
-        // 메일함 · 계정을 옮기면 검색을 푼다(2026-10-30 — "카카오" 검색이 걸린 채 다른 메일함에 들어가 새 메일이 안 보인다고 여겼다). 지메일과 같다.
+        // 메일함 · 계정 · 목록 탭(전체 · 안 읽음 · 별표 · 라벨)을 옮기면 검색을 푼다(2026-10-30 — "카카오" 검색이 걸린 채 다른 메일함에 들어가
+        // 새 메일이 안 보인다고 여겼다, 탭도 같게 사용자 지정). 지메일과 같다.
         if (
             !("search" in patch) &&
-            (current.folder !== next.folder || current.mailAccountSeq !== next.mailAccountSeq || current.mailFolderSeq !== next.mailFolderSeq)
+            (current.folder !== next.folder ||
+                current.mailAccountSeq !== next.mailAccountSeq ||
+                current.mailFolderSeq !== next.mailFolderSeq ||
+                current.unreadOnly !== next.unreadOnly ||
+                current.starredOnly !== next.starredOnly ||
+                current.labelSeq !== next.labelSeq)
         )
             next.search = "";
         const same =
