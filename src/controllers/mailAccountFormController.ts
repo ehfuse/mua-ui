@@ -41,7 +41,7 @@ function toForm(account: MailAccount): MailAccountForm {
         is_default: Boolean(account.is_default),
         pop3_delete_after_fetch: Boolean(account.pop3_delete_after_fetch),
         imap_mailbox: account.imap_mailbox || "INBOX",
-        sync_interval_min: account.sync_interval_min || 5,
+        sync_interval_min: account.sync_interval_min || 1,
         signature: account.signature ?? "",
         has_incoming_password: Boolean(account.has_incoming_password),
         has_smtp_password: Boolean(account.has_smtp_password),

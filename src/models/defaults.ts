@@ -106,7 +106,7 @@ export const defaultMailAccountForm: MailAccountForm = {
     is_default: false,
     pop3_delete_after_fetch: false,
     imap_mailbox: "INBOX",
-    sync_interval_min: 5,
+    sync_interval_min: 1,
     signature: "",
     has_incoming_password: false,
     has_smtp_password: false,
