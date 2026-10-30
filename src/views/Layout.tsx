@@ -1470,7 +1470,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         loading: loadingList,
         selectedRowId: selectedSeq || null,
         selectedRowSx: { backgroundColor: "#dbeafe", boxShadow: "inset 3px 0 0 #3b82f6" },
-        onRowClick: (row: MailMessageListItem) => void state.actions.selectMessage(row.seq),
+        // 넓은 화면에서 열려 있는 메일을 다시 누르면 닫는다(0.4.26, 2026-10-30 사용자 지정) — 분할 · 드로어 모두. 폰은 누르면 늘 연다.
+        onRowClick: (row: MailMessageListItem) =>
+            !isMobile && row.seq === (state.getValue("selectedSeq") as number) && (state.getValue("detail") || state.getValue("loadingDetail"))
+                ? state.actions.clearSelection()
+                : void state.actions.selectMessage(row.seq),
         emptyMessage,
         // 스크롤이 끝에 가까워지면 다음 페이지를 이어 붙인다(더 보기 버튼 없음).
         onLoadMore: hasMore

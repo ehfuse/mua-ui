@@ -383,6 +383,9 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 display: "flex",
                 flexDirection: "column",
                 minHeight: 0,
+                // 분할 패널 폭을 넘지 않는다(0.4.26) — 대화 띠의 긴 미리보기 글이 상세 폭을 넓혀 머리줄 오른쪽 끝(X)이 화면 밖으로 밀렸다(2026-10-30 사용자 지적).
+                minWidth: 0,
+                width: "100%",
                 bgcolor: "#fff",
                 // 목록 래퍼의 userSelect:none(행 드래그 선택 방지)을 상세에서는 풀어 제목/본문을 복사할 수 있게
                 userSelect: "text",
