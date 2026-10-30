@@ -3,7 +3,7 @@ import { t } from "../i18n";
  * 메일 목록 헤더 설정(useHeaderConfig) — 검색(300ms 디바운스) + 검색칸 오른쪽 "안 읽음" 스위치(filter custom — 계정은 사이드바 계정별 받은편지함이 고른다) + 좌/우 슬롯.
  */
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { FormControlLabel, Stack, Switch } from "@mui/material";
 import type { ListLayoutProps } from "@ehfuse/mui-dashboard-layout";
@@ -39,6 +39,11 @@ export function useHeaderConfig({
     const loadingList = state.useValue("loadingList") as boolean;
     const filters = state.useValue("filters") as MailFilters;
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // 검색칸 글 — 메일함을 옮겨 검색이 풀리면(setFilters) 칸도 같이 비운다. 치는 중에는 칸이 먼저고 검색은 300ms 뒤 따라온다.
+    const [input, setInput] = useState(filters.search);
+    useEffect(() => {
+        setInput((prev) => (prev.trim() === filters.search ? prev : filters.search));
+    }, [filters.search]);
 
     useEffect(() => {
         return () => {
@@ -48,6 +53,7 @@ export function useHeaderConfig({
 
     const handleSearchChange = useCallback(
         (keyword: string) => {
+            setInput(keyword);
             if (timerRef.current) clearTimeout(timerRef.current);
             timerRef.current = setTimeout(() => state.actions.setFilters({ search: keyword.trim() }), 300);
         },
@@ -109,6 +115,7 @@ export function useHeaderConfig({
         searchWidth: isMobile ? mobileSearchWidth : undefined,
         // 모바일은 medium(56px) — 게시판·내 문서의 제목줄 검색칸과 같은 높이라야 탭을 오가도 같은 판으로 읽힌다(mdl 3.3.68).
         searchSize: isMobile ? "medium" : undefined,
+        searchValue: input,
         onSearchChange: handleSearchChange,
         onSearch: handleSearch,
         searchMinLength: 1,
