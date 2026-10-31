@@ -153,8 +153,9 @@ export function getMailColumns(
                         <HighlightText text={row.translated_subject || row.subject || t("noSubject")} query={search} />
                     </Typography>
                     {showSnippet ? (
-                        <Typography noWrap sx={{ color: "#64748b", fontSize: "13.5px", minWidth: 0 }}>
-                            {row.snippet ? `— ${row.snippet}` : ""}
+                        // 앞의 "—" 대신 간격으로 제목과 가른다(2026-10-31 사용자 지정) — 제목과 20px(줄 gap 8 + 여기 12). 업무함 게시판 표의 본문 미리보기와 같은 간격.
+                        <Typography noWrap sx={{ color: "#64748b", fontSize: "13.5px", minWidth: 0, ml: 1.5 }}>
+                            {row.snippet ?? ""}
                         </Typography>
                     ) : null}
                 </Box>
