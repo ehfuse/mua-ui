@@ -14,7 +14,7 @@ import { ConfirmDialog } from "@ehfuse/alerts";
 import type { FormDialogSection } from "@ehfuse/mui-form-dialog";
 import { ClearTextField, NumberTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaConfig, useMuaCurrentTeamSeq, useMuaFormDialog, useMuaIsAdmin, useMuaTeams } from "../../MuaProvider";
+import { useMuaComposeEditor, useMuaConfig, useMuaCurrentTeamSeq, useMuaFormDialog, useMuaIsAdmin, useMuaTeams } from "../../MuaProvider";
 import type { MailAccountFormController } from "../../controllers/mailAccountFormController";
 import type { ConnectionSecurity, IncomingProtocol } from "../../models/types";
 import { defaultIncomingPort, defaultSmtpPort, findMailPreset } from "../../utils/presets";
@@ -78,6 +78,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     // 서명 에디터 — 작성 창(ComposeDialog)과 같은 동기화 패턴(입력→폼 / 폼→에디터, 에코 방지 ref).
     const signature = String(form.useFormValue("signature") ?? "");
     const signatureEditorRef = useRef<EhfuseEditorRef>(null);
+    // 서명 편집기 — 앱이 넘긴 쓰기 에디터(pro)가 있으면 그것을 쓴다(2026-11-01). 기본 에디터는 툴바의 HTML 단추를 받는 쪽이 없어 눌러도 아무 일이 없었다.
+    const SignatureEditor = (useMuaComposeEditor().Editor ?? EhfuseEditor) as typeof EhfuseEditor;
     const lastSyncedSignatureRef = useRef<string | null>(null);
     const signatureEditorConfig = useMemo<EditorConfig>(
         () => ({
@@ -429,7 +431,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                 "& .ehfuse-editor-container": { flex: 1, minHeight: 0 },
                             }}
                         >
-                            <EhfuseEditor
+                            <SignatureEditor
                                 ref={signatureEditorRef}
                                 defaultValue={signature}
                                 toolbarOptions={SIGNATURE_TOOLBAR}
@@ -487,7 +489,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             }
             locale={formDialogLocale()}
             // sm(600)은 수신 서버 줄(프로토콜·호스트)이 눌려 보였고 md(900)는 너무 넓다 — 그 사이 680 으로 직접 잡는다(2026-10-01).
-            width={isMobile ? undefined : 680}
+            // 서명 툴바(글꼴 · 크기 · 서식 · 색 · 정렬 · 링크 · HTML)가 한 줄에 들어가는 너비(2026-11-01, 680 에서 넓힘).
+            width={isMobile ? undefined : 760}
             maxWidth="md"
             // 마지막 섹션 아래 자동 스크롤 여백은 끄고, 하단 패딩은 상단 패딩(mfd contentTopPadding 기본값)과 같게 둔다.
             scrollPastLastSection={false}

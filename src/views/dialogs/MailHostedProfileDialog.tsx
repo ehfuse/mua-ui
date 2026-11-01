@@ -17,7 +17,7 @@ import { Box, Button, CircularProgress, FormControlLabel, Switch, TextField, Typ
 import { ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import type { FormDialogSection } from "@ehfuse/mui-form-dialog";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaConfig, useMuaFormDialog } from "../../MuaProvider";
+import { useMuaComposeEditor, useMuaConfig, useMuaFormDialog } from "../../MuaProvider";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import type { MailAccount } from "../../models/types";
 import { pastedHtmlCode } from "../../utils/pastedHtmlCode";
@@ -41,6 +41,8 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
     const [signature, setSignature] = useState("");
     const [saving, setSaving] = useState(false);
     const signatureEditorRef = useRef<EhfuseEditorRef>(null);
+    // 서명 편집기 — 앱이 넘긴 쓰기 에디터(pro)가 있으면 그것을 쓴다(2026-11-01). 기본 에디터는 툴바의 HTML 단추를 받는 쪽이 없어 눌러도 아무 일이 없었다.
+    const SignatureEditor = (useMuaComposeEditor().Editor ?? EhfuseEditor) as typeof EhfuseEditor;
 
     // 지금 입력값이 어느 사서함의 것인지 — 같은 사서함을 닫았다 다시 열면 서버 값으로 되돌리지 않는다.
     const draftSeq = useRef<number | null>(null);
@@ -145,7 +147,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                                 "& .ehfuse-editor-container": { flex: 1, minHeight: 0 },
                             }}
                         >
-                            <EhfuseEditor
+                            <SignatureEditor
                                 ref={signatureEditorRef}
                                 defaultValue={signature}
                                 toolbarOptions={SIGNATURE_TOOLBAR}
@@ -174,7 +176,8 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
             mobilePresentation={isMobile ? "slide" : "dialog"}
             tabs={{ visible: false }}
             locale={formDialogLocale()}
-            maxWidth="sm"
+            // 서명 툴바가 한 줄에 들어가는 너비(2026-11-01 사용자 지시 "툴바가 개행 안 되게") — 외부 계정 창과 같은 값.
+            width={isMobile ? undefined : 760}
             scrollPastLastSection={false}
             sections={sections}
             actions={{
