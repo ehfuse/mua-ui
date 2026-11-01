@@ -370,7 +370,10 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const canReplyAll = detail.cc.length > 0;
     const hasRemoteImages = /<img\b[^>]*\ssrc\s*=\s*["'](https?:)?\/\//i.test(detail.body_html || "");
     // 신뢰 발신자(주소록)면 차단 안내 없이 바로 표시한다.
-    const showRemoteImages = allowRemoteImages || trustedSender;
+    // 내가 보낸 메일(보낸편지함 · 임시보관 · 예약)도 그렇다(2026-11-01) — 외부 그림을 막는 것은 낯선 발신자의 추적 그림 때문인데,
+    // 내 서명 로고(외부 주소)까지 막혀 보낸 메일에서만 로고가 안 보였다.
+    const ownOutgoing = detail.folder === "sent" || detail.folder === "draft" || detail.prev_folder === "sent";
+    const showRemoteImages = allowRemoteImages || trustedSender || ownOutgoing;
     const hasAttachments = detail.attachments.length > 0;
 
     // 모바일 상세 창이 제목바 밑에 자리를 줬으면 아이콘 줄을 거기 그린다 — 내려도 늘 보인다(detailToolbarSlot 참고)
