@@ -20,6 +20,7 @@ import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaConfig, useMuaFormDialog } from "../../MuaProvider";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import type { MailAccount } from "../../models/types";
+import { pastedHtmlCode } from "../../utils/pastedHtmlCode";
 
 interface MailHostedProfileDialogProps {
     open: boolean;
@@ -72,7 +73,12 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
             showToolbar: !isMobile,
             autoHeight: isMobile,
             locale: "ko",
-            onChange: (html: string) => setSignature(html),
+            onChange: (raw: string) => {
+                // 다른 메일에서 만든 서명 HTML 코드를 보통 화면에 붙였으면(글자로 들어옴) 진짜 HTML 로 바꿔 다시 넣는다(2026-11-01 — 받는 쪽에 코드가 보였다).
+                const code = pastedHtmlCode(raw);
+                if (code) signatureEditorRef.current?.setHtml(code);
+                setSignature(code ?? raw);
+            },
             styles: { borderWidth: 0 },
         }),
         [isMobile, editorFontOptions]

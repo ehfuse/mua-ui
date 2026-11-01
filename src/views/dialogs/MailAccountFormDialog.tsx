@@ -18,6 +18,7 @@ import { useMuaConfig, useMuaCurrentTeamSeq, useMuaFormDialog, useMuaIsAdmin, us
 import type { MailAccountFormController } from "../../controllers/mailAccountFormController";
 import type { ConnectionSecurity, IncomingProtocol } from "../../models/types";
 import { defaultIncomingPort, defaultSmtpPort, findMailPreset } from "../../utils/presets";
+import { pastedHtmlCode } from "../../utils/pastedHtmlCode";
 
 interface MailAccountFormDialogProps {
     controller: MailAccountFormController; // 컨트롤러
@@ -87,7 +88,11 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             showToolbar: !isMobile,
             autoHeight: isMobile,
             locale: "ko",
-            onChange: (html: string) => {
+            onChange: (raw: string) => {
+                // 다른 메일에서 만든 서명 HTML 코드를 보통 화면에 붙였으면(글자로 들어옴) 진짜 HTML 로 바꿔 다시 넣는다(2026-11-01 — 받는 쪽에 코드가 보였다).
+                const code = pastedHtmlCode(raw);
+                const html = code ?? raw;
+                if (code) signatureEditorRef.current?.setHtml(code);
                 lastSyncedSignatureRef.current = html;
                 form.setFormValue("signature", html);
             },

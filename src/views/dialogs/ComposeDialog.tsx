@@ -21,6 +21,7 @@ import { mailApi, unwrap } from "../../apis/mailApi";
 import { useMailController } from "../../controllers/mailController";
 import { formatBytes } from "../../utils/format";
 import { RecipientField } from "../components/RecipientField";
+import { pastedHtmlCode } from "../../utils/pastedHtmlCode";
 
 interface ComposeDialogProps {
     controller: ComposeController; // 컨트롤러
@@ -256,7 +257,11 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             showToolbar: !isMobile || mobileToolbar,
             autoHeight: true,
             locale: "ko",
-            onChange: (html: string) => {
+            onChange: (raw: string) => {
+                // 다른 메일에서 만든 서명 HTML 코드를 보통 화면에 붙였으면(글자로 들어옴) 진짜 HTML 로 바꿔 다시 넣는다(2026-11-01 — 받는 쪽에 코드가 보였다).
+                const code = pastedHtmlCode(raw);
+                const html = code ?? raw;
+                if (code) signatureEditorRef.current?.setHtml(code);
                 lastSyncedSignatureRef.current = html;
                 form.setFormValue("signature_html", html);
             },
