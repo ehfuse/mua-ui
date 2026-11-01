@@ -8,7 +8,7 @@ import { formDialogLocale, t } from "../../i18n";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { EhfuseEditor } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
-import type { ToolbarConfig } from "@ehfuse/editor/dist/toolbar/Preset";
+import { SIGNATURE_TOOLBAR } from "../configs/signatureToolbar";
 import { Alert, Box, Button, CircularProgress, Link, Stack, Typography } from "@mui/material";
 import { ConfirmDialog } from "@ehfuse/alerts";
 import type { FormDialogSection } from "@ehfuse/mui-form-dialog";
@@ -50,10 +50,6 @@ const ROW_SMTP_SX = {
     gridTemplateColumns: { xs: "1fr", sm: "minmax(0, 1fr) 130px 90px" },
 } as const;
 /** 서명 에디터 툴바 — sm 폭에 맞춰 서명에 필요한 것만(굵게/기울임/밑줄 · 글자색 · 링크/이미지 · 서식 지우기). */
-const SIGNATURE_TOOLBAR: ToolbarConfig = {
-    left: [["bold", "italic", "underline"], ["color"], ["link", "image"], ["clear"]],
-    right: [],
-};
 
 /** 섹션 하단 안내 문구. */
 const NOTE_SX = { fontSize: "15px", color: "#111" } as const;

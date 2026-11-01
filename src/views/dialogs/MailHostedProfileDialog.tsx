@@ -12,7 +12,7 @@ import { formDialogLocale, t } from "../../i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EhfuseEditor } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
-import type { ToolbarConfig } from "@ehfuse/editor/dist/toolbar/Preset";
+import { SIGNATURE_TOOLBAR } from "../configs/signatureToolbar";
 import { Box, Button, CircularProgress, FormControlLabel, Switch, TextField, Typography } from "@mui/material";
 import { ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import type { FormDialogSection } from "@ehfuse/mui-form-dialog";
@@ -29,10 +29,6 @@ interface MailHostedProfileDialogProps {
 }
 
 /** 서명 툴바 — 외부 계정 폼과 같은 구성(굵게/기울임/밑줄 · 글자색 · 링크/이미지 · 서식 지우기). */
-const SIGNATURE_TOOLBAR: ToolbarConfig = {
-    left: [["bold", "italic", "underline"], ["color"], ["link", "image"], ["clear"]],
-    right: [],
-};
 
 const NOTE_SX = { fontSize: "15px", color: "#111" } as const;
 

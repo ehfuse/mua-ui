@@ -11,6 +11,7 @@ import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
 import { ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { ClearTextField, DateTimeTextField, PasswordTextField, Select, Switch } from "@ehfuse/mui-form-controls";
 import { useIsMobile } from "../../internal/useIsMobile";
+import { SIGNATURE_TOOLBAR } from "../configs/signatureToolbar";
 import { useMuaComposeEditor, useMuaConfig, useMuaFileUploadBox, useMuaFormDialog, useMuaMobileEditorToolbar } from "../../MuaProvider";
 import { extractSignature } from "../../controllers/composeController";
 import type { ComposeController } from "../../controllers/composeController";
@@ -247,7 +248,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         () => ({
             placeholder: t("noSignature"),
             minHeight: 80,
-            showToolbar: false,
+            // 툴바를 보인다(2026-11-01 사용자 지시 "서명입력도 에디터로") — 계정 설정의 서명 편집기와 같은 툴바 · HTML 단추. 폰은 본문 툴바 규칙을 따른다.
+            showToolbar: !isMobile || mobileToolbar,
             autoHeight: true,
             locale: "ko",
             onChange: (html: string) => {
@@ -256,7 +258,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             },
             styles: { borderWidth: 0 },
         }),
-        [form]
+        [form, isMobile, mobileToolbar]
     );
 
     /**
@@ -698,7 +700,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         </Button>
                                     </Box>
                                     <Box sx={{ border: "1px solid", borderColor: "rgba(0,0,0,0.23)", borderRadius: 1, overflow: "hidden" }}>
-                                        <Editor ref={signatureEditorRef} defaultValue={signatureHtml} toolbarOptions={toolbarOptions} {...signatureEditorConfig} />
+                                        <Editor ref={signatureEditorRef} defaultValue={signatureHtml} toolbarOptions={SIGNATURE_TOOLBAR} {...signatureEditorConfig} />
                                     </Box>
                                 </Box>
                             ) : null}
