@@ -108,6 +108,12 @@ export interface MuaConfig {
     ComposeEditorComponent?: ComponentType<any>;
     composeToolbarOptions?: unknown;
     /**
+     * 메일 에디터의 글꼴 고르기 목록(0.4.32) — 쓰기 본문 · 쓰기 창 서명 · 계정 설정 서명이 같이 쓴다. 미지정이면 에디터 기본 목록.
+     * 받는 사람 PC 에 없는 글꼴(웹 글꼴)은 그쪽에서 다른 글꼴로 보이므로, 앱이 받는 쪽에 흔히 있는 글꼴만 넘기면 된다.
+     * @ehfuse/editor 의 FontOption 꼴({ label, labelKo?, value, fontFamily }).
+     */
+    editorFontOptions?: unknown[];
+    /**
      * 서명을 본문 아래 따로 두고 고치기(0.3.153) — 켜면 열 때 본문의 서명(div.mail-signature)을 꺼내 에디터 아래 "서명" 칸에 두고,
      * 보내기 · 임시저장 때 본문에 다시 넣는다(답장 · 전달은 인용문 앞에). 고친 서명은 이 메일에만 쓴다. 미지정이면 지금처럼 본문 안에 있다.
      */

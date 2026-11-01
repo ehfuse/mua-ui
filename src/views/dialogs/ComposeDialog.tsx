@@ -48,6 +48,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const toolbarOptions = (injected.toolbarOptions ?? minimalToolbarOptions) as typeof minimalToolbarOptions;
     const signatureBelow = Boolean(useMuaConfig().signatureBelowEditor);
     const autoSave = Boolean(useMuaConfig().autoSaveDraft);
+    // 글꼴 고르기 목록(config.editorFontOptions) — 본문 · 서명이 같이 쓴다.
+    const editorFontOptions = useMuaConfig().editorFontOptions;
     const signatureHtml = String(form.useFormValue("signature_html") ?? "");
     const FileUploadBox = useMuaFileUploadBox();
     const bodyHtml = String(form.useFormValue("body_html") ?? "");
@@ -95,6 +97,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const editorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: t("bodyPlaceholder"),
+            fontOptions: editorFontOptions as EditorConfig["fontOptions"],
             // 모바일은 서식 편집이 사실상 어려워 툴바를 감추고 내용 높이에 맞춰 늘린다(업무함 내용 편집기와 같은 규칙).
             minHeight: isMobile ? 240 : 320,
             showToolbar: !isMobile || mobileToolbar,
@@ -108,7 +111,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         }),
         // isMobile 이 바뀌면(회전 등) 에디터 설정도 다시 만든다.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [form, isMobile, mobileToolbar]
+        [form, isMobile, mobileToolbar, editorFontOptions]
     );
 
     // 폼 → 에디터 동기화(열기/모드 전환 시)
@@ -247,6 +250,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const signatureEditorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: t("noSignature"),
+            fontOptions: editorFontOptions as EditorConfig["fontOptions"],
             minHeight: 80,
             // 툴바를 보인다(2026-11-01 사용자 지시 "서명입력도 에디터로") — 계정 설정의 서명 편집기와 같은 툴바 · HTML 단추. 폰은 본문 툴바 규칙을 따른다.
             showToolbar: !isMobile || mobileToolbar,
@@ -258,7 +262,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             },
             styles: { borderWidth: 0 },
         }),
-        [form, isMobile, mobileToolbar]
+        [form, isMobile, mobileToolbar, editorFontOptions]
     );
 
     /**

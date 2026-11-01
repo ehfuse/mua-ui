@@ -69,7 +69,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     // 모바일은 풀스크린 우→좌 슬라이드(고정 높이 없음).
     const isMobile = useIsMobile();
     // 안내 링크(앱 비밀번호 만드는 방법 등) — 앱 웹뷰는 새 탭이 없어 소비처 주입(외부 브라우저)으로 연다.
-    const { openExternalUrl } = useMuaConfig();
+    const { openExternalUrl, editorFontOptions } = useMuaConfig();
     const { form, modal, testing, testResult, testConnection, removeAccount, clearTestResult } = controller;
     const seq = Number(form.useFormValue("seq") ?? 0);
     const email = String(form.useFormValue("email") ?? "");
@@ -81,6 +81,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     const signatureEditorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: t("signaturePlaceholder"),
+            fontOptions: editorFontOptions as EditorConfig["fontOptions"],
             // 모바일은 서식 편집이 어려워 툴바를 감추고 내용 높이에 맞춘다(새 메일·업무함과 같은 규칙).
             minHeight: isMobile ? 140 : 180,
             showToolbar: !isMobile,
@@ -92,7 +93,7 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             },
             styles: { borderWidth: 0 },
         }),
-        [form, isMobile]
+        [form, isMobile, editorFontOptions]
     );
     useEffect(() => {
         if (!modal.isOpen) {

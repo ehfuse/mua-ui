@@ -17,7 +17,7 @@ import { Box, Button, CircularProgress, FormControlLabel, Switch, TextField, Typ
 import { ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import type { FormDialogSection } from "@ehfuse/mui-form-dialog";
 import { useIsMobile } from "../../internal/useIsMobile";
-import { useMuaFormDialog } from "../../MuaProvider";
+import { useMuaConfig, useMuaFormDialog } from "../../MuaProvider";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import type { MailAccount } from "../../models/types";
 
@@ -63,9 +63,11 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, seq]);
 
+    const { editorFontOptions } = useMuaConfig();
     const editorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: t("signaturePlaceholder"),
+            fontOptions: editorFontOptions as EditorConfig["fontOptions"],
             minHeight: isMobile ? 140 : 180,
             showToolbar: !isMobile,
             autoHeight: isMobile,
@@ -73,7 +75,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
             onChange: (html: string) => setSignature(html),
             styles: { borderWidth: 0 },
         }),
-        [isMobile]
+        [isMobile, editorFontOptions]
     );
 
     const handleSave = async () => {
