@@ -32,7 +32,9 @@ export function getMailColumns(
     showSnippet = true,
     labels: MailLabel[] = [], // 색상 라벨(config.labels) — 비어 있으면 칩을 그리지 않는다
     // 행의 라벨 단추(0.3.159) — 주면 별표 옆에 라벨 아이콘을 두고 누르면 그 메일의 라벨 메뉴를 연다(지메일처럼 한 통에 바로 단다).
-    onLabelClick?: (row: MailMessageListItem, anchorEl: HTMLElement) => void
+    onLabelClick?: (row: MailMessageListItem, anchorEl: HTMLElement) => void,
+    // 상대 칸 머리글 — 보낸편지함 · 임시보관 · 예약 메일함은 칸에 받는 사람이 보이므로 "받는 사람"(2026-11-01 사용자 지시)
+    counterpartIsRecipient = false
 ): DataColumn<MailMessageListItem>[] {
     return [
         {
@@ -112,7 +114,7 @@ export function getMailColumns(
         },
         {
             id: "from_name",
-            text: t("from"),
+            text: counterpartIsRecipient ? t("to") : t("from"),
             // 분할형 상세가 열려 목록이 좁아지면 보낸 사람 컬럼도 줄인다
             width: showSnippet ? 200 : 140,
             render: (row) => (

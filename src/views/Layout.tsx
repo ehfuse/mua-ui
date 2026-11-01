@@ -959,9 +959,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                           const rect = anchorEl.getBoundingClientRect();
                           setRowLabelMenu({ position: { top: rect.bottom, left: rect.left }, row });
                       }
-                    : undefined
+                    : undefined,
+                filters.folder === "sent" || isDraftFolder
             ),
         [
+            isDraftFolder,
+            filters.folder,
             handleToggleStar,
             checkedSeqs,
             allChecked,
