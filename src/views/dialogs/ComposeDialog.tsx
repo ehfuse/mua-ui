@@ -141,12 +141,6 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     // 본문 아래 서명 칸 — 창이 열릴 때 한 번 본문의 서명을 꺼내 서명 칸으로 옮긴다(새 메일 · 답장 · 임시보관 모두 같은 길).
     // 보낼 때 컨트롤러가 다시 넣는다(toComposeRequest → mergeSignature). 열린 동안 다시 꺼내지 않는다(본문에 서명을 손으로 붙여도 그대로).
     const signatureEditorRef = useRef<EhfuseEditorRef>(null);
-    /** 지금 고른 보내는 계정 — 계정을 바꿀 때 "앞 계정" 의 서명과 견주려고 따로 기억한다(폼 값은 바꾸는 순간 이미 새 계정이다). */
-    const accountSeqRef = useRef(0);
-    const accountSeqValue = Number(form.useFormValue("mail_account_seq") ?? 0);
-    useEffect(() => {
-        accountSeqRef.current = accountSeqValue;
-    }, [accountSeqValue]);
     const lastSyncedSignatureRef = useRef<string | null>(null);
     const extractedRef = useRef(false);
     useEffect(() => {
@@ -505,17 +499,17 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                                         // 전역 상태에도 넣는다 — 다음 새 메일 창은 서버에 다시 묻지 않고 이 값으로 연다.
                                         state.setValue("lastAccountSeq", seq);
                                         // 서명 칸을 쓰면 계정을 바꿀 때 그 계정의 서명으로 바꾼다 — 고치지 않은(앞 계정 그대로인) 서명만.
-                                        // 앞 계정은 기억해 둔 값으로 본다(2026-11-01) — 선택 칸이 값을 먼저 바꾼 뒤 이 처리를 불러, 폼에서 읽으면 이미 새 계정이라
-                                        // 서명이 "고친 것" 으로 보여 바뀌지 않았다. 견줄 때도 글자 그대로가 아니라 보이는 글 · 그림으로 본다(편집기가 HTML 을 다듬는다).
+                                        // 서명은 글자 그대로가 아니라 보이는 글 · 그림으로 견준다(2026-11-01 — 편집기가 HTML 을 다듬어 같은 서명이 달라 보였다).
                                         if (signatureBelow) {
-                                            const before = accounts.find((a) => a.seq === accountSeqRef.current);
                                             const next = accounts.find((a) => a.seq === seq);
-                                            const current = String(form.getFormValue("signature_html") ?? "").trim();
-                                            if (!signatureKey(current) || signatureKey(current) === signatureKey(String(before?.signature ?? ""))) {
+                                            const currentKey = signatureKey(String(form.getFormValue("signature_html") ?? ""));
+                                            // 내 계정들 가운데 어느 하나의 서명 그대로면 고치지 않은 서명이다 — 앞 계정 것만 보면, 다른 계정 서명이 붙은 채
+                                            // 저장된 임시보관 메일(예전 동작)에서 계정을 바꿔도 서명이 안 바뀌었다(2026-11-01).
+                                            const untouched = !currentKey || accounts.some((a) => signatureKey(String(a.signature ?? "")) === currentKey);
+                                            if (untouched) {
                                                 form.setFormValue("signature_html", String(next?.signature ?? ""));
                                             }
                                         }
-                                        accountSeqRef.current = seq;
                                         void mailApi.updatePreferences({ last_account_seq: seq }).catch(() => undefined);
                                         // 나에게를 켠 채면 받는 사람도 새 계정 주소로.
                                         if (toSelf) form.setFormValue("to", selfAddressOf(seq));
