@@ -106,6 +106,7 @@
     "deleteRuleNamedConfirm": "Bạn có muốn xóa quy tắc \"{{name}}\" không?",
     "dontMove": "Không di chuyển",
     "downloadEml": "Tải xuống (.eml)",
+    "downloadAttachment": "Tải xuống",
     "downloadSourceFailed": "Không thể tải xuống thư gốc.",
     "draftMail": "Thư nháp",
     "draftSaveFailed": "Không thể lưu bản nháp.",

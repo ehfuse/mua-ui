@@ -35,6 +35,7 @@ import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import { FolderIcon } from "../../internal/FolderIcon";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import CheckIcon from "@mui/icons-material/Check";
+import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
@@ -131,28 +132,38 @@ function isNoReplyAddress(address: string): boolean {
     return /no[-_.]?reply|do[-_.]?not[-_.]?reply/i.test(address);
 }
 
-/** 첨부 칩 — 클릭 시 앱이 미리 보기(파일 뷰어)를 주면 뷰어로, 아니면 다운로드 */
+/**
+ * 첨부 칩 — 누르면 앱이 미리 보기(파일 뷰어)를 주고 그 뷰어가 여는 꼴이면 뷰어로, 아니면 바로 내려받는다.
+ * 끝의 내려받기 아이콘은 늘 바로 내려받는다(0.4.40, 2026-11-02 사용자 지시 — "미리보기 지원하지 않는 파일은 바로 다운로드 · 끝에 다운로드 아이콘").
+ */
 function AttachmentChip({ messageSeq, attachment }: { messageSeq: number; attachment: MailAttachment }) {
     const [downloading, setDownloading] = useState(false);
     const saveBlob = useMuaSaveBlob();
     // 앱의 파일 뷰어(0.3.170, 2026-10-19 사용자 지적 "PDF 인데도 뷰어로 안 열리고 바로 다운로드") — 받은 뒤 뷰어로 연다
-    const previewAttachment = useMuaConfig().previewAttachment;
-    const handleClick = useCallback(async () => {
-        setDownloading(true);
-        try {
-            const bytes = await mailApi.downloadAttachment(messageSeq, attachment.uuid);
-            const blob = new Blob([bytes], { type: attachment.mime || "application/octet-stream" });
-            if (previewAttachment) {
-                previewAttachment({ name: attachment.name, mime: attachment.mime || "", size: attachment.size, blob });
-                return;
+    const { previewAttachment, canPreviewAttachment } = useMuaConfig();
+    const open = useCallback(
+        async (mode: "auto" | "download") => {
+            setDownloading(true);
+            try {
+                const bytes = await mailApi.downloadAttachment(messageSeq, attachment.uuid);
+                const blob = new Blob([bytes], { type: attachment.mime || "application/octet-stream" });
+                const previewable =
+                    mode === "auto" &&
+                    previewAttachment &&
+                    (canPreviewAttachment ? canPreviewAttachment({ name: attachment.name, mime: attachment.mime || "" }) : true);
+                if (previewable && previewAttachment) {
+                    previewAttachment({ name: attachment.name, mime: attachment.mime || "", size: attachment.size, blob });
+                    return;
+                }
+                await saveBlob(blob, attachment.name);
+            } catch (error) {
+                ErrorAlert({ message: error instanceof Error ? error.message : t("attachmentDownloadFailed") });
+            } finally {
+                setDownloading(false);
             }
-            await saveBlob(blob, attachment.name);
-        } catch (error) {
-            ErrorAlert({ message: error instanceof Error ? error.message : t("attachmentDownloadFailed") });
-        } finally {
-            setDownloading(false);
-        }
-    }, [messageSeq, attachment, saveBlob, previewAttachment]);
+        },
+        [messageSeq, attachment, saveBlob, previewAttachment, canPreviewAttachment]
+    );
     return (
         <Chip
             icon={
@@ -164,10 +175,24 @@ function AttachmentChip({ messageSeq, attachment }: { messageSeq: number; attach
             }
             label={`${attachment.name} (${formatBytes(attachment.size)})`}
             variant="outlined"
-            onClick={() => void handleClick()}
+            onClick={() => void open("auto")}
+            // 끝의 내려받기 아이콘 — MUI 칩의 지우기 자리(onDelete)를 빌린다. 칩 누르기(미리 보기)와 따로 받는다.
+            onDelete={() => void open("download")}
+            deleteIcon={
+                <Tooltip title={t("downloadAttachment")}>
+                    <DownloadOutlinedIcon aria-label={t("downloadAttachment")} />
+                </Tooltip>
+            }
             disabled={downloading}
             // 최대 폭은 줄 폭까지(100%) — 360px 로 박혀 있어 폰(남는 폭 약 343px)에서 긴 파일명이 화면을 밀어냈다(0.3.170). 넘치면 말줄임
-            sx={{ fontSize: "13.5px", color: "#111", maxWidth: "min(360px, 100%)", pl: 0.75, "& .MuiChip-icon": { ml: 0.5 } }}
+            sx={{
+                fontSize: "13.5px",
+                color: "#111",
+                maxWidth: "min(360px, 100%)",
+                pl: 0.75,
+                "& .MuiChip-icon": { ml: 0.5 },
+                "& .MuiChip-deleteIcon": { fontSize: 20, color: "text.secondary", mr: 0.75, "&:hover": { color: "primary.main" } },
+            }}
         />
     );
 }

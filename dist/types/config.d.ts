@@ -167,6 +167,10 @@ export interface MuaConfig {
         size: number;
         blob: Blob;
     }) => void;
+    canPreviewAttachment?: (file: {
+        name: string;
+        mime: string;
+    }) => boolean;
     inboxPath?: string;
     homePath?: string;
     /**

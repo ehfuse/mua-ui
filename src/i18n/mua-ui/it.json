@@ -106,6 +106,7 @@
     "deleteRuleNamedConfirm": "Eliminare la regola \"{{name}}\"?",
     "dontMove": "Non spostare",
     "downloadEml": "Scarica (.eml)",
+    "downloadAttachment": "Scarica",
     "downloadSourceFailed": "Impossibile scaricare il messaggio originale.",
     "draftMail": "Bozza",
     "draftSaveFailed": "Impossibile salvare la bozza.",

@@ -106,6 +106,7 @@
     "deleteRuleNamedConfirm": "Möchten Sie die Regel „{{name}}“ löschen?",
     "dontMove": "Nicht verschieben",
     "downloadEml": "Herunterladen (.eml)",
+    "downloadAttachment": "Herunterladen",
     "downloadSourceFailed": "Original konnte nicht heruntergeladen werden.",
     "draftMail": "Entwurf",
     "draftSaveFailed": "Entwurf konnte nicht gespeichert werden.",

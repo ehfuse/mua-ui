@@ -106,6 +106,7 @@
     "deleteRuleNamedConfirm": "Voulez-vous supprimer la règle « {{name}} » ?",
     "dontMove": "Ne pas déplacer",
     "downloadEml": "Télécharger (.eml)",
+    "downloadAttachment": "Télécharger",
     "downloadSourceFailed": "Impossible de télécharger le message d'origine.",
     "draftMail": "Brouillon",
     "draftSaveFailed": "Impossible d'enregistrer le brouillon.",

@@ -106,6 +106,7 @@
     "deleteRuleNamedConfirm": "确定要删除规则“{{name}}”吗？",
     "dontMove": "不移动",
     "downloadEml": "下载 (.eml)",
+    "downloadAttachment": "下载",
     "downloadSourceFailed": "未能下载原文。",
     "draftMail": "草稿邮件",
     "draftSaveFailed": "未能保存草稿。",

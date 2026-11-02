@@ -106,6 +106,7 @@
     "deleteRuleNamedConfirm": "ルール「{{name}}」を削除しますか？",
     "dontMove": "移動しない",
     "downloadEml": "ダウンロード（.eml）",
+    "downloadAttachment": "ダウンロード",
     "downloadSourceFailed": "原文をダウンロードできませんでした。",
     "draftMail": "下書きメール",
     "draftSaveFailed": "下書きを保存できませんでした。",

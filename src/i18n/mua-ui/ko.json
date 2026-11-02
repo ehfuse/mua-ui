@@ -106,6 +106,7 @@
     "deleteRuleNamedConfirm": "\"{{name}}\" 규칙을 삭제하시겠습니까?",
     "dontMove": "이동하지 않음",
     "downloadEml": "내려받기(.eml)",
+    "downloadAttachment": "내려받기",
     "downloadSourceFailed": "원문을 내려받지 못했습니다.",
     "draftMail": "임시보관 메일",
     "draftSaveFailed": "임시저장하지 못했습니다.",
