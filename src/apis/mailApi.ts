@@ -288,8 +288,12 @@ export const mailApi = {
     /** 연락처 삭제 */
     deleteContact: (seq: number) =>
         entityAppServer.http.delete<ApiOk<{ deleted: boolean }>>(`/v1/mua/contacts/${seq}`, {}),
-    /** 첨부 다운로드(ES 파일 스토리지, 앵커 mail_message) */
-    downloadAttachment: (uuid: string) => entityAppServer.fileDownload("mail_message", uuid),
+    /**
+     * 첨부 다운로드 — AS 가 메일 주인인지 본 뒤 대신 읽어 준다(GET /v1/mua/messages/:seq/attachments/:uuid).
+     * ES 파일 직링크(fileDownload("mail_message", …))는 서버가 막는다 — 메일 첨부는 비공개라 404 가 났다(0.4.39).
+     */
+    downloadAttachment: (messageSeq: number, uuid: string) =>
+        entityAppServer.requestBinary("GET", `/v1/mua/messages/${messageSeq}/attachments/${encodeURIComponent(uuid)}`),
 };
 
 /** 응답에서 data 를 꺼내고 실패면 throw 한다. */

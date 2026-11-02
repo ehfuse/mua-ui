@@ -132,7 +132,7 @@ function isNoReplyAddress(address: string): boolean {
 }
 
 /** 첨부 칩 — 클릭 시 앱이 미리 보기(파일 뷰어)를 주면 뷰어로, 아니면 다운로드 */
-function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
+function AttachmentChip({ messageSeq, attachment }: { messageSeq: number; attachment: MailAttachment }) {
     const [downloading, setDownloading] = useState(false);
     const saveBlob = useMuaSaveBlob();
     // 앱의 파일 뷰어(0.3.170, 2026-10-19 사용자 지적 "PDF 인데도 뷰어로 안 열리고 바로 다운로드") — 받은 뒤 뷰어로 연다
@@ -140,7 +140,7 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
     const handleClick = useCallback(async () => {
         setDownloading(true);
         try {
-            const bytes = await mailApi.downloadAttachment(attachment.uuid);
+            const bytes = await mailApi.downloadAttachment(messageSeq, attachment.uuid);
             const blob = new Blob([bytes], { type: attachment.mime || "application/octet-stream" });
             if (previewAttachment) {
                 previewAttachment({ name: attachment.name, mime: attachment.mime || "", size: attachment.size, blob });
@@ -152,7 +152,7 @@ function AttachmentChip({ attachment }: { attachment: MailAttachment }) {
         } finally {
             setDownloading(false);
         }
-    }, [attachment, saveBlob, previewAttachment]);
+    }, [messageSeq, attachment, saveBlob, previewAttachment]);
     return (
         <Chip
             icon={
@@ -916,7 +916,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                     {detail.attachments.length > 0 ? (
                         <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1.5, flexWrap: "wrap", minWidth: 0 }}>
                             {detail.attachments.map((att) => (
-                                <AttachmentChip key={att.uuid} attachment={att} />
+                                <AttachmentChip key={att.uuid} messageSeq={detail.seq} attachment={att} />
                             ))}
                         </Stack>
                     ) : null}
