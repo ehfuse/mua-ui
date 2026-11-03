@@ -50,7 +50,8 @@ export function getMailColumns(
                     inputProps={{ "aria-label": t("selectAll") }}
                 />
             ),
-            width: 40,
+            // 칸 폭 = 체크박스(28) + 노션풍 칸 좌우 여백(14 × 2) — 40 이면 남는 폭(12)이 체크박스보다 좁아 머리와 줄의 체크박스가 서로 다르게 넘쳐 어긋났다(2026-11-03).
+            width: 56,
             align: "center",
             style: { textAlign: "center" },
             render: (row) => (
@@ -166,7 +167,8 @@ export function getMailColumns(
         {
             id: "has_attachment",
             text: "",
-            width: 36,
+            // 칸 폭 = 클립 아이콘(20) + 칸 좌우 여백(28) — 36 이면 아이콘이 칸 밖으로 넘쳐 가운데에서 비켜 섰다(2026-11-03).
+            width: 48,
             align: "center",
             style: { textAlign: "center" },
             render: (row) =>

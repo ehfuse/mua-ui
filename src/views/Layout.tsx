@@ -1470,6 +1470,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         variant: "notion" as const,
         // 평평하게(config.desktop.flat) — 표 바깥 틀 · 사방 여백 없이.
         ...(desktopFlat ? { framed: false } : {}),
+        // 끝 칸(일시, 오른쪽 맞춤)이 스크롤바에 가리지 않게 스크롤바 자리를 비운다(VDT 1.11.1 scrollbarGutter, 2026-11-03 사용자 지적).
+        scrollbarGutter: true,
         columns,
         data: messages,
         totalCount: total,
