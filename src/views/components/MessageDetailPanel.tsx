@@ -263,10 +263,15 @@ function isMostlyKorean(raw: string): boolean {
         .replace(/data:[^"')\s]+/gi, "")
         .replace(/<[^>]+>/g, " ")
         .replace(/https?:\/\/\S+/gi, "")
+        // 메일 주소 · HTML 문자 이름(&nbsp; 등)은 말이 아니다 — 세면 한글 메일이 영문으로 잡혔다(2026-11-03).
+        .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, " ")
+        .replace(/&[a-z]+;|&#\d+;/gi, " ")
         .slice(0, 4000);
     const hangul = (text.match(/[\uac00-\ud7a3]/g) ?? []).length;
     const latin = (text.match(/[A-Za-z]/g) ?? []).length;
-    return hangul > 0 && hangul >= latin;
+    // 한글 한 글자는 한 음절이라 영문 글자 셋쯤에 맞먹는다 — 글자 수를 그대로 견주면 "NHN KCP" · 서명 영문이 많은 한글 메일에 번역 단추가 떴다
+    // (2026-11-03 사용자 지적, KCP 메일 11통). 받은 영문 메일 29통으로 견줘 판정이 바뀐 것은 없었다.
+    return hangul > 0 && hangul * 3 >= latin;
 }
 
 /** 상세 패널 컴포넌트 */
@@ -1152,21 +1157,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             )}
                         </IconButton>
                     </Tooltip>
-                    {!isDraft && (!koreanMail || (translation && showTranslation)) ? (
-                        <Button
-                            size="small"
-                            variant="outlined"
-                            color="inherit"
-                            disabled={translating}
-                            startIcon={
-                                translating ? <CircularProgress size={16} /> : <TranslateIcon sx={{ fontSize: 18 }} />
-                            }
-                            onClick={() => void handleTranslate()}
-                            sx={{ fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
-                        >
-                            {translation && showTranslation ? t("showOriginal") : t("translate")}
-                        </Button>
-                    ) : null}
                     {/* 주고받은 메일 — 이 메일 말고도 있을 때만(번역 단추와 같은 모양). 누르면 아래에 표가 펴진다. */}
                     {history && history.total > 1 ? (
                         <Button
@@ -1180,6 +1170,22 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             sx={{ fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
                         >
                             {t("historyButton", { count: history.total })}
+                        </Button>
+                    ) : null}
+                    {!isDraft && (!koreanMail || (translation && showTranslation)) ? (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            color="inherit"
+                            disabled={translating}
+                            startIcon={
+                                translating ? <CircularProgress size={16} /> : <TranslateIcon sx={{ fontSize: 18 }} />
+                            }
+                            onClick={() => void handleTranslate()}
+                            // 번역하기는 맨 뒤(2026-11-03 사용자 지시). 앞 단추(주고받은 메일)와 8px 더 띄운다 — 줄의 기본 4px 만으로는 붙어 보였다.
+                            sx={{ ml: history && history.total > 1 ? "12px !important" : undefined, fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
+                        >
+                            {translation && showTranslation ? t("showOriginal") : t("translate")}
                         </Button>
                     ) : null}
                 </Stack>
