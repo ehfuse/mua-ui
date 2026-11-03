@@ -487,6 +487,11 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const ownOutgoing = detail.folder === "sent" || detail.folder === "draft" || detail.prev_folder === "sent";
     const showRemoteImages = allowRemoteImages || trustedSender || ownOutgoing;
     const hasAttachments = detail.attachments.length > 0;
+    // 주고받은 메일에서 이미 위에 보이는 메일은 뺀다(2026-11-03 사용자 지시) — 같은 대화 표가 있으면 그 메일들, 없으면 지금 보는 메일.
+    const shownAbove = new Set(thread.length > 1 ? thread.map((item) => item.seq) : [detail.seq]);
+    const historyItems = history ? history.items.filter((item) => !shownAbove.has(item.seq)) : [];
+    // 숫자도 뺀 만큼 — 서버 total 은 위 메일까지 센 값이다(받은 목록에 든 것만 뺄 수 있다).
+    const historyCount = history ? Math.max(0, history.total - (history.items.length - historyItems.length)) : 0;
 
     // 모바일 상세 창이 제목바 밑에 자리를 줬으면 아이콘 줄을 거기 그린다 — 내려도 늘 보인다(detailToolbarSlot 참고)
     /**
@@ -1157,7 +1162,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </IconButton>
                     </Tooltip>
                     {/* 주고받은 메일 — 이 메일 말고도 있을 때만(번역 단추와 같은 모양). 누르면 아래에 표가 펴진다. */}
-                    {history && history.total > 1 ? (
+                    {historyCount > 0 ? (
                         <Button
                             size="small"
                             variant="outlined"
@@ -1168,7 +1173,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             onClick={() => setHistoryOpen((v) => !v)}
                             sx={{ fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
                         >
-                            {t("historyButton", { count: history.total })}
+                            {t("historyButton", { count: historyCount })}
                         </Button>
                     ) : null}
                     {!isDraft && (!koreanMail || (translation && showTranslation)) ? (
@@ -1182,19 +1187,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             }
                             onClick={() => void handleTranslate()}
                             // 번역하기는 맨 뒤(2026-11-03 사용자 지시). 앞 단추(주고받은 메일)와 8px 더 띄운다 — 줄의 기본 4px 만으로는 붙어 보였다.
-                            sx={{ ml: history && history.total > 1 ? "12px !important" : undefined, fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
+                            sx={{ ml: historyCount > 0 ? "12px !important" : undefined, fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
                         >
                             {translation && showTranslation ? t("showOriginal") : t("translate")}
                         </Button>
                     ) : null}
                 </Stack>
-                {historyOpen && history && history.total > 1 ? (
+                {historyOpen && history && historyCount > 0 ? (
                     <MailHistoryTable
                         title={t("historyTitle", { address: history.address })}
-                        items={history.items}
+                        items={historyItems}
+                        hideWho
                         currentSeq={detail.seq}
                         onSelect={onSelectThreadMessage}
-                        note={history.total > history.items.length ? t("historyRecentOnly", { count: history.items.length, total: history.total }) : undefined}
+                        note={historyCount > historyItems.length ? t("historyRecentOnly", { count: historyItems.length, total: historyCount }) : undefined}
                     />
                 ) : null}
                 {/* AI 번역 배너 — 번역본을 보는 동안 안내(16px)와 내용 요약(15px, 길면 개행)을 보여준다. */}

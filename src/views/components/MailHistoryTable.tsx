@@ -22,6 +22,7 @@ export function MailHistoryTable({
     currentSeq,
     onSelect,
     note,
+    hideWho = false,
 }: {
     /** 표 위 제목 — 없으면 그리지 않는다(같은 대화 표는 제목 없이, 2026-11-03 사용자 지시). */
     title?: string;
@@ -30,6 +31,8 @@ export function MailHistoryTable({
     onSelect?: (seq: number) => void;
     /** 표 아래 작은 안내(최근 N통만 보일 때 등) */
     note?: string;
+    /** 보낸 사람 칸을 뺀다 — 한 상대와 주고받은 메일 표는 상대가 정해져 있다(2026-11-03 사용자 지시). 받음 · 보냄 구분은 남는다. */
+    hideWho?: boolean;
 }) {
     const cell = (text: string, secondary = false, strong = false) => (
         <Box
@@ -82,6 +85,7 @@ export function MailHistoryTable({
         // eslint-disable-next-line react-hooks/exhaustive-deps
         []
     );
+    const shownColumns = hideWho ? columns.filter((column) => column.id !== "who") : columns;
     return (
         // 제 층(zIndex 0)에 가둔다 — 표 머리 줄은 스크롤하면 위에 붙는데, 메일 상세 머리(제목 · 보낸 사람, 위에 붙는 zIndex 1)보다 위로 올라와
         // 머리를 덮었다(2026-11-03 사용자 지적). 층을 가두면 표 머리는 메일 머리 뒤로 지나간다.
@@ -90,7 +94,7 @@ export function MailHistoryTable({
             <Box>
                 <VirtualDataTable<MailThreadEntry>
                     variant="notion"
-                    columns={columns}
+                    columns={shownColumns}
                     data={items}
                     totalCount={items.length}
                     getRowId={(row) => row.seq}
