@@ -1476,7 +1476,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         data: messages,
         totalCount: total,
         getRowId: (row: MailMessageListItem) => row.seq,
-        rowHeight: 48,
+        // 44(2026-11-03 사용자 지시 "row py 조금 줄이자") — 48 이면 한 화면에 들어오는 메일이 적었다. 위아래 2px 씩 줄였다.
+        rowHeight: 44,
         loading: loadingList,
         selectedRowId: selectedSeq || null,
         selectedRowSx: { backgroundColor: "#dbeafe", boxShadow: "inset 3px 0 0 #3b82f6" },
