@@ -68,12 +68,16 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const attachments = (form.useFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
     const mode = String(form.useFormValue("mode") ?? "new");
     // 창 제목은 **열 때의 모드**로 고정한다(2026-11-03 사용자 지시) — 자동저장 · 첨부 올리기가 임시보관으로 저장하며 mode 를 "draft" 로 바꿔,
-    // 새 메일 · 답장을 쓰는 중에 제목이 "임시보관 메일" 로 바뀌었다. 창이 열려 있는 동안 처음 본 모드를 쥐고 있다가 닫히면 놓는다.
+    // 새 메일 · 답장을 쓰는 중에 제목이 "임시보관 메일" 로 바뀌었다. 창이 열리는 순간의 모드를 잡아 다음에 열 때까지 쥐고 있는다 —
+    // 닫힐 때 놓으면 닫히는 동안(사라지는 움직임) 제목이 "임시보관 메일" 로 바뀌어 보였다(2026-11-03 사용자 지적).
     const [titleMode, setTitleMode] = useState<string | null>(null);
+    const wasOpenRef = useRef(false);
     useEffect(() => {
-        if (!modal.isOpen) setTitleMode(null);
-        else setTitleMode((prev) => prev ?? mode);
-    }, [modal.isOpen, mode]);
+        if (modal.isOpen && !wasOpenRef.current) setTitleMode(mode);
+        wasOpenRef.current = modal.isOpen;
+        // 열리는 순간만 본다 — 열려 있는 동안 mode 가 바뀌어도(자동저장) 제목은 그대로다.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [modal.isOpen]);
     const secure = Boolean(form.useFormValue("secure"));
     const scheduled = Boolean(form.useFormValue("scheduled"));
 
