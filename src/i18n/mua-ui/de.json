@@ -426,5 +426,7 @@
     "viewPasswordRequired": "Passwort für Ansicht *",
     "viewableUntil": "Einsehbar bis {{time}}",
     "word": "Wort",
-    "downloadAllAttachments": "Alle herunterladen (ZIP)"
+    "downloadAllAttachments": "Alle herunterladen (ZIP)",
+    "attachmentsSummary": "{{count}} Anhänge ({{size}})",
+    "downloadingAll": "Wird heruntergeladen…"
 }

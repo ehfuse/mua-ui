@@ -35,7 +35,7 @@ import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import { FolderIcon } from "../../internal/FolderIcon";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import CheckIcon from "@mui/icons-material/Check";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
+import DownloadIcon from "@mui/icons-material/Download";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
@@ -180,7 +180,7 @@ function AttachmentChip({ messageSeq, attachment }: { messageSeq: number; attach
             onDelete={() => void open("download")}
             deleteIcon={
                 <Tooltip title={t("downloadAttachment")}>
-                    <DownloadOutlinedIcon aria-label={t("downloadAttachment")} />
+                    <DownloadIcon aria-label={t("downloadAttachment")} />
                 </Tooltip>
             }
             disabled={downloading}
@@ -198,12 +198,13 @@ function AttachmentChip({ messageSeq, attachment }: { messageSeq: number; attach
 }
 
 /**
- * 첨부 전체 내려받기(2026-11-03 사용자 지시 "첨부파일을 zip 으로 전체 다운로드") — 첨부가 둘 이상일 때 첨부 칩 줄 끝에 선다.
- * 서버가 묶은 zip 하나를 받는다. 모양은 첨부 칩과 같은 칩(아이콘 · 글자 크기 · 테두리)이다.
+ * 첨부 머리줄(2026-11-03 사용자 지시 "전체 내려받기를 칩으로 하면 파일과 헷갈린다") — 칩 줄 위에 "첨부 3개 (18.0 MB) · 전체 내려받기(ZIP)".
+ * 전체 내려받기는 테두리 · 아이콘 없는 글자 단추다(파일 칩과 다른 모양). 첨부가 둘 이상일 때만 단추를 둔다. 서버가 묶은 zip 하나를 받는다.
  */
-function DownloadAllChip({ messageSeq, subject }: { messageSeq: number; subject: string }) {
+function AttachmentsHeader({ messageSeq, subject, attachments }: { messageSeq: number; subject: string; attachments: MailAttachment[] }) {
     const [downloading, setDownloading] = useState(false);
     const saveBlob = useMuaSaveBlob();
+    const total = attachments.reduce((sum, att) => sum + (Number(att.size) || 0), 0);
     const download = async () => {
         setDownloading(true);
         try {
@@ -217,14 +218,29 @@ function DownloadAllChip({ messageSeq, subject }: { messageSeq: number; subject:
         }
     };
     return (
-        <Chip
-            icon={downloading ? <CircularProgress size={14} /> : <DownloadOutlinedIcon sx={{ fontSize: 20 }} />}
-            label={t("downloadAllAttachments")}
-            variant="outlined"
-            onClick={() => void download()}
-            disabled={downloading}
-            sx={{ fontSize: "13.5px", color: "#111", pl: 0.75, "& .MuiChip-icon": { ml: 0.5, color: "text.secondary" } }}
-        />
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5, fontSize: "13.5px", color: "#475569" }}>
+            <span>{t("attachmentsSummary", { count: attachments.length, size: formatBytes(total) })}</span>
+            {attachments.length > 1 ? (
+                <>
+                    <Box component="span" sx={{ color: "#cbd5e1" }}>
+                        |
+                    </Box>
+                    <ButtonBase
+                        onClick={() => void download()}
+                        disabled={downloading}
+                        sx={{
+                            fontSize: "13.5px",
+                            fontWeight: 600,
+                            color: downloading ? "text.disabled" : "primary.main",
+                            borderRadius: 0.5,
+                            "&:hover": { textDecoration: "underline" },
+                        }}
+                    >
+                        {downloading ? t("downloadingAll") : t("downloadAllAttachments")}
+                    </ButtonBase>
+                </>
+            ) : null}
+        </Box>
     );
 }
 
@@ -970,11 +986,13 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         ) : null}
                     </Box>
                     {detail.attachments.length > 0 ? (
-                        <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1.5, flexWrap: "wrap", minWidth: 0 }}>
+                        <AttachmentsHeader messageSeq={detail.seq} subject={String(detail.subject ?? "")} attachments={detail.attachments} />
+                    ) : null}
+                    {detail.attachments.length > 0 ? (
+                        <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1, flexWrap: "wrap", minWidth: 0 }}>
                             {detail.attachments.map((att) => (
                                 <AttachmentChip key={att.uuid} messageSeq={detail.seq} attachment={att} />
                             ))}
-                            {detail.attachments.length > 1 ? <DownloadAllChip messageSeq={detail.seq} subject={String(detail.subject ?? "")} /> : null}
                         </Stack>
                     ) : null}
                     {hasRemoteImages && !showRemoteImages ? (

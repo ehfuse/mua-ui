@@ -426,5 +426,7 @@
     "viewPasswordRequired": "查看密码 *",
     "viewableUntil": "可查看至 {{time}}",
     "word": "单词",
-    "downloadAllAttachments": "全部下载 (ZIP)"
+    "downloadAllAttachments": "全部下载 (ZIP)",
+    "attachmentsSummary": "附件 {{count}} 个 ({{size}})",
+    "downloadingAll": "正在下载…"
 }

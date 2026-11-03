@@ -426,5 +426,7 @@
     "viewPasswordRequired": "Viewing password *",
     "viewableUntil": "Viewable until {{time}}",
     "word": "Word",
-    "downloadAllAttachments": "Download all (ZIP)"
+    "downloadAllAttachments": "Download all (ZIP)",
+    "attachmentsSummary": "{{count}} attachments ({{size}})",
+    "downloadingAll": "Downloading…"
 }

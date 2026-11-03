@@ -426,5 +426,7 @@
     "viewPasswordRequired": "열람 비밀번호 *",
     "viewableUntil": "{{time}}까지 열람",
     "word": "단어",
-    "downloadAllAttachments": "전체 내려받기 (ZIP)"
+    "downloadAllAttachments": "전체 내려받기 (ZIP)",
+    "attachmentsSummary": "첨부 {{count}}개 ({{size}})",
+    "downloadingAll": "받는 중…"
 }

@@ -426,5 +426,7 @@
     "viewPasswordRequired": "Password di visualizzazione *",
     "viewableUntil": "Visualizzabile fino a {{time}}",
     "word": "Parola",
-    "downloadAllAttachments": "Scarica tutto (ZIP)"
+    "downloadAllAttachments": "Scarica tutto (ZIP)",
+    "attachmentsSummary": "{{count}} allegati ({{size}})",
+    "downloadingAll": "Download in corso…"
 }

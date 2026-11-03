@@ -426,5 +426,7 @@
     "viewPasswordRequired": "Mot de passe de consultation *",
     "viewableUntil": "Consultable jusqu'à {{time}}",
     "word": "Mot",
-    "downloadAllAttachments": "Tout télécharger (ZIP)"
+    "downloadAllAttachments": "Tout télécharger (ZIP)",
+    "attachmentsSummary": "{{count}} pièces jointes ({{size}})",
+    "downloadingAll": "Téléchargement…"
 }
