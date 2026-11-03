@@ -67,6 +67,13 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const showCcBcc = Boolean(form.useFormValue("showCcBcc"));
     const attachments = (form.useFormValue("attachments") as ComposeAttachment[] | undefined) ?? [];
     const mode = String(form.useFormValue("mode") ?? "new");
+    // 창 제목은 **열 때의 모드**로 고정한다(2026-11-03 사용자 지시) — 자동저장 · 첨부 올리기가 임시보관으로 저장하며 mode 를 "draft" 로 바꿔,
+    // 새 메일 · 답장을 쓰는 중에 제목이 "임시보관 메일" 로 바뀌었다. 창이 열려 있는 동안 처음 본 모드를 쥐고 있다가 닫히면 놓는다.
+    const [titleMode, setTitleMode] = useState<string | null>(null);
+    useEffect(() => {
+        if (!modal.isOpen) setTitleMode(null);
+        else setTitleMode((prev) => prev ?? mode);
+    }, [modal.isOpen, mode]);
     const secure = Boolean(form.useFormValue("secure"));
     const scheduled = Boolean(form.useFormValue("scheduled"));
 
@@ -395,12 +402,13 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         if (checked) form.setFormValue("to", address);
         else if (String(form.getFormValue("to") ?? "").trim() === address) form.setFormValue("to", "");
     };
+    const shownMode = titleMode ?? mode;
     const titleText =
-        mode === "reply" || mode === "replyAll"
+        shownMode === "reply" || shownMode === "replyAll"
             ? t("reply")
-            : mode === "forward"
+            : shownMode === "forward"
               ? t("forward")
-              : mode === "draft"
+              : shownMode === "draft"
                 ? t("draftMail")
                 : t("compose");
 
