@@ -428,5 +428,11 @@
     "word": "Từ",
     "downloadAllAttachments": "Tải tất cả (ZIP)",
     "attachmentsSummary": "{{count}} tệp đính kèm ({{size}})",
-    "downloadingAll": "Đang tải…"
+    "downloadingAll": "Đang tải…",
+    "addContactShort": "Thêm danh bạ",
+    "blockSender": "Chặn",
+    "blockSenderConfirm": "Thư từ {{address}} sẽ được chuyển vào Thư rác, kể cả thư đã nhận.\nBạn có thể bỏ chặn bất cứ lúc nào trong quy tắc thư.",
+    "blockSenderRuleName": "Đã chặn: {{address}}",
+    "blockSenderDone": "Đã chặn {{address}}.",
+    "blockSenderFailed": "Không thể chặn người gửi."
 }

@@ -428,5 +428,11 @@
     "word": "Mot",
     "downloadAllAttachments": "Tout télécharger (ZIP)",
     "attachmentsSummary": "{{count}} pièces jointes ({{size}})",
-    "downloadingAll": "Téléchargement…"
+    "downloadingAll": "Téléchargement…",
+    "addContactShort": "Ajouter le contact",
+    "blockSender": "Bloquer",
+    "blockSenderConfirm": "Les e-mails de {{address}} seront déplacés dans les spams, y compris ceux déjà reçus.\nVous pouvez annuler à tout moment dans les règles.",
+    "blockSenderRuleName": "Bloqué : {{address}}",
+    "blockSenderDone": "{{address}} a été bloqué.",
+    "blockSenderFailed": "Impossible de bloquer l'expéditeur."
 }

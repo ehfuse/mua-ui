@@ -428,5 +428,11 @@
     "word": "単語",
     "downloadAllAttachments": "すべてダウンロード (ZIP)",
     "attachmentsSummary": "添付 {{count}}件 ({{size}})",
-    "downloadingAll": "ダウンロード中…"
+    "downloadingAll": "ダウンロード中…",
+    "addContactShort": "連絡先に登録",
+    "blockSender": "受信拒否",
+    "blockSenderConfirm": "今後 {{address}} からのメールは迷惑メールに移動します。受信済みのメールも移動します。\nメールルールでいつでも解除できます。",
+    "blockSenderRuleName": "受信拒否: {{address}}",
+    "blockSenderDone": "{{address}} を受信拒否しました。",
+    "blockSenderFailed": "受信拒否できませんでした。"
 }

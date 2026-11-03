@@ -428,5 +428,11 @@
     "word": "Parola",
     "downloadAllAttachments": "Scarica tutto (ZIP)",
     "attachmentsSummary": "{{count}} allegati ({{size}})",
-    "downloadingAll": "Download in corso…"
+    "downloadingAll": "Download in corso…",
+    "addContactShort": "Aggiungi contatto",
+    "blockSender": "Blocca",
+    "blockSenderConfirm": "Le email da {{address}} verranno spostate nello spam, anche quelle già ricevute.\nPuoi annullare in qualsiasi momento nelle regole.",
+    "blockSenderRuleName": "Bloccato: {{address}}",
+    "blockSenderDone": "{{address}} è stato bloccato.",
+    "blockSenderFailed": "Impossibile bloccare il mittente."
 }

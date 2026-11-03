@@ -428,5 +428,11 @@
     "word": "单词",
     "downloadAllAttachments": "全部下载 (ZIP)",
     "attachmentsSummary": "附件 {{count}} 个 ({{size}})",
-    "downloadingAll": "正在下载…"
+    "downloadingAll": "正在下载…",
+    "addContactShort": "添加联系人",
+    "blockSender": "拒收",
+    "blockSenderConfirm": "今后来自 {{address}} 的邮件将移至垃圾邮件，已收到的邮件也会一并移动。\n可随时在邮件规则中取消。",
+    "blockSenderRuleName": "拒收: {{address}}",
+    "blockSenderDone": "已拒收 {{address}}。",
+    "blockSenderFailed": "无法拒收该发件人。"
 }

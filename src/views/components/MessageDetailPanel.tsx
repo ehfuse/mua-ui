@@ -36,6 +36,7 @@ import { FolderIcon } from "../../internal/FolderIcon";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import DownloadIcon from "@mui/icons-material/Download";
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
@@ -44,7 +45,7 @@ import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOu
 import { StarRoundedIcon, TrashIcon } from "../../internal/icons";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
-import { ErrorAlert } from "@ehfuse/alerts";
+import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { useMuaConfig, useMuaSaveBlob } from "../../MuaProvider";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import type {
@@ -449,6 +450,37 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     const hasAttachments = detail.attachments.length > 0;
 
     // 모바일 상세 창이 제목바 밑에 자리를 줬으면 아이콘 줄을 거기 그린다 — 내려도 늘 보인다(detailToolbarSlot 참고)
+    /**
+     * 수신 거부(2026-11-03 사용자 지시) — 메일 규칙 "보낸 사람이 이 주소면 → 스팸함(뒤 규칙 중단)" 을 맨 앞에 만들고, 이미 받은 그 사람 메일에도 바로 적용한다.
+     * 규칙 화면에 그대로 남아 거기서 풀 수 있다. 확인을 받고 한다.
+     */
+    const blockSender = (address: string) => {
+        ConfirmDialog({
+            title: t("blockSender"),
+            message: t("blockSenderConfirm", { address }),
+            onConfirm: async () => {
+                try {
+                    const created = unwrap(
+                        await mailApi.createRule({
+                            name: t("blockSenderRuleName", { address }),
+                            enabled: true,
+                            sort_order: 0,
+                            match: "all",
+                            stop_processing: true,
+                            conditions: [{ field: "from", op: "equals", value: address }],
+                            actions: { move_to: "spam" },
+                        }),
+                        t("blockSenderFailed")
+                    );
+                    if (created?.seq) await mailApi.applyRules(created.seq).catch(() => undefined);
+                    SuccessAlert({ message: t("blockSenderDone", { address }) });
+                } catch (error) {
+                    ErrorAlert({ message: error instanceof Error ? error.message : t("blockSenderFailed") });
+                }
+            },
+        });
+    };
+
     const placeToolbar = (node: ReactNode) => (embedded && toolbarSlot ? createPortal(node, toolbarSlot) : node);
 
     return (
@@ -884,25 +916,52 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                     "-"
                                 )}
                             </Typography>
-                            {/* 주소록 추가 — 주소록에 없는 보낸 사람에게만. 줄 높이(26px)에 맞춘 버튼, 모바일은 터치 크기. */}
-                            {detail.from && onAddContact ? (
-                                <Tooltip title={t("addToContacts")}>
+                            {/* 주소록 추가 · 수신 거부(2026-11-03 사용자 지정 — 넓은 화면은 "주소 등록 | 수신 거부" 글자 단추, 폰은 아이콘).
+                                주소록 추가는 주소록에 없는 보낸 사람에게만. 줄 높이(26px)에 맞춘다. */}
+                            {detail.from && !embedded ? (
+                                <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, flexShrink: 0, fontSize: "13.5px", lineHeight: "26px" }}>
+                                    {onAddContact ? (
+                                        <>
+                                            <ButtonBase
+                                                onClick={() => onAddContact(detail.from!.address, detail.from!.name ?? "")}
+                                                sx={{ fontSize: "13.5px", color: "#475569", textDecoration: "underline", textUnderlineOffset: "3px", "&:hover": { color: "#0f172a" } }}
+                                            >
+                                                {t("addContactShort")}
+                                            </ButtonBase>
+                                            <Box component="span" sx={{ color: "#cbd5e1" }}>
+                                                |
+                                            </Box>
+                                        </>
+                                    ) : null}
+                                    <ButtonBase
+                                        onClick={() => blockSender(detail.from!.address)}
+                                        sx={{ fontSize: "13.5px", color: "#dc2626", "&:hover": { textDecoration: "underline", textUnderlineOffset: "3px" } }}
+                                    >
+                                        {t("blockSender")}
+                                    </ButtonBase>
+                                </Box>
+                            ) : null}
+                            {detail.from && embedded ? (
+                                <Box component="span" sx={{ display: "inline-flex", flexShrink: 0, mt: "-3px" }}>
+                                    {onAddContact ? (
+                                        <IconButton
+                                            size="small"
+                                            aria-label={t("addToContacts")}
+                                            onClick={() => onAddContact(detail.from!.address, detail.from!.name ?? "")}
+                                            sx={{ p: 0, width: 32, height: 32, color: "#2563eb" }}
+                                        >
+                                            <PersonAddAlt1OutlinedIcon sx={{ fontSize: 22 }} />
+                                        </IconButton>
+                                    ) : null}
                                     <IconButton
                                         size="small"
-                                        aria-label={t("addToContacts")}
-                                        onClick={() => onAddContact(detail.from!.address, detail.from!.name ?? "")}
-                                        sx={{
-                                            p: 0,
-                                            width: embedded ? 32 : 26,
-                                            height: embedded ? 32 : 26,
-                                            mt: embedded ? "-3px" : 0,
-                                            flexShrink: 0,
-                                            color: "#2563eb",
-                                        }}
+                                        aria-label={t("blockSender")}
+                                        onClick={() => blockSender(detail.from!.address)}
+                                        sx={{ p: 0, width: 32, height: 32, color: "#dc2626" }}
                                     >
-                                        <PersonAddAlt1OutlinedIcon sx={{ fontSize: embedded ? 22 : 18 }} />
+                                        <BlockOutlinedIcon sx={{ fontSize: 21 }} />
                                     </IconButton>
-                                </Tooltip>
+                                </Box>
                             ) : null}
                         </Box>
                         <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>

@@ -428,5 +428,11 @@
     "word": "Wort",
     "downloadAllAttachments": "Alle herunterladen (ZIP)",
     "attachmentsSummary": "{{count}} Anhänge ({{size}})",
-    "downloadingAll": "Wird heruntergeladen…"
+    "downloadingAll": "Wird heruntergeladen…",
+    "addContactShort": "Kontakt hinzufügen",
+    "blockSender": "Blockieren",
+    "blockSenderConfirm": "E-Mails von {{address}} werden in den Spam verschoben, auch bereits empfangene.\nSie können dies jederzeit in den Regeln aufheben.",
+    "blockSenderRuleName": "Blockiert: {{address}}",
+    "blockSenderDone": "{{address}} wurde blockiert.",
+    "blockSenderFailed": "Absender konnte nicht blockiert werden."
 }
