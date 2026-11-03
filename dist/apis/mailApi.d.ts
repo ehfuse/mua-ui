@@ -107,6 +107,11 @@ export declare const mailApi: {
     getThread: (seq: number, markRead: boolean) => Promise<ApiOk<{
         items: MailThreadItem[];
     }>>;
+    /** 이 주소와 주고받은 메일(받은 · 보낸, 최근 것부터 — 2026-11-03). total 은 전체 통수, items 는 최근 limit 통. */
+    getCorrespondence: (address: string, limit?: number) => Promise<ApiOk<{
+        items: MailThreadItem[];
+        total: number;
+    }>>;
     getMessage: (seq: number, markRead: boolean) => Promise<ApiOk<MailMessageDetail>>;
     /** 읽음/중요/폴더 변경 */
     patchMessage: (seq: number, body: {
