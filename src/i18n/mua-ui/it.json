@@ -435,5 +435,12 @@
     "blockSenderConfirm": "Le email da {{address}} verranno spostate nello spam, anche quelle già ricevute.\nPuoi annullare in qualsiasi momento nelle regole.",
     "blockSenderRuleName": "Bloccato: {{address}}",
     "blockSenderDone": "{{address}} è stato bloccato.",
-    "blockSenderFailed": "Impossibile bloccare il mittente."
+    "blockSenderFailed": "Impossibile bloccare il mittente.",
+    "historyButton": "{{count}} email scambiate",
+    "historyTitle": "Email con {{address}}",
+    "historyRecentOnly": "Vengono mostrate le {{count}} più recenti su {{total}}.",
+    "historyDirection": "Tipo",
+    "historyWho": "Da",
+    "historySent": "Inviata",
+    "historyReceived": "Ricevuta"
 }

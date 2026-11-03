@@ -435,5 +435,12 @@
     "blockSenderConfirm": "Thư từ {{address}} sẽ được chuyển vào Thư rác, kể cả thư đã nhận.\nBạn có thể bỏ chặn bất cứ lúc nào trong quy tắc thư.",
     "blockSenderRuleName": "Đã chặn: {{address}}",
     "blockSenderDone": "Đã chặn {{address}}.",
-    "blockSenderFailed": "Không thể chặn người gửi."
+    "blockSenderFailed": "Không thể chặn người gửi.",
+    "historyButton": "{{count}} thư đã trao đổi",
+    "historyTitle": "Thư với {{address}}",
+    "historyRecentOnly": "Chỉ hiển thị {{count}} thư gần nhất (tổng {{total}}).",
+    "historyDirection": "Loại",
+    "historyWho": "Người gửi",
+    "historySent": "Đã gửi",
+    "historyReceived": "Đã nhận"
 }

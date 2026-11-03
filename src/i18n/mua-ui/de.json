@@ -435,5 +435,12 @@
     "blockSenderConfirm": "E-Mails von {{address}} werden in den Spam verschoben, auch bereits empfangene.\nSie können dies jederzeit in den Regeln aufheben.",
     "blockSenderRuleName": "Blockiert: {{address}}",
     "blockSenderDone": "{{address}} wurde blockiert.",
-    "blockSenderFailed": "Absender konnte nicht blockiert werden."
+    "blockSenderFailed": "Absender konnte nicht blockiert werden.",
+    "historyButton": "{{count}} ausgetauschte E-Mails",
+    "historyTitle": "E-Mails mit {{address}}",
+    "historyRecentOnly": "Die neuesten {{count}} von {{total}} werden angezeigt.",
+    "historyDirection": "Art",
+    "historyWho": "Von",
+    "historySent": "Gesendet",
+    "historyReceived": "Empfangen"
 }

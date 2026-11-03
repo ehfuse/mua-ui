@@ -435,5 +435,12 @@
     "blockSenderConfirm": "Mail from {{address}} will be moved to Spam, including mail you already received.\nYou can undo this anytime in mail rules.",
     "blockSenderRuleName": "Blocked: {{address}}",
     "blockSenderDone": "Blocked {{address}}.",
-    "blockSenderFailed": "Couldn't block the sender."
+    "blockSenderFailed": "Couldn't block the sender.",
+    "historyButton": "{{count}} messages exchanged",
+    "historyTitle": "Messages with {{address}}",
+    "historyRecentOnly": "Showing the latest {{count}} of {{total}}.",
+    "historyDirection": "Type",
+    "historyWho": "From",
+    "historySent": "Sent",
+    "historyReceived": "Received"
 }

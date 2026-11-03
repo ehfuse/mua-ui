@@ -435,5 +435,12 @@
     "blockSenderConfirm": "今後 {{address}} からのメールは迷惑メールに移動します。受信済みのメールも移動します。\nメールルールでいつでも解除できます。",
     "blockSenderRuleName": "受信拒否: {{address}}",
     "blockSenderDone": "{{address}} を受信拒否しました。",
-    "blockSenderFailed": "受信拒否できませんでした。"
+    "blockSenderFailed": "受信拒否できませんでした。",
+    "historyButton": "やり取りしたメール {{count}}通",
+    "historyTitle": "{{address}} とやり取りしたメール",
+    "historyRecentOnly": "最新の {{count}}通のみ表示しています(全 {{total}}通)。",
+    "historyDirection": "区分",
+    "historyWho": "差出人",
+    "historySent": "送信",
+    "historyReceived": "受信"
 }

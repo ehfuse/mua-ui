@@ -39,6 +39,10 @@ import DownloadIcon from "@mui/icons-material/Download";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import { ForwardArrowIcon, ReplyAllArrowIcon, ReplyArrowIcon } from "./MailActionIcons";
+import { MailHistoryTable } from "./MailHistoryTable";
+import HistoryIcon from "@mui/icons-material/History";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { ConfirmActionPopper } from "@ehfuse/mui-confirm-action";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
@@ -314,6 +318,33 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         }
     };
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
+    // 이 사람과 주고받은 메일(2026-11-03 사용자 지시) — 상대 주소(받은 메일은 보낸 사람, 보낸 메일은 첫 받는 사람)로 받은 · 보낸 메일을 모아 숫자를 보이고, 누르면 표로 편다.
+    const counterpart = String(
+        (detail?.folder === "sent" || detail?.folder === "draft" ? detail?.to?.[0]?.address : detail?.from?.address) ?? ""
+    ).trim();
+    const [history, setHistory] = useState<{ address: string; items: MailThreadEntry[]; total: number } | null>(null);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    useEffect(() => {
+        if (!counterpart) {
+            setHistory(null);
+            return;
+        }
+        // 같은 상대의 다른 메일로 옮겨 가면 펼친 채로 둔다 — 표에서 줄을 눌러 옮겨 다니는 흐름이라.
+        if (history?.address !== counterpart) setHistoryOpen(false);
+        let alive = true;
+        mailApi
+            .getCorrespondence(counterpart)
+            .then((res) => {
+                if (!alive) return;
+                const data = (res as { ok?: boolean; data?: { items?: MailThreadEntry[]; total?: number } })?.data;
+                setHistory({ address: counterpart, items: data?.items ?? [], total: Number(data?.total ?? 0) || 0 });
+            })
+            .catch(() => alive && setHistory(null));
+        return () => {
+            alive = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [counterpart, detail?.seq]);
     const toolbarSlot = useContext(DetailToolbarSlotContext);
     // 스팸 신고/삭제/영구 삭제/수신 거부 확인 팝퍼(앵커 = 누른 단추). 수신 거부는 주소를 함께 든다(2026-11-03 — 가운데 확인 창에서 옮겼다).
     const [confirm, setConfirm] = useState<{
@@ -1095,45 +1126,12 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 <Divider />
                 {/* 대화 띠(2026-10-20) — 같은 대화의 메일들(오래된 것부터). 보고 있는 메일을 칠하고, 다른 줄을 누르면 그 메일을 연다. */}
                 {thread.length > 1 && (
-                    <Box sx={{ mx: 2, mt: 1.5, mb: 1.5, border: "1px solid #e2e8f0", borderRadius: 1.5, overflow: "hidden" }}>
-                        <Typography sx={{ px: 1.5, py: 0.75, fontSize: 14, fontWeight: 600, color: "#475569", bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
-                            {t("threadCount", { count: thread.length })}
-                        </Typography>
-                        {thread.map((item) => {
-                            const current = item.seq === detail.seq;
-                            return (
-                                <ButtonBase
-                                    key={item.seq}
-                                    onClick={() => !current && onSelectThreadMessage?.(item.seq)}
-                                    aria-current={current ? "true" : undefined}
-                                    sx={{
-                                        display: "flex",
-                                        width: "100%",
-                                        alignItems: "baseline",
-                                        gap: 1.5,
-                                        px: 1.5,
-                                        py: 1,
-                                        textAlign: "left",
-                                        fontSize: 14,
-                                        bgcolor: current ? "#eff6ff" : "transparent",
-                                        boxShadow: current ? "inset 3px 0 0 #3b82f6" : "none",
-                                        "&:not(:last-of-type)": { borderBottom: "1px solid #f1f5f9" },
-                                        "&:hover": current ? undefined : { bgcolor: "#f8fafc" },
-                                    }}
-                                >
-                                    <Box component="span" sx={{ flexShrink: 0, maxWidth: "40%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: item.is_read ? 500 : 700, color: "#111827" }}>
-                                        {item.folder === "sent" || item.folder === "draft" ? t("meTo", { to: item.to_summary || "" }) : item.from_name || item.from_address || t("noSender")}
-                                    </Box>
-                                    <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#64748b" }}>
-                                        {item.snippet || item.subject || ""}
-                                    </Box>
-                                    <Box component="span" sx={{ flexShrink: 0, color: "#64748b" }}>
-                                        {formatMailListDate(item.date_time)}
-                                    </Box>
-                                </ButtonBase>
-                            );
-                        })}
-                    </Box>
+                    <MailHistoryTable
+                        title={t("threadCount", { count: thread.length })}
+                        items={thread}
+                        currentSeq={detail.seq}
+                        onSelect={onSelectThreadMessage}
+                    />
                 )}
                 {/* 본문 도구 — 내용에 관한 도구(복사·번역)는 본문 바로 위에 둔다(헤더 액션 바는 메일 단위 조작 전용). */}
                 <Stack
@@ -1169,7 +1167,31 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             {translation && showTranslation ? t("showOriginal") : t("translate")}
                         </Button>
                     ) : null}
+                    {/* 주고받은 메일 — 이 메일 말고도 있을 때만(번역 단추와 같은 모양). 누르면 아래에 표가 펴진다. */}
+                    {history && history.total > 1 ? (
+                        <Button
+                            size="small"
+                            variant="outlined"
+                            color="inherit"
+                            startIcon={<HistoryIcon sx={{ fontSize: 18 }} />}
+                            endIcon={historyOpen ? <ExpandLessIcon sx={{ fontSize: 18 }} /> : <ExpandMoreIcon sx={{ fontSize: 18 }} />}
+                            aria-expanded={historyOpen}
+                            onClick={() => setHistoryOpen((v) => !v)}
+                            sx={{ fontSize: "14px", color: "#334155", borderColor: "#cbd5e1" }}
+                        >
+                            {t("historyButton", { count: history.total })}
+                        </Button>
+                    ) : null}
                 </Stack>
+                {historyOpen && history && history.total > 1 ? (
+                    <MailHistoryTable
+                        title={t("historyTitle", { address: history.address })}
+                        items={history.items}
+                        currentSeq={detail.seq}
+                        onSelect={onSelectThreadMessage}
+                        note={history.total > history.items.length ? t("historyRecentOnly", { count: history.items.length, total: history.total }) : undefined}
+                    />
+                ) : null}
                 {/* AI 번역 배너 — 번역본을 보는 동안 안내(16px)와 내용 요약(15px, 길면 개행)을 보여준다. */}
                 {showTranslation && translation ? (
                     <Box

@@ -154,6 +154,9 @@ export const mailApi = {
     /** 이 메일이 든 대화의 메일들(오래된 것부터). markRead 면 같은 폴더의 안 읽은 메일을 함께 읽음으로. */
     getThread: (seq: number, markRead: boolean) =>
         entityAppServer.http.get<ApiOk<{ items: MailThreadItem[] }>>(`/v1/mua/messages/${seq}/thread${toQuery({ mark_read: markRead })}`),
+    /** 이 주소와 주고받은 메일(받은 · 보낸, 최근 것부터 — 2026-11-03). total 은 전체 통수, items 는 최근 limit 통. */
+    getCorrespondence: (address: string, limit = 100) =>
+        entityAppServer.http.get<ApiOk<{ items: MailThreadItem[]; total: number }>>(`/v1/mua/correspondence${toQuery({ address, limit })}`),
     getMessage: (seq: number, markRead: boolean) =>
         entityAppServer.http.get<ApiOk<MailMessageDetail>>(
             `/v1/mua/messages/${seq}${toQuery({ mark_read: markRead })}`
