@@ -442,5 +442,7 @@
     "historyDirection": "Type",
     "historyWho": "From",
     "historySent": "Sent",
-    "historyReceived": "Received"
+    "historyReceived": "Received",
+    "attachmentsLabel": "Files",
+    "attachmentsCountSize": "{{count}} · {{size}}"
 }

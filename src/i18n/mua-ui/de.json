@@ -442,5 +442,7 @@
     "historyDirection": "Art",
     "historyWho": "Von",
     "historySent": "Gesendet",
-    "historyReceived": "Empfangen"
+    "historyReceived": "Empfangen",
+    "attachmentsLabel": "Anhänge",
+    "attachmentsCountSize": "{{count}} · {{size}}"
 }

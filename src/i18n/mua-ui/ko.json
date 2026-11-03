@@ -442,5 +442,7 @@
     "historyDirection": "구분",
     "historyWho": "보낸 사람",
     "historySent": "보냄",
-    "historyReceived": "받음"
+    "historyReceived": "받음",
+    "attachmentsLabel": "첨부",
+    "attachmentsCountSize": "{{count}}개 · {{size}}"
 }

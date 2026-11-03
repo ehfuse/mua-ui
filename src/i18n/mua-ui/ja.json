@@ -442,5 +442,7 @@
     "historyDirection": "区分",
     "historyWho": "差出人",
     "historySent": "送信",
-    "historyReceived": "受信"
+    "historyReceived": "受信",
+    "attachmentsLabel": "添付",
+    "attachmentsCountSize": "{{count}}件 · {{size}}"
 }

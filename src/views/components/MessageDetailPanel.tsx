@@ -223,8 +223,9 @@ function AttachmentsHeader({ messageSeq, subject, attachments }: { messageSeq: n
         }
     };
     return (
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5, fontSize: "13.5px", color: "#475569" }}>
-            <span>{t("attachmentsSummary", { count: attachments.length, size: formatBytes(total) })}</span>
+        // 속성 줄 "첨부" 의 값 첫 줄(2026-11-03 사용자 지시 "정리") — 개수 · 크기 · 전체 내려받기. 칩은 이 아래.
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, fontSize: "15px", lineHeight: "26px", color: "#475569", flexWrap: "wrap" }}>
+            <span>{t("attachmentsCountSize", { count: attachments.length, size: formatBytes(total) })}</span>
             {attachments.length > 1 ? (
                 <>
                     <Box component="span" sx={{ color: "#cbd5e1" }}>
@@ -234,7 +235,7 @@ function AttachmentsHeader({ messageSeq, subject, attachments }: { messageSeq: n
                         onClick={() => void download()}
                         disabled={downloading}
                         sx={{
-                            fontSize: "13.5px",
+                            fontSize: "15px",
                             fontWeight: 600,
                             color: downloading ? "text.disabled" : "primary.main",
                             borderRadius: 0.5,
@@ -901,9 +902,11 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             <MailLabelChips seqs={detail.label_seqs} labels={labels} maxWidth={200} />
                         </Box>
                     ) : null}
+                    {/* 제목과 속성 묶음 사이 구분선 한 줄(2026-11-03 사용자 지시 "정리") — 머리 영역 끝에서 끝까지. */}
+                    <Divider sx={{ mx: -2, mt: 1.5 }} />
                     <Box
                         sx={{
-                            mt: 1,
+                            mt: 1.5,
                             display: "grid",
                             gridTemplateColumns: "72px 1fr",
                             rowGap: 0.4,
@@ -1091,17 +1094,22 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 </Box>
                             </>
                         ) : null}
+                        {/* 첨부도 속성 줄 하나(2026-11-03 사용자 지시 "정리") — 이름 칸 "첨부", 값 칸에 개수 · 크기 · 전체 내려받기와 그 아래 파일 칩.
+                            전에는 첨부만 왼쪽 끝부터 따로 서서 위 속성 줄과 맞춤이 달랐다. */}
+                        {detail.attachments.length > 0 ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>{t("attachmentsLabel")}</Typography>
+                                <Box sx={{ minWidth: 0 }}>
+                                    <AttachmentsHeader messageSeq={detail.seq} subject={String(detail.subject ?? "")} attachments={detail.attachments} />
+                                    <Stack direction="row" useFlexGap spacing={1} sx={{ mt: 0.75, flexWrap: "wrap", minWidth: 0 }}>
+                                        {detail.attachments.map((att) => (
+                                            <AttachmentChip key={att.uuid} messageSeq={detail.seq} attachment={att} />
+                                        ))}
+                                    </Stack>
+                                </Box>
+                            </>
+                        ) : null}
                     </Box>
-                    {detail.attachments.length > 0 ? (
-                        <AttachmentsHeader messageSeq={detail.seq} subject={String(detail.subject ?? "")} attachments={detail.attachments} />
-                    ) : null}
-                    {detail.attachments.length > 0 ? (
-                        <Stack direction="row" useFlexGap spacing={1.5} sx={{ mt: 1, flexWrap: "wrap", minWidth: 0 }}>
-                            {detail.attachments.map((att) => (
-                                <AttachmentChip key={att.uuid} messageSeq={detail.seq} attachment={att} />
-                            ))}
-                        </Stack>
-                    ) : null}
                     {hasRemoteImages && !showRemoteImages ? (
                         <Box
                             sx={{

@@ -442,5 +442,7 @@
     "historyDirection": "Tipo",
     "historyWho": "Da",
     "historySent": "Inviata",
-    "historyReceived": "Ricevuta"
+    "historyReceived": "Ricevuta",
+    "attachmentsLabel": "Allegati",
+    "attachmentsCountSize": "{{count}} · {{size}}"
 }

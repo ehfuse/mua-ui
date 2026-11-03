@@ -442,5 +442,7 @@
     "historyDirection": "Loại",
     "historyWho": "Người gửi",
     "historySent": "Đã gửi",
-    "historyReceived": "Đã nhận"
+    "historyReceived": "Đã nhận",
+    "attachmentsLabel": "Đính kèm",
+    "attachmentsCountSize": "{{count}} tệp · {{size}}"
 }

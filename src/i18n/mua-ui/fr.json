@@ -442,5 +442,7 @@
     "historyDirection": "Type",
     "historyWho": "De",
     "historySent": "Envoyé",
-    "historyReceived": "Reçu"
+    "historyReceived": "Reçu",
+    "attachmentsLabel": "Pièces jointes",
+    "attachmentsCountSize": "{{count}} · {{size}}"
 }
