@@ -128,7 +128,9 @@ export function MailHistoryTable({
     return (
         // 제 층(zIndex 0)에 가둔다 — 표 머리 줄은 스크롤하면 위에 붙는데, 메일 상세 머리(제목 · 보낸 사람, 위에 붙는 zIndex 1)보다 위로 올라와
         // 머리를 덮었다(2026-11-03 사용자 지적). 층을 가두면 표 머리는 메일 머리 뒤로 지나간다.
-        <Box sx={{ mx: 2, mt: 1.5, mb: 1.5, position: "relative", zIndex: 0, minWidth: 0 }}>
+        // 폭 계산에서 빠진다(width 0 + minWidth 100%, 2026-11-03 사용자 지적 "메일 제목이 화면을 밀어낸다") — 상세의 스크롤 상자가 내용 폭에 맞춰
+        // 늘어나는 꼴이라, 한 줄로 자른 긴 제목이 그 폭을 밀어 가로 스크롤이 생겼다. 이렇게 두면 목록은 화면 폭에만 맞춘다(근태 PageTableBox 와 같은 방법).
+        <Box sx={{ mx: 2, mt: 1.5, mb: 1.5, position: "relative", zIndex: 0, width: 0, minWidth: "calc(100% - 32px)" }}>
             {title ? <Typography sx={{ mb: 1, fontSize: 14, fontWeight: 600, color: "#475569" }}>{title}</Typography> : null}
             {isMobile ? mobileList : (
             <Box>
