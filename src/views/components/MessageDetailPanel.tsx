@@ -1132,7 +1132,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 {/* 대화 띠(2026-10-20) — 같은 대화의 메일들(오래된 것부터). 보고 있는 메일을 칠하고, 다른 줄을 누르면 그 메일을 연다. */}
                 {thread.length > 1 && (
                     <MailHistoryTable
-                        title={t("threadCount", { count: thread.length })}
                         items={thread}
                         currentSeq={detail.seq}
                         onSelect={onSelectThreadMessage}

@@ -23,7 +23,8 @@ export function MailHistoryTable({
     onSelect,
     note,
 }: {
-    title: string;
+    /** 표 위 제목 — 없으면 그리지 않는다(같은 대화 표는 제목 없이, 2026-11-03 사용자 지시). */
+    title?: string;
     items: MailThreadEntry[];
     currentSeq: number;
     onSelect?: (seq: number) => void;
@@ -85,7 +86,7 @@ export function MailHistoryTable({
         // 제 층(zIndex 0)에 가둔다 — 표 머리 줄은 스크롤하면 위에 붙는데, 메일 상세 머리(제목 · 보낸 사람, 위에 붙는 zIndex 1)보다 위로 올라와
         // 머리를 덮었다(2026-11-03 사용자 지적). 층을 가두면 표 머리는 메일 머리 뒤로 지나간다.
         <Box sx={{ mx: 2, mt: 1.5, mb: 1.5, position: "relative", zIndex: 0 }}>
-            <Typography sx={{ mb: 1, fontSize: 14, fontWeight: 600, color: "#475569" }}>{title}</Typography>
+            {title ? <Typography sx={{ mb: 1, fontSize: 14, fontWeight: 600, color: "#475569" }}>{title}</Typography> : null}
             <Box>
                 <VirtualDataTable<MailThreadEntry>
                     variant="notion"
