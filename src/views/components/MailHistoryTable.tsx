@@ -90,8 +90,10 @@ export function MailHistoryTable({
     const isMobile = useIsMobile();
     // 폰은 칸 표 대신 두 줄 목록(2026-11-03 사용자 지시) — 1행 제목, 2행 보조 글(받음 · 보냄 · 상대 · 일시). 4칸 표는 폰 폭에서 제목이 반도 안 보였다.
     const mobileList = (
-        <Box sx={{ borderTop: "1px solid #e2e8f0" }}>
-            {items.map((row) => {
+        // 네 변 테두리 · 둥근 모서리로 표처럼 닫는다(2026-11-03 사용자 지시). 가로로 넘치지 않게 폭을 가둔다 — 한 줄로 자르는 글(nowrap)이
+        // 상자 폭을 밀어 화면에 가로 스크롤이 생겼다(minWidth 0 + overflow hidden).
+        <Box sx={{ border: "1px solid #e2e8f0", borderRadius: 1, overflow: "hidden", minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+            {items.map((row, index) => {
                 const current = row.seq === currentSeq;
                 const who = isOutgoing(row) ? t("meTo", { to: row.to_summary || "" }) : row.from_name || row.from_address || t("noSender");
                 return (
@@ -103,7 +105,8 @@ export function MailHistoryTable({
                         sx={{
                             py: 1,
                             px: 1.5,
-                            borderBottom: "1px solid #e2e8f0",
+                            borderBottom: index === items.length - 1 ? "none" : "1px solid #e2e8f0",
+                            minWidth: 0,
                             // 보고 있는 메일 — 표의 고른 줄과 같은 연파랑 바탕 + 왼쪽 파란 선.
                             bgcolor: current ? "#dbeafe" : "transparent",
                             boxShadow: current ? "inset 3px 0 0 #2563eb" : "none",
@@ -124,7 +127,7 @@ export function MailHistoryTable({
     return (
         // 제 층(zIndex 0)에 가둔다 — 표 머리 줄은 스크롤하면 위에 붙는데, 메일 상세 머리(제목 · 보낸 사람, 위에 붙는 zIndex 1)보다 위로 올라와
         // 머리를 덮었다(2026-11-03 사용자 지적). 층을 가두면 표 머리는 메일 머리 뒤로 지나간다.
-        <Box sx={{ mx: 2, mt: 1.5, mb: 1.5, position: "relative", zIndex: 0 }}>
+        <Box sx={{ mx: 2, mt: 1.5, mb: 1.5, position: "relative", zIndex: 0, minWidth: 0 }}>
             {title ? <Typography sx={{ mb: 1, fontSize: 14, fontWeight: 600, color: "#475569" }}>{title}</Typography> : null}
             {isMobile ? mobileList : (
             <Box>
