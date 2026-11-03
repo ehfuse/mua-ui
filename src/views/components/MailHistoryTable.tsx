@@ -92,7 +92,7 @@ export function MailHistoryTable({
     const mobileList = (
         // 네 변 테두리 · 둥근 모서리로 표처럼 닫는다(2026-11-03 사용자 지시). 가로로 넘치지 않게 폭을 가둔다 — 한 줄로 자르는 글(nowrap)이
         // 상자 폭을 밀어 화면에 가로 스크롤이 생겼다(minWidth 0 + overflow hidden).
-        <Box sx={{ border: "1px solid #e2e8f0", borderRadius: 1, overflow: "hidden", minWidth: 0, width: "100%", boxSizing: "border-box" }}>
+        <Box sx={{ border: "1px solid #dedddb", borderRadius: 1, overflow: "hidden", minWidth: 0, width: "100%", boxSizing: "border-box" }}>
             {items.map((row, index) => {
                 const current = row.seq === currentSeq;
                 const who = isOutgoing(row) ? t("meTo", { to: row.to_summary || "" }) : row.from_name || row.from_address || t("noSender");
@@ -105,7 +105,8 @@ export function MailHistoryTable({
                         sx={{
                             py: 1,
                             px: 1.5,
-                            borderBottom: index === items.length - 1 ? "none" : "1px solid #e2e8f0",
+                            // 색은 넓은 화면 표(VDT 노션풍)와 같다 — 바깥 #dedddb · 줄 사이 #e6e6e3(2026-11-03 사용자 지적 "테두리가 너무 흐려").
+                            borderBottom: index === items.length - 1 ? "none" : "1px solid #e6e6e3",
                             minWidth: 0,
                             // 보고 있는 메일 — 표의 고른 줄과 같은 연파랑 바탕 + 왼쪽 파란 선.
                             bgcolor: current ? "#dbeafe" : "transparent",
