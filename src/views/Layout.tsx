@@ -1463,10 +1463,13 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         );
     }
 
+    const desktopFlat = Boolean(muaConfig.desktop?.flat) && !isMobile;
     // 표 설정 — ListLayout 이 그리는 표와 갈래 탭 아래 직접 그리는 표가 같은 값을 쓴다.
     const listTableProps = {
         // 노션풍(2026-11-03 사용자 지시 "메일 목록만 스타일이 다르니 어색하다") — 연락처 · 업무함 · 고객 목록표와 같은 모양 · 같은 줄 높이(48).
         variant: "notion" as const,
+        // 평평하게(config.desktop.flat) — 표 바깥 틀 · 사방 여백 없이.
+        ...(desktopFlat ? { framed: false } : {}),
         columns,
         data: messages,
         totalCount: total,
@@ -1570,6 +1573,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             <ListLayout
                 storageKey="mail-list-layout"
                 header={headerConfig}
+                flat={desktopFlat}
                 // 목록 위 갈래 탭(config.desktop.scopeTabs) — 표 위에 탭을 두려면 표를 직접 그려 leftPanel 로 넘긴다(ListLayout 에 표 위 자리가 없다).
                 {...(desktopScopeTabs ? { leftPanel: scopeTabsPanel } : {})}
                 tableProps={listTableProps}

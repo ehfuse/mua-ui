@@ -160,7 +160,11 @@ export interface MuaConfig {
      * 넓은 화면 목록 머리(0.3.157) — iconToolbar: 검색칸 오른쪽 단추(삭제 · 스팸 · 답장 · 전달 · 읽음 …)를 글 대신 아이콘으로(이름은 툴팁).
      * scopeTabs: 목록 위에 전체 · 안 읽음 · 별표 탭(폰 머리와 같은 갈래) — 켜면 머리의 "안 읽음" 스위치는 감춘다(같은 일을 한다).
      */
-    desktop?: { iconToolbar?: boolean; scopeTabs?: boolean };
+    /**
+     * flat(0.4.56, 기본 false) — 넓은 화면 목록을 평평하게: 머리 · 목록을 한 장 흰 바탕에 구분선으로(mdl ListLayout flat), 표는 바깥 틀 없이(VDT framed=false).
+     * 콘텐츠 여백까지 없애려면 소비처가 메일 화면에서 mdl useContentFullBleed() 를 함께 부른다.
+     */
+    desktop?: { iconToolbar?: boolean; scopeTabs?: boolean; flat?: boolean };
     /**
      * 색상 라벨(0.3.158) — 켜면 목록 행에 라벨 칩, 머리 툴바 [라벨] 단추 · 우클릭 "라벨" 하위 메뉴, 갈래 탭 뒤에 라벨마다 탭,
      * 관리 창의 "라벨" 목록이 생긴다. 서버에 /v1/mua/labels · /v1/mua/messages/labels · 목록 label_seq 거르기가 있어야 한다 —
