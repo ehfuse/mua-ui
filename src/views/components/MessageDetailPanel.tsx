@@ -45,7 +45,7 @@ import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOu
 import { StarRoundedIcon, TrashIcon } from "../../internal/icons";
 import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
-import { ConfirmDialog, ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
+import { ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
 import { useMuaConfig, useMuaSaveBlob } from "../../MuaProvider";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import type {
@@ -315,17 +315,20 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     };
     const [allowRemoteImages, setAllowRemoteImages] = useState(false);
     const toolbarSlot = useContext(DetailToolbarSlotContext);
-    // 스팸 신고/삭제/영구 삭제 확인 팝퍼(앵커 = 누른 아이콘 버튼)
+    // 스팸 신고/삭제/영구 삭제/수신 거부 확인 팝퍼(앵커 = 누른 단추). 수신 거부는 주소를 함께 든다(2026-11-03 — 가운데 확인 창에서 옮겼다).
     const [confirm, setConfirm] = useState<{
         anchorEl: HTMLElement | null;
-        kind: "spam" | "trash" | "delete";
+        kind: "spam" | "trash" | "delete" | "block";
+        address?: string;
     } | null>(null);
     const askConfirm = (kind: "spam" | "trash" | "delete", anchorEl: HTMLElement | null) =>
         setConfirm({ anchorEl, kind });
     const runConfirmed = () => {
         const kind = confirm?.kind;
+        const address = confirm?.address ?? "";
         setConfirm(null);
-        if (kind === "spam") onSpam();
+        if (kind === "block") void blockSender(address);
+        else if (kind === "spam") onSpam();
         else if (kind === "trash") onTrash();
         else if (kind === "delete") onDeleteForever();
     };
@@ -452,13 +455,10 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     // 모바일 상세 창이 제목바 밑에 자리를 줬으면 아이콘 줄을 거기 그린다 — 내려도 늘 보인다(detailToolbarSlot 참고)
     /**
      * 수신 거부(2026-11-03 사용자 지시) — 메일 규칙 "보낸 사람이 이 주소면 → 스팸함(뒤 규칙 중단)" 을 맨 앞에 만들고, 이미 받은 그 사람 메일에도 바로 적용한다.
-     * 규칙 화면에 그대로 남아 거기서 풀 수 있다. 확인을 받고 한다.
+     * 규칙 화면에 그대로 남아 거기서 풀 수 있다. 확인은 누른 단추 옆 팝퍼(askBlock → runConfirmed)로 받는다 — 스팸 신고 · 삭제와 같은 방식.
      */
-    const blockSender = (address: string) => {
-        ConfirmDialog({
-            title: t("blockSender"),
-            message: t("blockSenderConfirm", { address }),
-            onConfirm: async () => {
+    const askBlock = (address: string, anchorEl: HTMLElement | null) => setConfirm({ anchorEl, kind: "block", address });
+    const blockSender = async (address: string) => {
                 try {
                     const created = unwrap(
                         await mailApi.createRule({
@@ -477,8 +477,6 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 } catch (error) {
                     ErrorAlert({ message: error instanceof Error ? error.message : t("blockSenderFailed") });
                 }
-            },
-        });
     };
 
     const placeToolbar = (node: ReactNode) => (embedded && toolbarSlot ? createPortal(node, toolbarSlot) : node);
@@ -790,13 +788,22 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 placement="bottom"
                 zIndex={1400}
                 title={
-                    confirm?.kind === "spam"
+                    confirm?.kind === "block"
+                        ? t("blockSenderAsk")
+                        : confirm?.kind === "spam"
                         ? t("reportSpamConfirm")
                         : confirm?.kind === "delete"
                           ? t("deleteForeverAsk")
                           : t("deleteConfirm")
                 }
-                confirmText={confirm?.kind === "spam" ? t("reportSpam") : confirm?.kind === "delete" ? t("deleteForever") : t("delete")}
+                content={
+                    confirm?.kind === "block" ? (
+                        <Box component="span" sx={{ whiteSpace: "pre-line" }}>
+                            {t("blockSenderConfirm", { address: confirm.address ?? "" })}
+                        </Box>
+                    ) : undefined
+                }
+                confirmText={confirm?.kind === "block" ? t("blockSender") : confirm?.kind === "spam" ? t("reportSpam") : confirm?.kind === "delete" ? t("deleteForever") : t("delete")}
                 cancelText={t("cancel")}
                 onCancel={() => setConfirm(null)}
                 onConfirm={runConfirmed}
@@ -934,7 +941,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                         </>
                                     ) : null}
                                     <ButtonBase
-                                        onClick={() => blockSender(detail.from!.address)}
+                                        onClick={(e) => askBlock(detail.from!.address, e.currentTarget)}
                                         sx={{ fontSize: "13.5px", color: "#dc2626", "&:hover": { textDecoration: "underline", textUnderlineOffset: "3px" } }}
                                     >
                                         {t("blockSender")}
@@ -956,7 +963,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                     <IconButton
                                         size="small"
                                         aria-label={t("blockSender")}
-                                        onClick={() => blockSender(detail.from!.address)}
+                                        onClick={(e) => askBlock(detail.from!.address, e.currentTarget)}
                                         sx={{ p: 0, width: 32, height: 32, color: "#dc2626" }}
                                     >
                                         <BlockOutlinedIcon sx={{ fontSize: 21 }} />
@@ -1088,7 +1095,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                 <Divider />
                 {/* 대화 띠(2026-10-20) — 같은 대화의 메일들(오래된 것부터). 보고 있는 메일을 칠하고, 다른 줄을 누르면 그 메일을 연다. */}
                 {thread.length > 1 && (
-                    <Box sx={{ mx: 2, mb: 1.5, border: "1px solid #e2e8f0", borderRadius: 1.5, overflow: "hidden" }}>
+                    <Box sx={{ mx: 2, mt: 1.5, mb: 1.5, border: "1px solid #e2e8f0", borderRadius: 1.5, overflow: "hidden" }}>
                         <Typography sx={{ px: 1.5, py: 0.75, fontSize: 14, fontWeight: 600, color: "#475569", bgcolor: "#f8fafc", borderBottom: "1px solid #e2e8f0" }}>
                             {t("threadCount", { count: thread.length })}
                         </Typography>

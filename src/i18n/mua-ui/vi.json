@@ -431,6 +431,7 @@
     "downloadingAll": "Đang tải…",
     "addContactShort": "Thêm danh bạ",
     "blockSender": "Chặn",
+    "blockSenderAsk": "Chặn người gửi này?",
     "blockSenderConfirm": "Thư từ {{address}} sẽ được chuyển vào Thư rác, kể cả thư đã nhận.\nBạn có thể bỏ chặn bất cứ lúc nào trong quy tắc thư.",
     "blockSenderRuleName": "Đã chặn: {{address}}",
     "blockSenderDone": "Đã chặn {{address}}.",

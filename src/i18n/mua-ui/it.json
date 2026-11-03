@@ -431,6 +431,7 @@
     "downloadingAll": "Download in corso…",
     "addContactShort": "Aggiungi contatto",
     "blockSender": "Blocca",
+    "blockSenderAsk": "Bloccare questo mittente?",
     "blockSenderConfirm": "Le email da {{address}} verranno spostate nello spam, anche quelle già ricevute.\nPuoi annullare in qualsiasi momento nelle regole.",
     "blockSenderRuleName": "Bloccato: {{address}}",
     "blockSenderDone": "{{address}} è stato bloccato.",

@@ -431,6 +431,7 @@
     "downloadingAll": "ダウンロード中…",
     "addContactShort": "連絡先に登録",
     "blockSender": "受信拒否",
+    "blockSenderAsk": "この送信者を受信拒否しますか？",
     "blockSenderConfirm": "今後 {{address}} からのメールは迷惑メールに移動します。受信済みのメールも移動します。\nメールルールでいつでも解除できます。",
     "blockSenderRuleName": "受信拒否: {{address}}",
     "blockSenderDone": "{{address}} を受信拒否しました。",

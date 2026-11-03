@@ -431,6 +431,7 @@
     "downloadingAll": "Téléchargement…",
     "addContactShort": "Ajouter le contact",
     "blockSender": "Bloquer",
+    "blockSenderAsk": "Bloquer cet expéditeur ?",
     "blockSenderConfirm": "Les e-mails de {{address}} seront déplacés dans les spams, y compris ceux déjà reçus.\nVous pouvez annuler à tout moment dans les règles.",
     "blockSenderRuleName": "Bloqué : {{address}}",
     "blockSenderDone": "{{address}} a été bloqué.",
