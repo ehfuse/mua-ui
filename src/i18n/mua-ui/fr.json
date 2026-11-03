@@ -425,5 +425,6 @@
     "usernamePlaceholder": "Laisser vide pour utiliser l'adresse e-mail",
     "viewPasswordRequired": "Mot de passe de consultation *",
     "viewableUntil": "Consultable jusqu'à {{time}}",
-    "word": "Mot"
+    "word": "Mot",
+    "downloadAllAttachments": "Tout télécharger (ZIP)"
 }

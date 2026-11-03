@@ -297,6 +297,8 @@ export declare const mailApi: {
      * ES 파일 직링크(fileDownload("mail_message", …))는 서버가 막는다 — 메일 첨부는 비공개라 404 가 났다(0.4.39).
      */
     downloadAttachment: (messageSeq: number, uuid: string) => Promise<ArrayBuffer>;
+    /** 첨부 전체를 zip 하나로 받는다(2026-11-03). */
+    downloadAllAttachments: (messageSeq: number) => Promise<ArrayBuffer>;
 };
 /** 응답에서 data 를 꺼내고 실패면 throw 한다. */
 export declare function unwrap<T>(res: ApiOk<T> | null | undefined, fallbackMessage: string): T;

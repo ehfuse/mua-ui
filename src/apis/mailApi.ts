@@ -294,6 +294,8 @@ export const mailApi = {
      */
     downloadAttachment: (messageSeq: number, uuid: string) =>
         entityAppServer.requestBinary("GET", `/v1/mua/messages/${messageSeq}/attachments/${encodeURIComponent(uuid)}`),
+    /** 첨부 전체를 zip 하나로 받는다(2026-11-03). */
+    downloadAllAttachments: (messageSeq: number) => entityAppServer.requestBinary("GET", `/v1/mua/messages/${messageSeq}/attachments.zip`),
 };
 
 /** 응답에서 data 를 꺼내고 실패면 throw 한다. */

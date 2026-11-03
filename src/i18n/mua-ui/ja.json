@@ -425,5 +425,6 @@
     "usernamePlaceholder": "未入力の場合はメールアドレスを使用",
     "viewPasswordRequired": "閲覧パスワード *",
     "viewableUntil": "{{time}}まで閲覧可能",
-    "word": "単語"
+    "word": "単語",
+    "downloadAllAttachments": "すべてダウンロード (ZIP)"
 }

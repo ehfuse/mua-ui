@@ -425,5 +425,6 @@
     "usernamePlaceholder": "Để trống để dùng địa chỉ email",
     "viewPasswordRequired": "Mật khẩu xem *",
     "viewableUntil": "Có thể xem đến {{time}}",
-    "word": "Từ"
+    "word": "Từ",
+    "downloadAllAttachments": "Tải tất cả (ZIP)"
 }

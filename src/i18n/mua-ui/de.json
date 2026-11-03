@@ -425,5 +425,6 @@
     "usernamePlaceholder": "Leer lassen, um E-Mail-Adresse zu verwenden",
     "viewPasswordRequired": "Passwort für Ansicht *",
     "viewableUntil": "Einsehbar bis {{time}}",
-    "word": "Wort"
+    "word": "Wort",
+    "downloadAllAttachments": "Alle herunterladen (ZIP)"
 }

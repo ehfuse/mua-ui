@@ -197,6 +197,37 @@ function AttachmentChip({ messageSeq, attachment }: { messageSeq: number; attach
     );
 }
 
+/**
+ * 첨부 전체 내려받기(2026-11-03 사용자 지시 "첨부파일을 zip 으로 전체 다운로드") — 첨부가 둘 이상일 때 첨부 칩 줄 끝에 선다.
+ * 서버가 묶은 zip 하나를 받는다. 모양은 첨부 칩과 같은 칩(아이콘 · 글자 크기 · 테두리)이다.
+ */
+function DownloadAllChip({ messageSeq, subject }: { messageSeq: number; subject: string }) {
+    const [downloading, setDownloading] = useState(false);
+    const saveBlob = useMuaSaveBlob();
+    const download = async () => {
+        setDownloading(true);
+        try {
+            const bytes = await mailApi.downloadAllAttachments(messageSeq);
+            const name = `${(subject.trim() || "attachments").replace(/[\\/:*?"<>|]/g, "_").slice(0, 100)}.zip`;
+            await saveBlob(new Blob([bytes], { type: "application/zip" }), name);
+        } catch (error) {
+            ErrorAlert({ message: error instanceof Error ? error.message : t("attachmentDownloadFailed") });
+        } finally {
+            setDownloading(false);
+        }
+    };
+    return (
+        <Chip
+            icon={downloading ? <CircularProgress size={14} /> : <DownloadOutlinedIcon sx={{ fontSize: 20 }} />}
+            label={t("downloadAllAttachments")}
+            variant="outlined"
+            onClick={() => void download()}
+            disabled={downloading}
+            sx={{ fontSize: "13.5px", color: "#111", pl: 0.75, "& .MuiChip-icon": { ml: 0.5, color: "text.secondary" } }}
+        />
+    );
+}
+
 /** 메시지별 AI 번역 캐시(세션 메모리) — 같은 메일을 다시 열어도 LLM 을 또 부르지 않는다. */
 const translationCache = new Map<number, MailTranslation>();
 
@@ -943,6 +974,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                             {detail.attachments.map((att) => (
                                 <AttachmentChip key={att.uuid} messageSeq={detail.seq} attachment={att} />
                             ))}
+                            {detail.attachments.length > 1 ? <DownloadAllChip messageSeq={detail.seq} subject={String(detail.subject ?? "")} /> : null}
                         </Stack>
                     ) : null}
                     {hasRemoteImages && !showRemoteImages ? (

@@ -425,5 +425,6 @@
     "usernamePlaceholder": "비우면 메일 주소를 사용",
     "viewPasswordRequired": "열람 비밀번호 *",
     "viewableUntil": "{{time}}까지 열람",
-    "word": "단어"
+    "word": "단어",
+    "downloadAllAttachments": "전체 내려받기 (ZIP)"
 }
