@@ -129,12 +129,21 @@ export const setFilters =
         }
     };
 
-/** 목록을 읽는다. append=true 면 다음 페이지를 이어 붙인다. */
+/** 다시 채울 때 한 번에 받는 최대 쪽 수 — 서버 목록 limit 상한(200)을 넘지 않게. */
+const REFILL_MAX_PAGES = 4;
+
+/**
+ * 목록을 읽는다. append=true 면 다음 페이지를 이어 붙인다.
+ * refill=N 이면 처음부터 N줄을 덮을 만큼(쪽 단위, 최대 200줄) 한 번에 다시 받는다 — 지우거나 옮겨 줄이 빠진 뒤 빈자리를 채운다
+ * (2026-11-04 사용자 지시 "50개 중 20개를 지우면 나머지 30개가 더 채워지도록"). 쪽 번호는 받은 쪽 수로 맞춰 다음 이어 받기가 건너뛰지 않는다.
+ */
 export const loadMessages =
     () =>
-    async (context: ActionContext<MailState>, options?: { append?: boolean; silent?: boolean }): Promise<void> => {
+    async (context: ActionContext<MailState>, options?: { append?: boolean; silent?: boolean; refill?: number }): Promise<void> => {
         const filters = context.getValue("filters") as MailFilters;
         const append = Boolean(options?.append);
+        const refillPages =
+            !append && options?.refill ? Math.min(REFILL_MAX_PAGES, Math.max(1, Math.ceil(options.refill / MAIL_PAGE_SIZE))) : 0;
         const page = append ? (Number(context.getValue("page")) || 0) + 1 : 1;
         const requestSeq = ++latestListRequestSeq;
         if (!options?.silent) context.setValue("loadingList", true);
@@ -146,7 +155,7 @@ export const loadMessages =
                     folder: filters.folder,
                     mail_folder_seq: filters.folder === "custom" ? filters.mailFolderSeq : undefined,
                     page,
-                    limit: MAIL_PAGE_SIZE,
+                    limit: refillPages ? refillPages * MAIL_PAGE_SIZE : MAIL_PAGE_SIZE,
                     search: filters.search,
                     unread: filters.unreadOnly,
                     starred: filters.starredOnly,
@@ -178,7 +187,7 @@ export const loadMessages =
                 context.setValue("messages", items);
             }
             context.setValue("total", (Number(data.total) || 0) + kept || items.length);
-            context.setValue("page", page);
+            context.setValue("page", refillPages || page);
         } catch (error) {
             if (requestSeq !== latestListRequestSeq) return;
             context.setValue("error", messageOf(error, t("loadListFailed")));
@@ -346,9 +355,8 @@ export const applyMessageAction =
     ): Promise<boolean> => {
         const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
         if (targets.length === 0) return false;
-        // 묶은 목록에서 대화의 머리 한 통만 따로 처리했다 — 같은 대화의 다른 메일이 남아 있으면 그 줄이 다시 보이게 목록을 새로 받는다.
+        // 처리 전 받아 둔 줄 — 지우거나 옮긴 뒤 이만큼 다시 채운다.
         const rows = context.getValue("messages") as MailMessageListItem[];
-        const singleOfThread = !threads && rows.some((row) => targets.includes(row.seq) && Number(row.thread_count ?? 1) > 1);
         try {
             unwrap(await mailApi.bulkMessages(targets, action, move, threads), t("actionFailed"));
         } catch (error) {
@@ -390,7 +398,9 @@ export const applyMessageAction =
                           ? t("bulkRestored", { count })
                           : t("bulkDeletedForever", { count })
             );
-            if (singleOfThread) void loadMessages()(context, { silent: true });
+            // 빠진 줄만큼 뒤 메일을 채운다 — 받아 둔 줄 수만큼 처음부터 다시 받는다. 그대로 두면 목록이 비거나(50개를 다 지움),
+            // 다음 이어 받기가 지운 수만큼 뒤 메일을 건너뛰었다(쪽 번호 · 오프셋 기준). 대화 머리 한 통만 처리한 경우도 이걸로 다시 보인다.
+            void loadMessages()(context, { silent: true, refill: rows.length });
         }
         return true;
     };
