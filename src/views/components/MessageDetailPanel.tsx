@@ -6,6 +6,7 @@ import { intlTag, t } from "../../i18n";
 import { useCallback, useContext, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { DetailToolbarSlotContext } from "../../internal/detailToolbarSlot";
+import { MobileListLoadingSpinner } from "../../internal/mobileParts";
 import {
     Box,
     Button,
@@ -467,6 +468,9 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     }, [detailSeq, hasReceipts]);
 
     if (loading && !detail) {
+        // 폰(embedded — 상세 다이얼로그 안)은 감싼 상자에 높이가 없어 height 100% 가 납작해지고 스피너가 위쪽에 잘려 보였다
+        // (2026-11-05 업무함 메일 알림 딥링크). 목록과 같은 화면 가운데 고정 스피너(소비처 loadingSpinner 슬롯)를 쓴다.
+        if (embedded) return <MobileListLoadingSpinner />;
         return (
             <Box sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CircularProgress size={28} />

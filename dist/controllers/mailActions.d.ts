@@ -10,10 +10,15 @@ export declare function resetKeptReadMessages(): void;
 export declare const loadAccounts: () => (context: ActionContext<MailState>) => Promise<MailAccount[]>;
 /** 필터를 바꾼다(목록 재조회는 Layout 의 effect 가 필터 변화를 보고 호출한다). */
 export declare const setFilters: () => (context: ActionContext<MailState>, patch: Partial<MailFilters>) => void;
-/** 목록을 읽는다. append=true 면 다음 페이지를 이어 붙인다. */
+/**
+ * 목록을 읽는다. append=true 면 다음 페이지를 이어 붙인다.
+ * refill=N 이면 처음부터 N줄을 덮을 만큼(쪽 단위, 최대 200줄) 한 번에 다시 받는다 — 지우거나 옮겨 줄이 빠진 뒤 빈자리를 채운다
+ * (2026-11-04 사용자 지시 "50개 중 20개를 지우면 나머지 30개가 더 채워지도록"). 쪽 번호는 받은 쪽 수로 맞춰 다음 이어 받기가 건너뛰지 않는다.
+ */
 export declare const loadMessages: () => (context: ActionContext<MailState>, options?: {
     append?: boolean;
     silent?: boolean;
+    refill?: number;
 }) => Promise<void>;
 /** 폴더/계정 건수를 읽고 계정별 미읽음도 갱신한다. */
 export declare const loadCounts: () => (context: ActionContext<MailState>) => Promise<void>;
