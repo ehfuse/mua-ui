@@ -28,26 +28,45 @@ function subscribe(listener: () => void): () => void {
     return () => listeners.delete(listener);
 }
 
+/**
+ * 주소록을 읽는다 — 편지를 처음 열 때 한 번(0.4.63). 예전에는 이 훅이 붙자마자 읽어, 앱 전체에 붙은 MailManageHost 때문에
+ * 메일을 열지 않아도 화면을 띄울 때마다 주소록 500건을 받았다. 같은 때 여러 곳이 불러도 한 번만 나간다.
+ * 이 창에서 주소록에 더한 것은 addContact 가 집합에 바로 넣는다.
+ */
+let contactsLoaded = false;
+let contactsInFlight: Promise<void> | null = null;
+function loadContacts(): Promise<void> {
+    if (contactsLoaded) return Promise.resolve();
+    if (contactsInFlight) return contactsInFlight;
+    contactsInFlight = mailApi
+        .listContacts("")
+        .then((res) => {
+            if (!res || res.ok === false) return;
+            contactsLoaded = true;
+            setContactEmails(new Set((res.data?.items ?? []).map((c) => c.email.toLowerCase())));
+        })
+        .catch(() => undefined)
+        .finally(() => {
+            contactsInFlight = null;
+        });
+    return contactsInFlight;
+}
+
+/** 다음에 편지를 열 때 주소록을 새로 읽게 한다 — 메일 화면에 들어올 때 부른다(그 사이 주소록 화면에서 더하거나 지웠을 수 있다). */
+export function invalidateSenderContacts(): void {
+    contactsLoaded = false;
+}
+
 /** 보낸 사람 주소록 상태 — 편지의 보낸 주소와, 그 편지를 받은 계정(공용이면 공용 주소록에 추가)을 받는다. */
 export function useSenderContacts(fromAddress: string | null | undefined, account: MailAccount | null | undefined) {
     const logined = useMuaLogined();
     const emails = useSyncExternalStore(subscribe, () => contactEmails);
-    useEffect(() => {
-        if (!logined) return;
-        let cancelled = false;
-        void mailApi
-            .listContacts("")
-            .then((res) => {
-                if (cancelled || !res || res.ok === false) return;
-                setContactEmails(new Set((res.data?.items ?? []).map((c) => c.email.toLowerCase())));
-            })
-            .catch(() => undefined);
-        return () => {
-            cancelled = true;
-        };
-    }, [logined]);
-
     const address = String(fromAddress ?? "").toLowerCase();
+    // 편지가 열렸을 때(보낸 주소가 있을 때)만 읽는다.
+    useEffect(() => {
+        if (logined && address) void loadContacts();
+    }, [logined, address]);
+
     const known = Boolean(address) && emails.has(address);
 
     /** 보낸 사람 → 주소록 추가(같은 주소가 이미 있으면 안내만 하고 아이콘을 감춘다). */

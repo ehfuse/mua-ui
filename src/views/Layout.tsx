@@ -24,7 +24,7 @@ import { isMailSidebarFilled, markMailSidebarFilled, takeMailEntry } from "../in
 import { DefaultMobileCardListLayout, DefaultMobileDetailDialog } from "../internal/mobileDefaults";
 import { MOBILE_EDGE_GAP, MobileListLoadingMoreSpinner, findScrollParent } from "../internal/mobileParts";
 import { useMuaConfig, useMuaLogined } from "../MuaProvider";
-import { useSenderContacts } from "../controllers/senderContacts";
+import { invalidateSenderContacts, useSenderContacts } from "../controllers/senderContacts";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime, type MailChangedData } from "../apis/useMailRealtime";
@@ -439,6 +439,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     );
 
     // 보낸 사람이 주소록에 없으면 "주소록 추가" 아이콘을 보이고, 있으면 외부 이미지를 차단하지 않는다(신뢰 발신자).
+    // 메일 화면에 들어오면 주소록을 새로 읽게 한다(편지를 열 때 읽는다 — 0.4.63).
+    useEffect(() => {
+        invalidateSenderContacts();
+    }, []);
     const { canAddContact, trustedSender, addContact: handleAddContact } = useSenderContacts(detail?.from?.address, detailAccount);
 
     // 헤더 ⚙ = 관리 다이얼로그의 계정 탭 — 다이얼로그 자체는 MailManageHost 가 그린다.
