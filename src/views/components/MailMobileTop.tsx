@@ -166,7 +166,33 @@ export function MailMobileTop({
                                     </Box>
                                 </>
                             ) : tab.key === "unread" && unreadCount > 0 ? (
-                                `${tab.label} ${unreadCount}`
+                                // 안 읽은 메일이 있으면 넓은 화면 탭(Layout 0.4.64)과 같은 꼴 — 글자는 검정 · 굵게(고른 탭이면 탭 색 파랑), 수는 파란 알약.
+                                // 숫자를 글 뒤에 회색으로 붙이면 다른 탭과 구별되지 않았다(2026-11-08 사용자 지시 "모바일에서도 진하게").
+                                <>
+                                    <Box component="span" sx={{ color: selected ? "inherit" : "text.primary", fontWeight: 700 }}>
+                                        {tab.label}
+                                    </Box>
+                                    <Box
+                                        component="span"
+                                        aria-label={t("unreadCount", { count: unreadCount })}
+                                        sx={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            bgcolor: "primary.main",
+                                            color: "#fff",
+                                            borderRadius: "10px",
+                                            px: "6px",
+                                            minWidth: 18,
+                                            height: 18,
+                                            fontSize: mfs(11),
+                                            fontWeight: 700,
+                                            lineHeight: "normal",
+                                        }}
+                                    >
+                                        {unreadCount > 99 ? "99+" : unreadCount}
+                                    </Box>
+                                </>
                             ) : (
                                 tab.label
                             )}
