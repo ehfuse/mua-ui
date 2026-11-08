@@ -972,8 +972,10 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 )}
                             </Typography>
                             {/* 주소록 추가 · 수신 거부(2026-11-03 사용자 지정 — 넓은 화면은 "주소 등록 | 수신 거부" 글자 단추, 폰은 아이콘).
-                                주소록 추가는 주소록에 없는 보낸 사람에게만. 줄 높이(26px)에 맞춘다. */}
-                            {detail.from && !embedded ? (
+                                주소록 추가는 주소록에 없는 보낸 사람에게만. 줄 높이(26px)에 맞춘다.
+                                수신 거부도 주소록에 있는 보낸 사람에게는 내지 않는다(2026-11-08 사용자 지적 "이미 주소록에 등록한 주소는 수신 거부 아이콘이 나오면 안 되지") —
+                                그래서 주소록에 있으면 이 묶음 전체가 없다(주소록 추가도 이미 없다). */}
+                            {detail.from && !embedded && !trustedSender ? (
                                 <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, flexShrink: 0, fontSize: "13.5px", lineHeight: "26px" }}>
                                     {onAddContact ? (
                                         <>
@@ -996,7 +998,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                     </ButtonBase>
                                 </Box>
                             ) : null}
-                            {detail.from && embedded ? (
+                            {detail.from && embedded && !trustedSender ? (
                                 <Box component="span" sx={{ display: "inline-flex", flexShrink: 0, mt: "-3px" }}>
                                     {onAddContact ? (
                                         <IconButton
