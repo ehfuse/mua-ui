@@ -7,7 +7,6 @@ import { t } from "../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Box, Button, Fab, IconButton, Tab, Tabs, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LabelIcon from "@mui/icons-material/Label";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import { VirtualDataTable, type DataColumn } from "@ehfuse/mui-virtual-data-table";
@@ -542,7 +541,7 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                         zIndex: 40,
                     }}
                 >
-                    <EditOutlinedIcon />
+                    <AddIcon />
                 </Fab>
                 {dialogs}
             </>

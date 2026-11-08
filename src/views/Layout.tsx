@@ -10,7 +10,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as R
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Box, Button, Checkbox, Drawer, Fab, Portal, Stack, Typography } from "@mui/material";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import EditIcon from "@mui/icons-material/Edit";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
 import { VirtualDataTable } from "@ehfuse/mui-virtual-data-table";
 import { Tab, Tabs } from "@mui/material";
@@ -1439,7 +1438,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         zIndex: 40,
                     }}
                 >
-                    <EditIcon />
+                    <AddIcon />
                 </Fab>
                 {/* 상세 — 서브페이지 위에 한 겹 더 뜨는 mfd 슬라이드(뒤로가기 한 번에 상세만 닫힌다). */}
                 <MobileDetailDialog
