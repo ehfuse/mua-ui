@@ -1530,7 +1530,42 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 sx={{ minHeight: 44, flex: 1, minWidth: 0, "& .MuiTab-root": { minHeight: 44, fontSize: 14.5, px: 2.5 } }}
             >
                 <Tab value="all" label={t("all")} />
-                <Tab value="unread" label={desktopUnread > 0 ? t("unreadCount", { count: desktopUnread }) : t("unread")} />
+                {/* 안 읽은 메일이 있으면 글자를 검정 · 굵게, 수는 알약으로(0.4.64) — 숫자를 글 뒤에 붙이면 다른 탭과 같은 회색 글이라 눈에 띄지 않았다.
+                    알약 모양은 앱 사이드바 메일 배지와 같은 값(파랑 바탕 · 흰 글 · 높이 18 · 11px 굵게). 고른 탭이면 글자는 탭 색(파랑)을 따른다. */}
+                <Tab
+                    value="unread"
+                    label={
+                        desktopUnread > 0 ? (
+                            <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                                <Box component="span" sx={{ color: desktopScope === "unread" ? "inherit" : "text.primary", fontWeight: 700 }}>
+                                    {t("unread")}
+                                </Box>
+                                <Box
+                                    component="span"
+                                    aria-label={t("unreadCount", { count: desktopUnread })}
+                                    sx={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        bgcolor: "primary.main",
+                                        color: "#fff",
+                                        borderRadius: "10px",
+                                        px: "6px",
+                                        minWidth: 18,
+                                        height: 18,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        lineHeight: "normal",
+                                    }}
+                                >
+                                    {desktopUnread > 99 ? "99+" : desktopUnread}
+                                </Box>
+                            </Box>
+                        ) : (
+                            t("unread")
+                        )
+                    }
+                />
                 {/* 별표는 글 대신 노란 별(0.3.158) — 목록 행의 켜진 별과 같은 아이콘 · 같은 노랑이라 무엇을 거르는 탭인지 바로 보인다. */}
                 <Tab
                     value="starred"
