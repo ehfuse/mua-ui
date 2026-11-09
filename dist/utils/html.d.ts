@@ -2,6 +2,12 @@ import type { MailMessageDetail } from "../models/types";
 /** 본문 HTML 을 안전하게 정제한다. allowRemoteImages 가 false 면 외부 이미지를 막는다. */
 export declare function sanitizeMailHtml(html: string, allowRemoteImages: boolean): string;
 /**
+ * 표로 짠 메일(뉴스레터 · 안내 메일)인지 본다 — 글의 대부분(80% 이상)이 표 안에 있을 때만 그렇다.
+ * 표가 하나라도 있으면 레이아웃 메일로 보던 것을 고쳤다(2026-11-09 — 본문은 평범한 글이고 맨 아래 서명만 표인 메일이
+ * 폰에서 좌우 여백 없이 화면 끝에 붙었다).
+ */
+export declare function isLayoutMail(html: string): boolean;
+/**
  * 정제된 본문을 iframe srcDoc 용 문서로 감싼다(링크는 새 창, 폭 넘침 방지).
  * `upgrade-insecure-requests` — 메일 본문의 `http://` 이미지는 https 앱(특히 앱 웹뷰)에서 혼합 콘텐츠로
  * 조용히 차단돼 깨진 아이콘만 남는다(2026-09-03 국세청 홈택스 발급 메일: 이미지 11개 전부 http://srtk.hometax.go.kr).

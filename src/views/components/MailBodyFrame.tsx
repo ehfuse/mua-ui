@@ -5,7 +5,7 @@ import { t } from "../../i18n";
 
 import { useEffect, useMemo, useRef } from "react";
 import { Box } from "@mui/material";
-import { sanitizeMailHtml, wrapMailDocument, wrapWideTables } from "../../utils/html";
+import { isLayoutMail, sanitizeMailHtml, wrapMailDocument, wrapWideTables } from "../../utils/html";
 import { useMuaConfig } from "../../MuaProvider";
 
 interface MailBodyFrameProps {
@@ -31,8 +31,8 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
     const openExternalRef = useRef(openExternalUrl);
     openExternalRef.current = openExternalUrl;
     const srcDoc = useMemo(
-        // 표가 있는 HTML 은 레이아웃 메일로 보고 폰 폭에서 좌우 여백을 뺀다(html.ts mua-layout).
-        () => wrapMailDocument(html ? sanitizeMailHtml(html, allowRemoteImages) : textToHtml(text), { layout: !!html && /<table[\s>]/i.test(html) }),
+        // 표로 짠 메일(글 대부분이 표 안)만 폰 폭에서 좌우 여백을 뺀다(html.ts isLayoutMail · mua-layout).
+        () => wrapMailDocument(html ? sanitizeMailHtml(html, allowRemoteImages) : textToHtml(text), { layout: isLayoutMail(html) }),
         [html, text, allowRemoteImages]
     );
 

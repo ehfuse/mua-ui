@@ -27,6 +27,22 @@ export function sanitizeMailHtml(html: string, allowRemoteImages: boolean): stri
 }
 
 /**
+ * 표로 짠 메일(뉴스레터 · 안내 메일)인지 본다 — 글의 대부분(80% 이상)이 표 안에 있을 때만 그렇다.
+ * 표가 하나라도 있으면 레이아웃 메일로 보던 것을 고쳤다(2026-11-09 — 본문은 평범한 글이고 맨 아래 서명만 표인 메일이
+ * 폰에서 좌우 여백 없이 화면 끝에 붙었다).
+ */
+export function isLayoutMail(html: string): boolean {
+    if (!html || !/<table[\s>]/i.test(html)) return false;
+    if (typeof DOMParser === "undefined") return true;
+    const body = new DOMParser().parseFromString(html, "text/html").body;
+    const count = (el: Element) => (el.textContent ?? "").replace(/\s+/g, "").length;
+    const total = count(body);
+    if (total === 0) return true;
+    body.querySelectorAll("table").forEach((t) => t.remove());
+    return count(body) / total < 0.2;
+}
+
+/**
  * 정제된 본문을 iframe srcDoc 용 문서로 감싼다(링크는 새 창, 폭 넘침 방지).
  * `upgrade-insecure-requests` — 메일 본문의 `http://` 이미지는 https 앱(특히 앱 웹뷰)에서 혼합 콘텐츠로
  * 조용히 차단돼 깨진 아이콘만 남는다(2026-09-03 국세청 홈택스 발급 메일: 이미지 11개 전부 http://srtk.hometax.go.kr).
@@ -58,7 +74,7 @@ body.mua-fit{overflow-wrap:break-word;}
 .mua-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
 blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e1;color:#475569;}
 /* mua-layout — 표로 짠 메일(뉴스레터 · 안내 메일)은 제 여백 · 배경이 있어, 폰 폭에서는 좌우 여백을 빼 화면 끝까지 쓴다
-   (2026-11-09 사용자 지시 "메일 상세 본문 양쪽 여백 제거" — 우리 16px 에 메일 자신의 여백이 겹쳐 본문이 좁았다). 평문 · 짧은 HTML 은 그대로 16px. */
+   (2026-11-09 사용자 지시 "메일 상세 본문 양쪽 여백 제거" — 우리 16px 에 메일 자신의 여백이 겹쳐 본문이 좁았다). 평문 · 글 위주 HTML(서명만 표인 메일 등)은 그대로 16px — isLayoutMail. */
 @media (max-width:599px){body.mua-layout{padding-left:0;padding-right:0;}}
 </style></head><body${layout ? ' class="mua-layout"' : ""}>${bodyHtml}</body></html>`;
 }
