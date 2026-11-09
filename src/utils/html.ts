@@ -32,7 +32,7 @@ export function sanitizeMailHtml(html: string, allowRemoteImages: boolean): stri
  * 조용히 차단돼 깨진 아이콘만 남는다(2026-09-03 국세청 홈택스 발급 메일: 이미지 11개 전부 http://srtk.hometax.go.kr).
  * 이 지시로 브라우저가 이미지·링크 요청을 https 로 올려 보낸다(https 가 없는 서버는 어차피 차단되던 것이라 손해 없음).
  */
-export function wrapMailDocument(bodyHtml: string): string {
+export function wrapMailDocument(bodyHtml: string, { layout = false }: { layout?: boolean } = {}): string {
     return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests"><base target="_blank">
 <style>
 body{margin:0;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;font-size:14px;line-height:1.6;color:#111;word-break:break-word;}
@@ -57,7 +57,10 @@ body.mua-fit{overflow-wrap:break-word;}
    그 표만 제자리에서 가로로 민다. 스크롤 막대가 표 바로 아래에 서므로 마우스로도 잡아 끌 수 있다. */
 .mua-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;}
 blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e1;color:#475569;}
-</style></head><body>${bodyHtml}</body></html>`;
+/* mua-layout — 표로 짠 메일(뉴스레터 · 안내 메일)은 제 여백 · 배경이 있어, 폰 폭에서는 좌우 여백을 빼 화면 끝까지 쓴다
+   (2026-11-09 사용자 지시 "메일 상세 본문 양쪽 여백 제거" — 우리 16px 에 메일 자신의 여백이 겹쳐 본문이 좁았다). 평문 · 짧은 HTML 은 그대로 16px. */
+@media (max-width:599px){body.mua-layout{padding-left:0;padding-right:0;}}
+</style></head><body${layout ? ' class="mua-layout"' : ""}>${bodyHtml}</body></html>`;
 }
 
 /**

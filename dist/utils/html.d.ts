@@ -7,7 +7,9 @@ export declare function sanitizeMailHtml(html: string, allowRemoteImages: boolea
  * 조용히 차단돼 깨진 아이콘만 남는다(2026-09-03 국세청 홈택스 발급 메일: 이미지 11개 전부 http://srtk.hometax.go.kr).
  * 이 지시로 브라우저가 이미지·링크 요청을 https 로 올려 보낸다(https 가 없는 서버는 어차피 차단되던 것이라 손해 없음).
  */
-export declare function wrapMailDocument(bodyHtml: string): string;
+export declare function wrapMailDocument(bodyHtml: string, { layout }?: {
+    layout?: boolean;
+}): string;
 /**
  * 화면 폭보다 넓은 표를 가로 스크롤 상자(.mua-scroll)로 감싼다(2026-10-12).
  *

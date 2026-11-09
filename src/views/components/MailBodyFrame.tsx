@@ -31,7 +31,8 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
     const openExternalRef = useRef(openExternalUrl);
     openExternalRef.current = openExternalUrl;
     const srcDoc = useMemo(
-        () => wrapMailDocument(html ? sanitizeMailHtml(html, allowRemoteImages) : textToHtml(text)),
+        // 표가 있는 HTML 은 레이아웃 메일로 보고 폰 폭에서 좌우 여백을 뺀다(html.ts mua-layout).
+        () => wrapMailDocument(html ? sanitizeMailHtml(html, allowRemoteImages) : textToHtml(text), { layout: !!html && /<table[\s>]/i.test(html) }),
         [html, text, allowRemoteImages]
     );
 
