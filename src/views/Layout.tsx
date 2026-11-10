@@ -846,12 +846,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             />
         ) : null;
 
-    // 보기 타입(데스크탑) — 목록형(드로어) / 분할화면(오른쪽 패널). 브라우저별 기억.
+    // 보기 타입(데스크탑) — 분할화면(오른쪽 패널) / 목록형(드로어). 브라우저별 기억. 고른 적이 없으면 분할(0.4.71 — 그 전에는 목록형).
     const [viewMode, setViewMode] = useState<MailViewMode>(() => {
         try {
-            return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === "split" ? "split" : "list";
+            return window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) === "list" ? "list" : "split";
         } catch {
-            return "list";
+            return "split";
         }
     });
     // 계정에 저장된 보기 타입을 받아 적용한다(로컬 값은 첫 그림용).

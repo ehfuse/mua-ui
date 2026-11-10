@@ -67,20 +67,21 @@ export function MailHeaderActions({
                 <OptionToggleGroup<MailViewMode>
                     value={viewMode}
                     onChange={(next) => next && onViewModeChange(next)}
+                    // 분할형이 먼저(0.4.71, 업무함 사용자 지시 "좌우분할형이 기본 · 버튼도 분할형이 먼저").
                     options={[
-                        {
-                            value: "list",
-                            label: (
-                                <Tooltip title={t("listView")}>
-                                    <FormatListBulletedIcon fontSize="small" />
-                                </Tooltip>
-                            ),
-                        },
                         {
                             value: "split",
                             label: (
                                 <Tooltip title={t("splitView")}>
                                     <VerticalSplitOutlinedIcon fontSize="small" />
+                                </Tooltip>
+                            ),
+                        },
+                        {
+                            value: "list",
+                            label: (
+                                <Tooltip title={t("listView")}>
+                                    <FormatListBulletedIcon fontSize="small" />
                                 </Tooltip>
                             ),
                         },
