@@ -444,5 +444,6 @@
     "historySent": "Envoyé",
     "historyReceived": "Reçu",
     "attachmentsLabel": "Pièces jointes",
-    "attachmentsCountSize": "{{count}} · {{size}}"
+    "attachmentsCountSize": "{{count}} · {{size}}",
+    "me": "Moi"
 }

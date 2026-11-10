@@ -444,5 +444,6 @@
     "historySent": "보냄",
     "historyReceived": "받음",
     "attachmentsLabel": "첨부",
-    "attachmentsCountSize": "{{count}}개 · {{size}}"
+    "attachmentsCountSize": "{{count}}개 · {{size}}",
+    "me": "나"
 }

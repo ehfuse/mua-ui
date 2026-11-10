@@ -444,5 +444,6 @@
     "historySent": "送信",
     "historyReceived": "受信",
     "attachmentsLabel": "添付",
-    "attachmentsCountSize": "{{count}}件 · {{size}}"
+    "attachmentsCountSize": "{{count}}件 · {{size}}",
+    "me": "自分"
 }

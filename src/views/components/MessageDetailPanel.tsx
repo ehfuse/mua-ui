@@ -62,9 +62,15 @@ import type {
     MailReceipt,
     MailLabel,
     MailThreadEntry,
+    MailState,
+    MailAccount,
+    MailAddress,
 } from "../../models/types";
 import { formatAddressLabel, formatAddressList, formatBytes, formatMailFullDate, formatMailListDate, sendStateColor, sendStateLabel } from "../../utils/format";
 import { MailBodyFrame } from "./MailBodyFrame";
+import { useGlobalFormaState } from "@ehfuse/forma";
+import { MAIL_STATE_ID } from "../../controllers/mailController";
+import { defaultMailState } from "../../models/defaults";
 import { MailLabelChips, labelColor } from "./MailLabels";
 import LabelIcon from "@mui/icons-material/Label";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -331,6 +337,9 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     ).trim();
     const [history, setHistory] = useState<{ address: string; items: MailThreadEntry[]; total: number } | null>(null);
     const [historyOpen, setHistoryOpen] = useState(false);
+    // 메일 계정 목록(메일 화면이 채운 전역 상태) — 숨은참조로 받은 메일에 "어느 내 주소로 받았는지" 를 적는다.
+    const mailState = useGlobalFormaState<MailState>({ stateId: MAIL_STATE_ID, initialValues: defaultMailState, autoCleanup: false });
+    const mailAccounts = (mailState.useValue("accounts") as MailAccount[] | undefined) ?? [];
     useEffect(() => {
         if (!counterpart) {
             setHistory(null);
@@ -491,6 +500,16 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
     // 내 서명 로고(외부 주소)까지 막혀 보낸 메일에서만 로고가 안 보였다.
     const ownOutgoing = detail.folder === "sent" || detail.folder === "draft" || detail.prev_folder === "sent";
     const showRemoteImages = allowRemoteImages || trustedSender || ownOutgoing;
+    // 숨은참조 칸(2026-11-10 사용자 지시 "숨은참조로 받았다는 게 보여야지 받는 사람이 아니고").
+    // 받은 메일에 받는 사람 · 참조가 모두 없으면 숨은참조(BCC)로 받은 것이다(GitHub 알림처럼 To 헤더 없이 오는 메일) —
+    // "받는 사람 -" 대신 이 메일을 받은 내 계정 주소를 숨은참조로 적는다. 내가 보낸 메일은 내가 넣은 숨은참조를 그대로 보인다.
+    const blindReceived = !ownOutgoing && detail.to.length === 0 && detail.cc.length === 0;
+    const myAccount = mailAccounts.find((account) => account.seq === detail.mail_account_seq);
+    const bccShown: MailAddress[] = ownOutgoing
+        ? detail.bcc
+        : blindReceived
+          ? [myAccount ? { name: "", address: myAccount.email } : { name: "", address: t("me") }]
+          : [];
     const hasAttachments = detail.attachments.length > 0;
     // 주고받은 메일에서 이미 위에 보이는 메일은 뺀다(2026-11-03 사용자 지시) — 같은 대화 표가 있으면 그 메일들, 없으면 지금 보는 메일.
     const shownAbove = new Set(thread.length > 1 ? thread.map((item) => item.seq) : [detail.seq]);
@@ -1021,12 +1040,16 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 </Box>
                             ) : null}
                         </Box>
-                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
-                            {t("to")}
-                        </Typography>
-                        <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
-                            {formatAddressList(detail.to) || "-"}
-                        </Typography>
+                        {detail.to.length > 0 || bccShown.length === 0 ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                                    {t("to")}
+                                </Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
+                                    {formatAddressList(detail.to) || "-"}
+                                </Typography>
+                            </>
+                        ) : null}
                         {detail.cc.length > 0 ? (
                             <>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
@@ -1034,6 +1057,16 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                                 </Typography>
                                 <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
                                     {formatAddressList(detail.cc)}
+                                </Typography>
+                            </>
+                        ) : null}
+                        {bccShown.length > 0 ? (
+                            <>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", color: "#475569" }}>
+                                    {t("bcc")}
+                                </Typography>
+                                <Typography sx={{ fontSize: "15px", lineHeight: "26px", wordBreak: "break-all" }}>
+                                    {formatAddressList(bccShown)}
                                 </Typography>
                             </>
                         ) : null}

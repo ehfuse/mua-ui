@@ -444,5 +444,6 @@
     "historySent": "Đã gửi",
     "historyReceived": "Đã nhận",
     "attachmentsLabel": "Đính kèm",
-    "attachmentsCountSize": "{{count}} tệp · {{size}}"
+    "attachmentsCountSize": "{{count}} tệp · {{size}}",
+    "me": "Tôi"
 }

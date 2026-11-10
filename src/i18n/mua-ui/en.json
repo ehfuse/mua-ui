@@ -444,5 +444,6 @@
     "historySent": "Sent",
     "historyReceived": "Received",
     "attachmentsLabel": "Files",
-    "attachmentsCountSize": "{{count}} · {{size}}"
+    "attachmentsCountSize": "{{count}} · {{size}}",
+    "me": "Me"
 }

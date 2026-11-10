@@ -444,5 +444,6 @@
     "historySent": "Gesendet",
     "historyReceived": "Empfangen",
     "attachmentsLabel": "Anhänge",
-    "attachmentsCountSize": "{{count}} · {{size}}"
+    "attachmentsCountSize": "{{count}} · {{size}}",
+    "me": "Ich"
 }

@@ -444,5 +444,6 @@
     "historySent": "已发送",
     "historyReceived": "已接收",
     "attachmentsLabel": "附件",
-    "attachmentsCountSize": "{{count}} 个 · {{size}}"
+    "attachmentsCountSize": "{{count}} 个 · {{size}}",
+    "me": "我"
 }
