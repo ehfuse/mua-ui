@@ -8,8 +8,7 @@ import { t } from "../i18n";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Box, Button, Checkbox, Drawer, Fab, Portal, Stack, Typography } from "@mui/material";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { Box, Checkbox, Drawer, Fab, Portal, Stack, Typography } from "@mui/material";
 import { ListLayout } from "@ehfuse/mui-dashboard-layout";
 import { VirtualDataTable } from "@ehfuse/mui-virtual-data-table";
 import { Tab, Tabs } from "@mui/material";
@@ -927,17 +926,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         controller,
         isMobile,
         // 모바일은 헤더가 검색 오버레이라 새 메일은 우하단 FAB, 동기화/설정은 목록 위 툴바가 맡는다.
-        left: isMobile ? undefined : (
-            <Button
-                variant="contained"
-                color="primary"
-                startIcon={<EditOutlinedIcon />}
-                onClick={handleCompose}
-                disabled={accounts.length === 0}
-            >
-                {t("compose")}
-            </Button>
-        ),
+        // 넓은 화면의 [새 메일] 단추는 뺐다(0.4.70, 업무함 사용자 지시 "헤더에 버튼이 중복") — 앱 사이드바 머리 판의 [새 메일]이 맡는다
+        // (requestMailCompose — 작성 창은 MailManageHost 가 그린다).
+        left: undefined,
         toolbar: isMobile ? undefined : bulkBar,
         right: isMobile ? undefined : headerActions,
     });
