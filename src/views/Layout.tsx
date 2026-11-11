@@ -65,6 +65,7 @@ import { MailMobileTop } from "./components/MailMobileTop";
 import type { ComponentType, ReactNode } from "react";
 import type { MuaMobileCardListLayoutProps } from "../types/config";
 import { MailMobileList } from "./components/MailMobileList";
+import { labelScopeOf, labelsInScope } from "../models/labelScope";
 import { MailMobileOwnScroll } from "./components/MailMobileOwnScroll";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
@@ -213,7 +214,15 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 색상 라벨(config.labels) — 켠 앱만 라벨 API 를 부르고 칩 · 탭 · 메뉴를 그린다(서버가 옛 것인 앱은 지금 화면 그대로).
     const labelsEnabled = Boolean(muaConfig.labels);
     const storedLabels = state.useValue("labels") as MailLabel[];
-    const labels = useMemo(() => (labelsEnabled ? storedLabels : []), [labelsEnabled, storedLabels]);
+    // 모든 라벨(칩을 찾을 때) · 지금 보는 메일함의 라벨 묶음(탭 · 머리 메뉴 · 새 라벨) — 공용 메일함은 그 메일함의 공용 라벨(2026-11-11).
+    const allLabels = useMemo(() => (labelsEnabled ? storedLabels : []), [labelsEnabled, storedLabels]);
+    const labelScope = labelScopeOf(allAccounts, filters.mailAccountSeq);
+    const labels = useMemo(() => labelsInScope(allLabels, labelScope), [allLabels, labelScope]);
+    /** 메일 한 통에 달 수 있는 라벨 — 그 메일의 메일함 묶음(공용 메일이면 그 공용 라벨). */
+    const labelsForRow = useCallback(
+        (row: { mail_account_seq: number }) => labelsInScope(allLabels, labelScopeOf(allAccounts, row.mail_account_seq)),
+        [allLabels, allAccounts]
+    );
     useEffect(() => {
         if (labelsEnabled && logined) void state.actions.loadLabels();
     }, [labelsEnabled, logined, state.actions]);
@@ -662,7 +671,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 행의 라벨 단추로 연 메뉴(0.3.159) — 그 한 통만 대상이다(체크와 무관).
     // 행 단추는 메뉴를 여는 순간 목록이 다시 그려지며 갈아끼워진다 — 단추 대신 누른 때의 단추 아래 좌표를 쥔다.
     const [rowLabelMenu, setRowLabelMenu] = useState<{ position: { top: number; left: number }; row: MailMessageListItem } | null>(null);
-    const [labelForm, setLabelForm] = useState<{ applyTo: number[] } | null>(null);
+    // scope — 새 라벨을 만들 묶음(공용 메일함 seq, 0 = 개인).
+    const [labelForm, setLabelForm] = useState<{ applyTo: number[]; scope: number } | null>(null);
     const toggleLabel = useCallback(
         (seqs: number[], label: MailLabel, add: boolean) =>
             void state.actions.applyLabels(seqs, add ? [label.seq] : [], add ? [] : [label.seq]),
@@ -671,7 +681,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     /** 라벨 하위 메뉴(우클릭) — 그 메일에 단 라벨은 체크, 누르면 달거나 뗀다. 맨 아래 "새 라벨 만들기". */
     const labelContextChildren = useCallback(
         (row: MailMessageListItem): ContextMenuItem<MailMessageListItem>[] => [
-            ...labels.map((label) => {
+            ...labelsForRow(row).map((label) => {
                 const on = Boolean(row.label_seqs?.includes(label.seq));
                 return {
                     label: label.name,
@@ -682,11 +692,11 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             {
                 label: t("createLabel"),
                 icon: <AddIcon fontSize="small" />,
-                dividerBefore: labels.length > 0,
-                onClick: (target: MailMessageListItem) => setLabelForm({ applyTo: [target.seq] }),
+                dividerBefore: labelsForRow(row).length > 0,
+                onClick: (target: MailMessageListItem) => setLabelForm({ applyTo: [target.seq], scope: labelScopeOf(allAccounts, target.mail_account_seq) }),
             },
         ],
-        [labels, toggleLabel]
+        [labelsForRow, toggleLabel, allAccounts]
     );
     const contextMenuItems = useMemo<ContextMenuItem<MailMessageListItem>[]>(
         () => [
@@ -947,7 +957,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 filters.search,
                 // 분할형에서 상세가 열려 목록이 좁아지면 미리보기를 숨겨 제목이 잘 보이게 한다
                 !(isSplit && (Boolean(detail) || loadingDetail)),
-                labels,
+                allLabels,
                 labelsEnabled
                     ? (row, anchorEl) => {
                           const rect = anchorEl.getBoundingClientRect();
@@ -969,7 +979,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             isSplit,
             detail,
             loadingDetail,
-            labels,
+            allLabels,
             labelsEnabled,
         ]
     );
@@ -1083,7 +1093,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             thread={thread}
             onSelectThreadMessage={(seq) => void state.actions.selectMessage(seq)}
             // 상세의 라벨 단추 — 목록 행 단추와 같은 메뉴(달기·떼기·새 라벨·관리)를 그 메일 하나에 띄운다.
-            labels={labelsEnabled ? labels : undefined}
+            labels={labelsEnabled ? allLabels : undefined}
             onOpenLabelMenu={labelsEnabled ? (position) => detail && setRowLabelMenu({ position, row: detail }) : undefined}
             onClose={() => (windowMessageSeq > 0 ? window.close() : state.actions.clearSelection())}
             // 새 창으로 열기(0.4.12) — 소비처가 openMessageWindow 를 줄 때만, 메일 창 안에서는 숨긴다. 열면 이 상세는 닫는다.
@@ -1154,24 +1164,29 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         labels={labels}
                         states={labelCheckStates(checkedRows, labels)}
                         onToggle={(label, add) => toggleLabel(checkedRows.map((row) => row.seq), label, add)}
-                        onCreate={() => setLabelForm({ applyTo: checkedRows.map((row) => row.seq) })}
+                        onCreate={() => setLabelForm({ applyTo: checkedRows.map((row) => row.seq), scope: labelScope })}
                         onManage={() => requestMailManage("labels")}
                     />
                     <MailLabelMenu
                         anchorPosition={rowLabelMenu?.position ?? null}
                         onClose={() => setRowLabelMenu(null)}
-                        labels={labels}
+                        // 그 메일의 메일함 묶음 — 공용 메일이면 그 공용 라벨.
+                        labels={rowLabelMenu ? labelsForRow(rowLabelMenu.row) : labels}
                         // 메뉴가 떠 있는 동안 단 라벨이 바뀌면 체크도 따라가게 — 목록의 지금 행에서 읽는다.
-                        states={labelCheckStates(rowLabelMenu ? [messages.find((m) => m.seq === rowLabelMenu.row.seq) ?? rowLabelMenu.row] : [], labels)}
+                        states={labelCheckStates(
+                            rowLabelMenu ? [messages.find((m) => m.seq === rowLabelMenu.row.seq) ?? rowLabelMenu.row] : [],
+                            rowLabelMenu ? labelsForRow(rowLabelMenu.row) : labels
+                        )}
                         onToggle={(label, add) => rowLabelMenu && toggleLabel([rowLabelMenu.row.seq], label, add)}
                         onCreate={() => {
-                            if (rowLabelMenu) setLabelForm({ applyTo: [rowLabelMenu.row.seq] });
+                            if (rowLabelMenu) setLabelForm({ applyTo: [rowLabelMenu.row.seq], scope: labelScopeOf(allAccounts, rowLabelMenu.row.mail_account_seq) });
                             setRowLabelMenu(null);
                         }}
                         onManage={() => requestMailManage("labels")}
                     />
                     <MailLabelFormDialog
                         open={Boolean(labelForm)}
+                        mailAccountSeq={labelForm?.scope ?? 0}
                         onClose={() => setLabelForm(null)}
                         onSaved={(label) => {
                             const applyTo = labelForm?.applyTo ?? [];
@@ -1385,7 +1400,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         checkedSeqs={checkedSeqs}
                         onToggleCheck={toggleChecked}
                         onRowContextMenu={handleCardContextMenu}
-                        labels={labels}
+                        labels={allLabels}
                     />
                 ) : (
                 <MobileListShell
@@ -1408,7 +1423,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                             onToggleCheck={toggleChecked}
                             onRowContextMenu={handleCardContextMenu}
                             bleed={edgeBleed}
-                            labels={labels}
+                            labels={allLabels}
                         />
                         {/* 무한 스크롤 sentinel — 뷰포트(또는 다이얼로그 스크롤러)에 들어오면 다음 페이지 */}
                         {loadingMore ? <MobileListLoadingMoreSpinner /> : null}

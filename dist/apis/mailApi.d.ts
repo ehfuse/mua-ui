@@ -146,6 +146,7 @@ export declare const mailApi: {
     createLabel: (body: {
         name: string;
         color: string;
+        mail_account_seq?: number;
     }) => Promise<ApiOk<MailLabel>>;
     /** 라벨 이름·색 고치기 */
     updateLabel: (seq: number, body: {

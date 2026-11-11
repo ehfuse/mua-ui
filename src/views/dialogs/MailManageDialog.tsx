@@ -50,7 +50,8 @@ interface MailManageDialogProps {
     onAddRule: () => void; // 규칙 추가
     onEditRule: (rule: MailRule) => void; // 규칙 수정
     onRulesChanged: () => void; // 규칙 변경 후
-    labels?: MailLabel[]; // 색상 라벨(config.labels — 라벨 목록)
+    labels?: MailLabel[]; // 색상 라벨(config.labels — 라벨 목록, 지금 메일함의 묶음)
+    labelScope?: number; // 새 라벨을 만들 묶음 — 공용 메일함 seq(0 = 개인 라벨, 2026-11-11)
     onLabelsChanged?: (items?: MailLabel[]) => void; // 라벨 변경 후(items 가 있으면 그 목록이 새 것)
 }
 
@@ -73,6 +74,7 @@ export function MailManageDialog({
     onEditRule,
     onRulesChanged,
     labels = [],
+    labelScope = 0,
     onLabelsChanged,
 }: MailManageDialogProps) {
     // 모바일은 풀스크린 우→좌 슬라이드(서브페이지 위에 한 겹 더 뜬다).
@@ -210,7 +212,7 @@ export function MailManageDialog({
                 onClose={() => setFolderAddOpen(false)}
                 onChanged={onFoldersChanged}
             />
-            <MailLabelFormDialog open={labelAddOpen} onClose={() => setLabelAddOpen(false)} onSaved={() => onLabelsChanged?.()} />
+            <MailLabelFormDialog open={labelAddOpen} mailAccountSeq={labelScope} onClose={() => setLabelAddOpen(false)} onSaved={() => onLabelsChanged?.()} />
         </>
     );
 }

@@ -225,12 +225,15 @@ export function MailLabelFormDialog({
     onClose,
     onSaved,
     api = mailLabelApi,
+    mailAccountSeq = 0,
 }: {
     open: boolean;
     label?: MailLabel | null;
     onClose: () => void;
     onSaved: (label: MailLabel) => void;
     api?: LabelApi;
+    /** 새로 만들 때 — 공용 메일함 seq 면 그 메일함의 공용 라벨로 만든다(0 = 개인 라벨, 2026-11-11). */
+    mailAccountSeq?: number;
 }) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
@@ -253,7 +256,10 @@ export function MailLabelFormDialog({
             const saved =
                 isEdit && label
                     ? unwrap(await api.update(label.seq, { name: next, color }), t("labelSaveFailed"))
-                    : unwrap(await api.create({ name: next, color }), t("labelCreateFailed"));
+                    : unwrap(
+                          await api.create(mailAccountSeq > 0 ? { name: next, color, mail_account_seq: mailAccountSeq } : { name: next, color }),
+                          t("labelCreateFailed")
+                      );
             onClose();
             onSaved(saved);
         } catch (error) {
@@ -261,7 +267,7 @@ export function MailLabelFormDialog({
         } finally {
             setBusy(false);
         }
-    }, [name, color, busy, isEdit, label, onClose, onSaved, api]);
+    }, [name, color, busy, isEdit, label, onClose, onSaved, api, mailAccountSeq]);
 
     const preview: MailLabel = { seq: 0, name: name.trim() || t("label"), color, sort_no: 0 };
     const saveButton = (

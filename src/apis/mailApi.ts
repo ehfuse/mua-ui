@@ -191,7 +191,8 @@ export const mailApi = {
     /** 내 색상 라벨(순서대로) — config.labels 를 켠 앱만 부른다 */
     listLabels: () => entityAppServer.http.get<ApiOk<{ items: MailLabel[] }>>("/v1/mua/labels"),
     /** 라벨 만들기(맨 뒤) — 같은 이름이면 ok:false */
-    createLabel: (body: { name: string; color: string }) => entityAppServer.http.post<ApiOk<MailLabel>>("/v1/mua/labels", body),
+    // mail_account_seq — 주면 그 공용 메일함의 공용 라벨로 만든다(0 · 없음 = 개인 라벨).
+    createLabel: (body: { name: string; color: string; mail_account_seq?: number }) => entityAppServer.http.post<ApiOk<MailLabel>>("/v1/mua/labels", body),
     /** 라벨 이름·색 고치기 */
     updateLabel: (seq: number, body: { name?: string; color?: string }) =>
         entityAppServer.http.patch<ApiOk<MailLabel>>(`/v1/mua/labels/${seq}`, body),

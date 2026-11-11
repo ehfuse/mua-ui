@@ -18,10 +18,11 @@ import { Box, Drawer } from "@mui/material";
 import { ConfirmDialog, ErrorAlert } from "@ehfuse/alerts";
 import { useModal } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
+import { labelScopeOf, labelsInScope } from "../models/labelScope";
 import { useMailController } from "../controllers/mailController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
 import { useSenderContacts } from "../controllers/senderContacts";
-import type { MailAccount, MailLabel, MailListFolder, MailMessageDetail, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
+import type { MailAccount, MailFilters, MailLabel, MailListFolder, MailMessageDetail, MailRule, MailRuleFormPrefill, MailUserFolder } from "../models/types";
 import { MAIL_FOLDER_LABELS } from "../models/subPage";
 import { useMuaConfig } from "../MuaProvider";
 import { useIsMobile } from "../internal/useIsMobile";
@@ -43,7 +44,11 @@ export function MailManageHost() {
     const allAccounts = state.useValue("accounts") as MailAccount[];
     const allFolders = state.useValue("folders") as MailUserFolder[];
     const rules = state.useValue("rules") as MailRule[];
-    const labels = state.useValue("labels") as MailLabel[];
+    const storedLabels = state.useValue("labels") as MailLabel[];
+    // 라벨 관리는 지금 메일 화면에서 보는 메일함의 묶음 — 공용 메일함이면 그 공용 라벨(같이 쓰는 사람 모두의 것, 2026-11-11).
+    const filters = state.useValue("filters") as MailFilters;
+    const labelScope = labelScopeOf(allAccounts, filters.mailAccountSeq);
+    const labels = useMemo(() => labelsInScope(storedLabels, labelScope), [storedLabels, labelScope]);
     const syncingSeqs = state.useValue("syncingSeqs") as number[];
     // 규칙 폼의 이동 대상은 보기 범위 메일함만(메일 화면과 같다).
     const folders = useMemo(() => allFolders.filter((f) => f.in_sidebar !== false), [allFolders]);
@@ -301,6 +306,7 @@ export function MailManageHost() {
                 onEditRule={(rule) => setRuleEditing({ rule, prefill: null })}
                 onRulesChanged={refreshRules}
                 labels={labels}
+                labelScope={labelScope}
                 onLabelsChanged={(items) => {
                     // 순서 바꾸기는 새 목록을 돌려받는다 — 그대로 쓰고, 그 밖(만들기·고치기·지우기)은 다시 읽는다.
                     if (items) state.setValue("labels", items);

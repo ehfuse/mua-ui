@@ -109,6 +109,7 @@ export interface MailMessageListItem {
 /** 색상 라벨(사람마다) — 서버 mail_label */
 export interface MailLabel {
     seq: number; // 라벨 seq
+    mail_account_seq?: number; // 0 · 없음 = 개인 라벨, 그 외 = 이 공용 메일함의 공용 라벨(같이 쓰는 사람 모두가 쓴다 — 2026-11-11)
     name: string; // 이름
     color: string; // 칩 바탕색 #rrggbb
     sort_no: number; // 순서
@@ -227,7 +228,7 @@ export interface MailState {
     thread: MailThreadEntry[]; // 열어 본 메일이 든 대화의 메일들(오래된 것부터, 한 통뿐이면 빈 배열 — 2026-10-20)
     counts: MailFolderCounts; // 폴더 건수(현재 계정 범위)
     syncingSeqs: number[]; // 동기화 중인 메일 계정 seq 목록(계정별 표시)
-    labels: MailLabel[]; // 내 색상 라벨(config.labels 를 켰을 때만 읽는다)
+    labels: MailLabel[]; // 색상 라벨 — 내 개인 라벨 + 내가 쓰는 공용 메일함의 공용 라벨(config.labels 를 켰을 때만 읽는다)
     lastAccountSeq: number; // 마지막으로 고른 보내는 계정(mail_preference.last_account_seq 사본 — 새 메일 기본값)
     error: string; // 목록 오류
 }

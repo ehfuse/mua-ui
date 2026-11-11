@@ -100,6 +100,7 @@ export interface MailMessageListItem {
 /** 색상 라벨(사람마다) — 서버 mail_label */
 export interface MailLabel {
     seq: number;
+    mail_account_seq?: number;
     name: string;
     color: string;
     sort_no: number;
