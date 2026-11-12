@@ -15,12 +15,13 @@ import type { MailLabel } from "../../models/types";
 
 /**
  * 고르는 색 9가지 — 사람마다 아무 색이나 고르게 두면 칩 글자가 안 읽히는 색(연노랑 바탕에 흰 글자 등)이 생긴다.
- * 칩은 색 바탕 + 흰 글자라 흰 글자가 읽히는 진한 쪽만 둔다(노랑도 갈색에 가까운 진한 노랑).
+ * 칩은 색 바탕 + 흰 글자라 흰 글자가 읽히는 진한 쪽만 둔다. 노랑만 밝은 노랑 + 검은 글자다(labelTextColor) —
+ * 예전 노랑(#b45309)은 갈색에 가까워 "노랑이 노랑이 아니다" 는 지적을 받았다(2026-11-12, 0.4.76).
  */
 export const LABEL_COLORS: { color: string; name: string }[] = [
     { color: "#dc2626", get name() { return t("colorRed"); } },
     { color: "#ea580c", get name() { return t("colorOrange"); } },
-    { color: "#b45309", get name() { return t("colorYellow"); } },
+    { color: "#eab308", get name() { return t("colorYellow"); } },
     { color: "#16a34a", get name() { return t("colorGreen"); } },
     { color: "#0d9488", get name() { return t("colorTeal"); } },
     { color: "#2563eb", get name() { return t("colorBlue"); } },
@@ -37,8 +38,15 @@ export function labelTextColor(hex: string): string {
     return 0.299 * r + 0.587 * g + 0.114 * b > 0.62 ? "#0f172a" : "#fff";
 }
 
+/** 예전 노랑(갈색에 가까움) — 이미 이 색으로 만든 라벨도 새 노랑으로 보이게 그리는 쪽에서 바꾼다(저장된 값은 그대로). */
+const OLD_YELLOW = "#b45309";
+const YELLOW = "#eab308";
+
 /** 라벨 색(빈 값이면 회색) */
-export const labelColor = (label: Pick<MailLabel, "color">) => label.color || "#64748b";
+export const labelColor = (label: Pick<MailLabel, "color">) => {
+    const color = label.color || "#64748b";
+    return color.toLowerCase() === OLD_YELLOW ? YELLOW : color;
+};
 
 /** 라벨 칩 — 목록 행의 제목 앞(지메일처럼 색 바탕 · 이름). 글자는 앱 규칙(14px 이상)에 맞춰 14px. */
 export function MailLabelChip({ label, maxWidth = 120 }: { label: MailLabel; maxWidth?: number }) {
