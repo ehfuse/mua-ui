@@ -192,6 +192,11 @@ export interface MailFilters {
     unreadOnly: boolean; // 미읽음만
     starredOnly: boolean; // 중요만
     labelSeq: number; // 색상 라벨 하나만(0 = 거르지 않음) — 갈래 탭의 라벨 탭
+    /**
+     * 라벨 탭 하나가 함께 거르는 같은 이름 라벨들(0.4.74) — 전체 보기에서 개인 "계약" 과 공용 메일함의 "계약" 이 탭 하나다.
+     * labelSeq 가 들어 있을 때만 쓴다(아니면 labelSeq 하나로 거른다).
+     */
+    labelGroup?: number[];
 }
 
 /** 페이지 크기 */

@@ -45,6 +45,7 @@ export interface ListMessagesParams {
     unread?: boolean; // 미읽음만
     starred?: boolean; // 중요만
     label_seq?: number; // 색상 라벨 하나만(0/생략 = 거르지 않음) — 휴지통·스팸함이 아니면 서버가 전 폴더에서 찾는다
+    label_seqs?: string; // 같은 이름 라벨 여럿("1,2" — 0.4.74, 전체 보기의 합친 라벨 탭). 옛 서버는 무시하고 label_seq 하나로 거른다
     thread?: boolean; // 대화로 묶어 받기(2026-10-20) — 대화마다 한 줄, total 은 대화 수(임시보관 · 예약은 서버가 묶지 않는다)
 }
 

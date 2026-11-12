@@ -19,6 +19,7 @@ export interface ListMessagesParams {
     unread?: boolean;
     starred?: boolean;
     label_seq?: number;
+    label_seqs?: string;
     thread?: boolean;
 }
 /** 대화 안의 메일 한 통(본문 없이 머리만) — GET /messages/:seq/thread */

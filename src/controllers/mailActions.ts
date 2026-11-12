@@ -160,6 +160,11 @@ export const loadMessages =
                     unread: filters.unreadOnly,
                     starred: filters.starredOnly,
                     label_seq: filters.labelSeq > 0 ? filters.labelSeq : undefined,
+                    // 합친 라벨 탭(같은 이름의 개인 · 공용 라벨)이면 모두로 거른다 — labelSeq 가 그 묶음에 들어 있을 때만.
+                    label_seqs:
+                        filters.labelSeq > 0 && (filters.labelGroup?.length ?? 0) > 1 && filters.labelGroup?.includes(filters.labelSeq)
+                            ? filters.labelGroup.join(",")
+                            : undefined,
                     // 대화로 묶어 받는다(2026-10-20) — 같은 대화(답장 · 사본)는 한 줄, total 은 대화 수다.
                     thread: true,
                 }),

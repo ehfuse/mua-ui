@@ -65,7 +65,7 @@ import { MailMobileTop } from "./components/MailMobileTop";
 import type { ComponentType, ReactNode } from "react";
 import type { MuaMobileCardListLayoutProps } from "../types/config";
 import { MailMobileList } from "./components/MailMobileList";
-import { labelScopeOf, labelsInScope } from "../models/labelScope";
+import { labelGroupOf, labelScopeOf, labelsInScope, tabLabelsOf } from "../models/labelScope";
 import { MailMobileOwnScroll } from "./components/MailMobileOwnScroll";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
@@ -218,6 +218,22 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const allLabels = useMemo(() => (labelsEnabled ? storedLabels : []), [labelsEnabled, storedLabels]);
     const labelScope = labelScopeOf(allAccounts, filters.mailAccountSeq);
     const labels = useMemo(() => labelsInScope(allLabels, labelScope), [allLabels, labelScope]);
+    // 갈래 탭의 라벨(0.4.74) — 전체 보기면 개인 + 내가 쓰는 공용 메일함의 공용 라벨(같은 이름은 하나). 달기 메뉴는 위 labels(메일함마다) 그대로.
+    const tabLabels = useMemo(() => tabLabelsOf(allLabels, allAccounts, filters.mailAccountSeq), [allLabels, allAccounts, filters.mailAccountSeq]);
+    /** 라벨 탭을 골랐다 — 같은 이름 라벨 묶음까지 함께 거른다. */
+    const pickLabelTab = useCallback(
+        (labelSeq: number) => ({ labelSeq, labelGroup: labelGroupOf(allLabels, allAccounts, filters.mailAccountSeq, labelSeq) }),
+        [allLabels, allAccounts, filters.mailAccountSeq]
+    );
+    // 새로고침으로 기억한 라벨 탭 · 라벨 목록이 늦게 온 경우 — 묶음을 다시 맞추고, 고른 seq 가 탭 대표가 아니면 대표로 바꾼다.
+    useEffect(() => {
+        if (!(filters.labelSeq > 0) || allLabels.length === 0) return;
+        const group = labelGroupOf(allLabels, allAccounts, filters.mailAccountSeq, filters.labelSeq);
+        const head = tabLabels.find((label) => group.includes(label.seq));
+        const labelSeq = head ? head.seq : filters.labelSeq;
+        if (labelSeq !== filters.labelSeq || group.join(",") !== (filters.labelGroup ?? []).join(",")) state.actions.setFilters({ labelSeq, labelGroup: group });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters.labelSeq, filters.mailAccountSeq, allLabels, allAccounts, tabLabels]);
     /** 메일 한 통에 달 수 있는 라벨 — 그 메일의 메일함 묶음(공용 메일이면 그 공용 라벨). */
     const labelsForRow = useCallback(
         (row: { mail_account_seq: number }) => labelsInScope(allLabels, labelScopeOf(allAccounts, row.mail_account_seq)),
@@ -359,7 +375,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 필터가 바뀌면 목록·건수 재조회
     // 사용자 메일함 번호(mailFolderSeq)도 열쇠에 든다(2026-10-21) — 빠져 있어 메일함끼리 옮기면(광고 → 정보) 목록은 비우고 "불러오는 중" 만 켠 채
     // 다시 받지 않아, 다음 실시간 갱신까지 스피너만 돌았다.
-    const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.mailFolderSeq}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}`;
+    const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.mailFolderSeq}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}|${(filters.labelGroup ?? []).join(",")}`;
     // 받은 목록을 거르기별로 적어 두고, 다시 받는 동안(비어 있을 때) 그것을 보인다 — 폰 자기 스크롤 목록만 쓴다
     // 실제로 받은 뒤(읽는 중 → 끝)거나 목록이 있을 때만 적는다 — 화면을 막 연 빈 상태로 덮어쓰지 않게
     const listWasLoading = useRef(false);
@@ -1247,7 +1263,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         {inlineMobileTop && (
                             <MailMobileTop
                                 scope={
-                                    filters.labelSeq > 0 && labels.some((l) => l.seq === filters.labelSeq)
+                                    filters.labelSeq > 0 && tabLabels.some((l) => l.seq === filters.labelSeq)
                                         ? "label"
                                         : filters.unreadOnly
                                           ? "unread"
@@ -1256,9 +1272,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                                             : "all"
                                 }
                                 onScopeChange={(scope) => state.actions.setFilters({ unreadOnly: scope === "unread", starredOnly: scope === "starred", labelSeq: 0 })}
-                                labels={labelsEnabled ? labels : undefined}
+                                labels={labelsEnabled ? tabLabels : undefined}
                                 labelSeq={filters.labelSeq}
-                                onLabelChange={(labelSeq) => state.actions.setFilters({ unreadOnly: false, starredOnly: false, labelSeq })}
+                                onLabelChange={(labelSeq) => state.actions.setFilters({ unreadOnly: false, starredOnly: false, ...pickLabelTab(labelSeq) })}
                                 onManageLabels={() => requestMailManage("labels")}
                                 unreadCount={unreadCount}
                                 searchOpen={searchOverlayOpen}
@@ -1510,7 +1526,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 라벨 탭은 "label:<seq>" — 라벨 목록을 받기 전(또는 지워진 라벨)이면 탭 값이 없어 MUI 가 경고하므로 전체로 둔다.
     const desktopScope =
         filters.labelSeq > 0
-            ? labels.some((l) => l.seq === filters.labelSeq)
+            ? tabLabels.some((l) => l.seq === filters.labelSeq)
                 ? `label:${filters.labelSeq}`
                 : "all"
             : filters.unreadOnly
@@ -1527,7 +1543,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 value={desktopScope}
                 onChange={(_event, value: string) => {
                     const labelSeq = value.startsWith("label:") ? Number(value.slice(6)) || 0 : 0;
-                    state.actions.setFilters({ unreadOnly: value === "unread", starredOnly: value === "starred", labelSeq });
+                    state.actions.setFilters({ unreadOnly: value === "unread", starredOnly: value === "starred", ...pickLabelTab(labelSeq) });
                 }}
                 // 라벨이 많으면 탭 줄이 가로로 넘어간다 — 넘칠 때만 양끝에 넘김 단추가 선다.
                 variant="scrollable"
@@ -1578,7 +1594,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     sx={{ minWidth: 56 }}
                     label={<StarRoundedIcon sx={{ fontSize: 22, color: "#f59e0b", fill: "currentColor" }} />}
                 />
-                {labels.map((label) => (
+                {tabLabels.map((label) => (
                     <Tab
                         key={label.seq}
                         value={`label:${label.seq}`}
