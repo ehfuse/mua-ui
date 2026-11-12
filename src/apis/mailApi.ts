@@ -221,7 +221,11 @@ export const mailApi = {
         entityAppServer.http.delete<ApiOk<{ deleted: boolean; detached: number }>>(`/v1/mua/contact-labels/${seq}`, {}),
     /** 여러 메일에 라벨 달기·떼기 */
     applyLabels: (seqs: number[], add: number[], remove: number[]) =>
-        entityAppServer.http.post<ApiOk<{ affected: number; changed: number }>>("/v1/mua/messages/labels", { seqs, add, remove }),
+        // 0.4.75 — 서버는 이름으로 메일 자리(공용 메일함 · 개인)의 라벨을 달고(없으면 만든다), 메일마다 실제로 달린 라벨 · 새로 만든 라벨을 돌려준다(옛 서버는 없다).
+        entityAppServer.http.post<ApiOk<{ affected: number; changed: number; messages?: { seq: number; label_seqs: number[] }[]; created?: MailLabel[] }>>(
+            "/v1/mua/messages/labels",
+            { seqs, add, remove }
+        ),
     /** 사용자 메일함 목록 */
     listFolders: () => entityAppServer.http.get<ApiOk<{ items: MailUserFolder[] }>>("/v1/mua/folders"),
     /** 메일함 추가 */

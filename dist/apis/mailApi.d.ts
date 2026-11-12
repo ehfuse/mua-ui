@@ -199,6 +199,11 @@ export declare const mailApi: {
     applyLabels: (seqs: number[], add: number[], remove: number[]) => Promise<ApiOk<{
         affected: number;
         changed: number;
+        messages?: {
+            seq: number;
+            label_seqs: number[];
+        }[];
+        created?: MailLabel[];
     }>>;
     /** 사용자 메일함 목록 */
     listFolders: () => Promise<ApiOk<{

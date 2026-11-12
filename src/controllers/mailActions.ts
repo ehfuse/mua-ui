@@ -505,22 +505,33 @@ export const applyLabels =
     async (context: ActionContext<MailState>, seqs: number[], add: number[], remove: number[]): Promise<boolean> => {
         const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
         if (targets.length === 0 || (add.length === 0 && remove.length === 0)) return false;
+        let result: { messages?: { seq: number; label_seqs: number[] }[]; created?: MailLabel[] };
         try {
-            unwrap(await mailApi.applyLabels(targets, add, remove), t("labelChangeFailed"));
+            result = unwrap(await mailApi.applyLabels(targets, add, remove), t("labelChangeFailed"));
         } catch (error) {
             ErrorAlert({ message: messageOf(error, t("labelChangeFailed")) });
             return false;
         }
+        // 서버가 메일 자리에 맞는 같은 이름 라벨을 달았거나 새로 만들었으면(0.4.75) 그 값으로 맞춘다.
+        if ((result?.created?.length ?? 0) > 0) context.setValue("labels", [...((context.getValue("labels") as MailLabel[]) ?? []), ...(result.created ?? [])]);
+        const applied = new Map((result?.messages ?? []).map((m) => [m.seq, m.label_seqs]));
         const rows = context.getValue("messages") as MailMessageListItem[];
         for (const seq of targets) {
             const row = rows.find((r) => r.seq === seq);
             const current = row?.label_seqs ?? [];
-            const next = [...current.filter((l) => !remove.includes(l)), ...add.filter((l) => !current.includes(l))];
+            const next = applied.get(seq) ?? [...current.filter((l) => !remove.includes(l)), ...add.filter((l) => !current.includes(l))];
             patchLocalMessage(context, seq, { label_seqs: next });
         }
         const filters = context.getValue("filters") as MailFilters;
-        if (filters.labelSeq > 0 && remove.includes(filters.labelSeq)) {
-            const remove2 = new Set(targets);
+        // 라벨 탭을 보는 중에 그 탭의 라벨(같은 이름 묶음)이 모두 떨어진 메일은 목록에서 뺀다.
+        const group = filters.labelSeq > 0 ? (filters.labelGroup?.includes(filters.labelSeq) ? filters.labelGroup : [filters.labelSeq]) : [];
+        const after = context.getValue("messages") as MailMessageListItem[];
+        const dropped = targets.filter((seq) => {
+            const row = after.find((r) => r.seq === seq);
+            return row && !(row.label_seqs ?? []).some((l) => group.includes(l));
+        });
+        if (group.length > 0 && remove.length > 0 && dropped.length > 0) {
+            const remove2 = new Set(dropped);
             const list = context.getValue("messages") as MailMessageListItem[];
             const next = list.filter((row) => !remove2.has(row.seq));
             context.setValue("messages", next);

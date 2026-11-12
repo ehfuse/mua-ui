@@ -59,3 +59,28 @@ export function labelGroupOf(labels: MailLabel[], accounts: MailAccount[], mailA
         .filter((label) => nameKey(label) === key)
         .map((label) => label.seq);
 }
+
+/** 여러 라벨 목록을 이름으로 하나씩(앞 목록이 먼저) — 달기 메뉴(0.4.75). 서버가 이름을 메일 자리의 라벨로 바꿔 단다. */
+export function mergeLabelsByName(...lists: MailLabel[][]): MailLabel[] {
+    const seen = new Set<string>();
+    const out: MailLabel[] = [];
+    for (const label of lists.flat()) {
+        const key = nameKey(label);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(label);
+    }
+    return out;
+}
+
+/**
+ * 메뉴 체크용 — 메일에 달린 라벨을 이름으로 메뉴의 라벨 seq 로 옮긴다(0.4.75).
+ * 공용 메일에 단 공용 "계약" 도, 예전에 단 개인 "계약" 도 메뉴의 "계약" 에 체크로 보인다.
+ */
+export function asMenuRows(rows: { label_seqs?: number[] }[], menu: MailLabel[], allLabels: MailLabel[]): { label_seqs: number[] }[] {
+    const nameOf = new Map(allLabels.map((label) => [label.seq, nameKey(label)]));
+    return rows.map((row) => {
+        const names = new Set((row.label_seqs ?? []).map((seq) => nameOf.get(seq)).filter((name): name is string => Boolean(name)));
+        return { label_seqs: menu.filter((label) => names.has(nameKey(label))).map((label) => label.seq) };
+    });
+}
