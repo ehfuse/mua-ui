@@ -4,7 +4,8 @@ import { formDialogLocale, getMuaUiLocale, t } from "../../i18n";
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, Button, Chip, CircularProgress, Stack } from "@mui/material";
+import { Box, Button, Chip, CircularProgress, IconButton, Stack, Tooltip } from "@mui/material";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { FileTypeIcon } from "../../internal/FileTypeIcon";
 import { EhfuseEditor, minimalToolbarOptions } from "@ehfuse/editor";
 import type { EditorConfig, EhfuseEditorRef } from "@ehfuse/editor";
@@ -58,7 +59,10 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const Editor = (injected.Editor ?? EhfuseEditor) as typeof EhfuseEditor;
     const toolbarOptions = (injected.toolbarOptions ?? minimalToolbarOptions) as typeof minimalToolbarOptions;
     const signatureBelow = Boolean(useMuaConfig().signatureBelowEditor);
-    const autoSave = Boolean(useMuaConfig().autoSaveDraft);
+    const muaConfig = useMuaConfig();
+    const autoSave = Boolean(muaConfig.autoSaveDraft);
+    // 쓰기 창(새 창으로 옮긴 창)인가 — 창 가득 열고, 닫으면 창을 닫는다(0.4.73).
+    const composeWindow = Number(muaConfig.windowComposeDraftSeq ?? 0) > 0;
     // 글꼴 고르기 목록(config.editorFontOptions) — 본문 · 서명이 같이 쓴다.
     const editorFontOptions = useMuaConfig().editorFontOptions;
     const signatureHtml = String(form.useFormValue("signature_html") ?? "");
@@ -247,6 +251,45 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         if (autoSave && savedPrintRef.current !== null && savedPrintRef.current !== fingerprintRef.current) void runAutoSave();
         modal.close();
     }, [autoSave, modal, runAutoSave]);
+    // 쓰기 창이면 창이 닫힐 때(닫기 · 보내기) 창째 닫는다 — 자동 저장이 도는 중이면 끝난 뒤에(빈 앱 창이 남지 않게).
+    const windowOpenedRef = useRef(false);
+    useEffect(() => {
+        if (!composeWindow) return;
+        if (modal.isOpen) {
+            windowOpenedRef.current = true;
+            return;
+        }
+        if (windowOpenedRef.current && !savingDraft) window.close();
+    }, [composeWindow, modal.isOpen, savingDraft]);
+
+    /**
+     * 새 창으로 옮기기(0.4.73) — 지금 내용을 임시보관함에 저장하고(새 첨부도 이때 올라간다) 그 번호로 쓰기 창을 띄운 뒤 이 창을 닫는다.
+     * 저장이 안 되면(보내는 계정 없음 · 오류) 옮기지 않는다. 브라우저가 창을 막으면 이 창을 그대로 둔다.
+     */
+    const [poppingOut, setPoppingOut] = useState(false);
+    const popOut = useCallback(async () => {
+        const open = muaConfig.openComposeWindow;
+        if (!open || poppingOut) return;
+        setPoppingOut(true);
+        try {
+            if (!(Number(form.getFormValue("mail_account_seq") ?? 0) > 0)) {
+                WarningAlert({ message: t("pickSendAccount") });
+                return;
+            }
+            if (!(await saveDraft({ silent: true }))) {
+                ErrorAlert({ message: t("draftSaveFailed") });
+                return;
+            }
+            const seq = Number(form.getFormValue("seq") ?? 0);
+            if (!(seq > 0)) return;
+            if (open(seq) === false) return;
+            sentRef.current = true; // 닫힐 때 자동 저장이 또 돌지 않게 — 방금 저장했다.
+            modal.close();
+        } finally {
+            setPoppingOut(false);
+        }
+    }, [muaConfig.openComposeWindow, poppingOut, saveDraft, form, sentRef, modal]);
+    const canPopOut = Boolean(muaConfig.openComposeWindow) && !isMobile && !composeWindow;
     const autoSaveStatus = savingDraft ? t("saving") : autoSaveFailed ? t("autoSaveFailed") : autoSavedAt ? t("autoSavedAt", { time: autoSavedAt }) : "";
 
     // [기본 서명으로 저장] — 지금 서명 칸을 보내는 계정의 서명으로 저장하고 계정 목록을 다시 읽는다(다음 창이 새 서명으로 열리게).
@@ -457,11 +500,23 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                     </Box>
                 ),
             }}
-            titleIcons={{ delete: { visible: false } }}
+            titleIcons={{
+                delete: { visible: false },
+                // 새 창으로 열기(0.4.73) — 글자 크기 · 닫기 왼쪽. 메일 상세 머리줄의 같은 단추와 같은 그림.
+                leftIcons: canPopOut ? (
+                    <Tooltip title={t("openInNewWindow")} arrow>
+                        <span>
+                            <IconButton size="small" onClick={() => void popOut()} disabled={poppingOut || sending} aria-label={t("openInNewWindow")}>
+                                {poppingOut ? <CircularProgress size={18} /> : <OpenInNewIcon fontSize="small" />}
+                            </IconButton>
+                        </span>
+                    </Tooltip>
+                ) : undefined,
+            }}
             tabs={{ visible: false }}
             locale={formDialogLocale()}
             maxWidth="md"
-            fullScreen={isMobile}
+            fullScreen={isMobile || composeWindow}
             mobilePresentation={isMobile ? "slide" : "dialog"}
             // 모바일 액션바 — 왼쪽 슬롯(.left-actions)이 기본으로는 내용 폭만 차지해 3열 버튼이 좁게 뭉친다.
             // 슬롯을 전폭으로 늘려 [임시저장][취소][보내기] 가 화면 폭을 균등하게 나눠 갖게 한다.

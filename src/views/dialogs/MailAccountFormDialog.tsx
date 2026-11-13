@@ -177,13 +177,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
         [form]
     );
 
-    const handleDelete = useCallback(() => {
-        if (!(seq > 0)) return;
-        ConfirmDialog({
-            title: t("deleteAccount"),
-            message: t("deleteAccountConfirm"),
-            onConfirm: () => void removeAccount(seq),
-        });
+    const handleDelete = useCallback(async () => {
+        if (seq > 0) await removeAccount(seq);
     }, [seq, removeAccount]);
 
     const sections = useMemo<FormDialogSection[]>(
@@ -466,7 +461,8 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             onClose={modal.close}
             // "외부" 를 붙인다 — 이 앱에는 기업메일(우리 도메인 사서함)이 따로 있어 그냥 "메일 계정" 이면 갈리지 않는다.
             title={{ text: isShared ? (seq > 0 ? t("editSharedAccount") : t("addSharedAccount")) : seq > 0 ? t("editAccount") : t("addAccount") }}
-            titleIcons={{ delete: { visible: false } }}
+            // 제목 줄 휴지통(2026-11-13 사용자 지시) — 수정할 때만. 확인은 mfd 말풍선이 한 번 묻는다(따로 ConfirmDialog 를 또 띄우지 않는다).
+            titleIcons={{ delete: { visible: seq > 0, confirmConfig: { title: t("deleteAccount"), message: t("deleteAccountConfirm") } } }}
             // 섹션 탭(기본 정보/수신/발신/서명)을 보여 주고, 콘텐츠 높이는 800px 로 고정한다(탭 전환 시 크기 점프 방지).
             // 모바일은 풀스크린 슬라이드라 고정 높이를 두지 않는다(화면 높이를 그대로 쓴다).
             fixedHeight={isMobile ? undefined : 800}

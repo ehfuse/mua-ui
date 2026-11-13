@@ -110,6 +110,22 @@ export function MailManageHost() {
         onSent: () => void requestMailRefresh(),
         onDraftSaved: () => void requestMailRefresh(),
     });
+    // 쓰기 창(0.4.73) — 새 창으로 옮긴 임시보관 메일을 읽어 바로 쓰기 창으로 연다. 창이 쓰기 창을 닫으면 창도 닫힌다(ComposeDialog).
+    const composeWindowSeq = Number(useMuaConfig().windowComposeDraftSeq ?? 0) || 0;
+    useEffect(() => {
+        if (!(composeWindowSeq > 0)) return;
+        let alive = true;
+        void mailApi
+            .getMessage(composeWindowSeq, false)
+            .then((res) => {
+                if (alive) compose.form.actions.openDraft(unwrap(res, t("loadMailFailed")));
+            })
+            .catch((error) => ErrorAlert({ message: error instanceof Error ? error.message : t("loadMailFailed") }));
+        return () => {
+            alive = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [composeWindowSeq]);
     // 새 메일의 보내는 계정 — 마지막에 고른 것 > 기본 발신 > 첫 계정(메일 화면과 같은 규칙).
     const lastAccountSeq = state.useValue("lastAccountSeq") as number;
     const sidebarAccounts = useMemo(() => allAccounts.filter((a) => a.in_sidebar !== false), [allAccounts]);
@@ -257,13 +273,17 @@ export function MailManageHost() {
             if (!request) return;
             if (request.kind === "compose") openCompose(request.to, request.draft);
             else if (request.kind === "manage") openManage(request.tab);
-            else if (request.kind === "account") accountForm.form.actions.openDialog(request.account);
+            // 계정을 집어 열면(사이드바 계정 우클릭 "계정 관리", 2026-11-13) 관리 목록의 연필과 같은 길 — 기업메일 사서함은 이름 · 서명 창이다.
+            else if (request.kind === "account") {
+                if (request.account) handleEditAccount(request.account);
+                else accountForm.form.actions.openDialog(null);
+            }
             else if (request.kind === "message") openView(request.seq);
             else setRuleEditing({ rule: request.rule, prefill: request.prefill });
         };
         check();
         return subscribeMailManage(check);
-    }, [openManage, openCompose, openView, accountForm.form.actions]);
+    }, [openManage, openCompose, openView, accountForm.form.actions, handleEditAccount]);
 
     return (
         <>
