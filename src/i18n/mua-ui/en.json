@@ -88,7 +88,7 @@
     "defaultSendAccount": "Default sending account",
     "delete": "Delete",
     "deleteAccount": "Delete mail account",
-    "deleteAccountConfirm": "This account and all its received and sent mail will be deleted. Delete it?",
+    "deleteAccountConfirm": "This account and all its received and sent mail will be deleted.\nDelete it?",
     "deleteAccountNamedConfirm": "The account \"{{name}}\" and all its received and sent mail will be deleted. Delete it?",
     "deleteAfterFetch": "Delete from server after fetching",
     "deleteConfirm": "Delete this message?",
