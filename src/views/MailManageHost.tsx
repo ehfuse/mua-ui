@@ -110,7 +110,7 @@ export function MailManageHost() {
         onSent: () => void requestMailRefresh(),
         onDraftSaved: () => void requestMailRefresh(),
     });
-    // 쓰기 창(0.4.73) — 새 창으로 옮긴 임시보관 메일을 읽어 바로 쓰기 창으로 연다. 창이 쓰기 창을 닫으면 창도 닫힌다(ComposeDialog).
+    // 쓰기 창(0.4.78) — 새 창으로 옮긴 임시보관 메일을 읽어 바로 쓰기 창으로 연다. 창이 쓰기 창을 닫으면 창도 닫힌다(ComposeDialog).
     const composeWindowSeq = Number(useMuaConfig().windowComposeDraftSeq ?? 0) || 0;
     useEffect(() => {
         if (!(composeWindowSeq > 0)) return;

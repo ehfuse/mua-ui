@@ -61,7 +61,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     const signatureBelow = Boolean(useMuaConfig().signatureBelowEditor);
     const muaConfig = useMuaConfig();
     const autoSave = Boolean(muaConfig.autoSaveDraft);
-    // 쓰기 창(새 창으로 옮긴 창)인가 — 창 가득 열고, 닫으면 창을 닫는다(0.4.73).
+    // 쓰기 창(새 창으로 옮긴 창)인가 — 창 가득 열고, 닫으면 창을 닫는다(0.4.78).
     const composeWindow = Number(muaConfig.windowComposeDraftSeq ?? 0) > 0;
     // 글꼴 고르기 목록(config.editorFontOptions) — 본문 · 서명이 같이 쓴다.
     const editorFontOptions = useMuaConfig().editorFontOptions;
@@ -263,7 +263,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
     }, [composeWindow, modal.isOpen, savingDraft]);
 
     /**
-     * 새 창으로 옮기기(0.4.73) — 지금 내용을 임시보관함에 저장하고(새 첨부도 이때 올라간다) 그 번호로 쓰기 창을 띄운 뒤 이 창을 닫는다.
+     * 새 창으로 옮기기(0.4.78) — 지금 내용을 임시보관함에 저장하고(새 첨부도 이때 올라간다) 그 번호로 쓰기 창을 띄운 뒤 이 창을 닫는다.
      * 저장이 안 되면(보내는 계정 없음 · 오류) 옮기지 않는다. 브라우저가 창을 막으면 이 창을 그대로 둔다.
      */
     const [poppingOut, setPoppingOut] = useState(false);
@@ -502,7 +502,7 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
             }}
             titleIcons={{
                 delete: { visible: false },
-                // 새 창으로 열기(0.4.73) — 글자 크기 · 닫기 왼쪽. 메일 상세 머리줄의 같은 단추와 같은 그림.
+                // 새 창으로 열기(0.4.78) — 글자 크기 · 닫기 왼쪽. 메일 상세 머리줄의 같은 단추와 같은 그림.
                 leftIcons: canPopOut ? (
                     <Tooltip title={t("openInNewWindow")} arrow>
                         <span>
