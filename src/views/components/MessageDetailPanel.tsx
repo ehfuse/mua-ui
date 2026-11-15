@@ -80,6 +80,7 @@ interface MessageDetailPanelProps {
     detail: MailMessageDetail | null; // 상세
     loading: boolean; // 로딩
     onClose: () => void; // 닫기
+    hideClose?: boolean; // 닫기(X)를 숨긴다 — 창 틀에 닫기가 있는 메일 창(0.4.80)
     onReply: (mode: "reply" | "replyAll" | "forward") => void; // 답장/전달
     onEditDraft: () => void; // 임시보관 이어쓰기
     onComposeTo: (address: string) => void; // 보낸 사람 클릭 → 그 사람("이름 <주소>")에게 새 메일 작성
@@ -296,6 +297,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
         detail,
         loading,
         onClose,
+        hideClose,
         onReply,
         onEditDraft,
         onComposeTo,
@@ -839,7 +841,7 @@ export function MessageDetailPanel(props: MessageDetailPanelProps) {
                         </IconButton>
                     </Tooltip>
                 )}
-                {embedded ? null : (
+                {embedded || hideClose ? null : (
                     <Tooltip title={t("closeEsc")} arrow>
                         <IconButton size="small" className="mua-detail-close" aria-label={t("closeEsc")} onClick={onClose}>
                             <CloseIcon />

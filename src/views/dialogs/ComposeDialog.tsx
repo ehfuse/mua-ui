@@ -290,7 +290,9 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         }
     }, [muaConfig.openComposeWindow, poppingOut, saveDraft, form, sentRef, modal]);
     const canPopOut = Boolean(muaConfig.openComposeWindow) && !isMobile && !composeWindow;
-    const autoSaveStatus = savingDraft ? t("saving") : autoSaveFailed ? t("autoSaveFailed") : autoSavedAt ? t("autoSavedAt", { time: autoSavedAt }) : "";
+    // 새 창으로 옮기는 동안의 저장은 보이지 않게 한다(0.4.82, 2026-11-14 사용자 지적 — [보내기] 가 흐려지고 "저장 중…" 이 깜빡였다).
+    const busySaving = savingDraft && !poppingOut;
+    const autoSaveStatus = poppingOut ? "" : savingDraft ? t("saving") : autoSaveFailed ? t("autoSaveFailed") : autoSavedAt ? t("autoSavedAt", { time: autoSavedAt }) : "";
 
     // [기본 서명으로 저장] — 지금 서명 칸을 보내는 계정의 서명으로 저장하고 계정 목록을 다시 읽는다(다음 창이 새 서명으로 열리게).
     const [savingSignature, setSavingSignature] = useState(false);
@@ -449,7 +451,11 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
         if (checked) form.setFormValue("to", address);
         else if (String(form.getFormValue("to") ?? "").trim() === address) form.setFormValue("to", "");
     };
-    const shownMode = titleMode ?? mode;
+    // 새 창 쓰기 창(composeWindow)은 옮길 때 저장한 임시 메일로 열려 모드가 늘 "draft" 다 — "임시보관 메일" 이 아니라
+    // 원래 쓰던 갈래로 보이게 제목 앞머리(Re: · Fwd:)로 가른다(0.4.81, 2026-11-14 사용자 지적).
+    const windowSubject = String(form.useFormValue("subject") ?? "");
+    const windowMode = /^\s*re\s*:/i.test(windowSubject) ? "reply" : /^\s*(fwd?|fw)\s*:/i.test(windowSubject) ? "forward" : "new";
+    const shownMode = composeWindow && (titleMode ?? mode) === "draft" ? windowMode : (titleMode ?? mode);
     const titleText =
         shownMode === "reply" || shownMode === "replyAll"
             ? t("reply")
@@ -491,6 +497,30 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                         >
                             <Switch checked={toSelf} onChange={handleToSelf} label={t("toSelf")} />
                         </Box>
+                        {/* 넓은 화면은 아래 단추 줄 대신 [보내기] 를 나에게 옆에(0.4.81, 2026-11-14 사용자 지시 — 취소는 X 로 닫는다). 자동 저장이 아니면 [임시저장] 도. */}
+                        {isMobile ? null : (
+                            <Box
+                                component="span"
+                                onClick={(event) => event.stopPropagation()}
+                                sx={{ display: "inline-flex", alignItems: "center", gap: 1, flexShrink: 0, ml: 1 }}
+                            >
+                                {autoSave ? null : (
+                                    <Button variant="outlined" size="small" onClick={() => void saveDraft()} disabled={sending || busySaving} sx={{ whiteSpace: "nowrap" }}>
+                                        {busySaving ? <CircularProgress size={16} color="inherit" /> : t("saveDraft")}
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    size="small"
+                                    onClick={() => void form.submit()}
+                                    disabled={sending || busySaving}
+                                    sx={{ minWidth: 72, whiteSpace: "nowrap" }}
+                                >
+                                    {sending ? <CircularProgress size={16} color="inherit" /> : scheduled ? t("schedule") : t("send")}
+                                </Button>
+                            </Box>
+                        )}
                         {/* 폰은 제목 줄이 좁아 저장 시각을 싣지 않는다 — 실패만 알린다(그건 놓치면 안 된다). */}
                         {autoSave && autoSaveStatus && (!isMobile || autoSaveFailed) ? (
                             <Box component="span" sx={{ fontSize: 14, fontWeight: 400, color: autoSaveFailed ? "error.main" : "text.secondary", whiteSpace: "nowrap" }}>
@@ -499,10 +529,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                         ) : null}
                     </Box>
                 ),
-            }}
-            titleIcons={{
-                delete: { visible: false },
-                // 새 창으로 열기(0.4.78) — 글자 크기 · 닫기 왼쪽. 메일 상세 머리줄의 같은 단추와 같은 그림.
+                // 새 창으로 열기(0.4.78) — 글자 크기와 닫기 사이. mfd 는 이 단추를 제목 설정(title.leftIcons)에서 읽는다(0.4.81 —
+                // 0.4.78 ~ 0.4.80 은 titleIcons.leftIcons 로 넘겨 무시돼 한 번도 보이지 않았다).
                 leftIcons: canPopOut ? (
                     <Tooltip title={t("openInNewWindow")} arrow>
                         <span>
@@ -512,6 +540,11 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                         </span>
                     </Tooltip>
                 ) : undefined,
+            }}
+            titleIcons={{
+                delete: { visible: false },
+                // PC 앱 쓰기 창은 창 틀에 닫기가 있다 — 제목 줄 X 를 숨긴다(0.4.81, 2026-11-14 사용자 지시, mfd 1.10.0 titleIcons.close).
+                close: { visible: !(composeWindow && muaConfig.hideWindowClose === true) },
             }}
             tabs={{ visible: false }}
             locale={formDialogLocale()}
@@ -798,7 +831,8 @@ export function ComposeDialog({ controller, accounts }: ComposeDialogProps) {
                 },
             ]}
             actions={{
-                visible: true,
+                // 넓은 화면은 단추 줄을 두지 않는다 — [보내기] 는 제목 줄, 취소는 X(0.4.81).
+                visible: isMobile,
                 // 모바일은 mfd 기본 취소 대신 [임시저장][취소][보내기] 를 균등 3열로 직접 그린다(자동 저장이면 [취소][보내기] 2열).
                 showCancelButton: !isMobile,
                 ...(isMobile

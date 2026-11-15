@@ -8,6 +8,7 @@ import { useGlobalForm, useModal, type ActionContext } from "@ehfuse/forma";
 import { ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../apis/mailApi";
 import type { MuaModalControl } from "../types/modal";
+import { useResponsiveMuaModal } from "../internal/useResponsiveMuaModal";
 import { defaultComposeForm } from "../models/defaults";
 import type {
     ComposeForm,
@@ -281,7 +282,8 @@ const openDraft =
 
 /** 메일 작성 컨트롤러 훅. */
 export function useComposeController({ onSent, onDraftSaved }: ComposeControllerOptions = {}) {
-    const modal: MuaModalControl = useModal({ modalId: "mail-compose-dialog" });
+    // 넓은 화면은 기록 없는 열림 상태(0.4.81) — 새 창으로 옮긴 뒤 원래 쓰기 창이 닫히지 않았다(internal/useResponsiveMuaModal).
+    const modal: MuaModalControl = useResponsiveMuaModal("mail-compose-dialog");
     const [sending, setSending] = useState(false);
     const [savingDraft, setSavingDraft] = useState(false);
     // 방금 보냈는가 — 보내고 닫힐 때 자동 저장이 보낸 메일을 임시보관함에 다시 남기지 않게(0.3.155).

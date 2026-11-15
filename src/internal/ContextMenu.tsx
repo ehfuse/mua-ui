@@ -224,10 +224,11 @@ function ContextMenuRow<T>({
                 sx={{
                     display: "flex",
                     alignItems: "center",
-                    gap: roomy ? 1.75 : 1,
+                    // 넓은 화면은 앱 공용 팝업 메뉴와 같은 간격(아이콘 뒤 12px · 줄 위아래 6px, 2026-11-14 — 메일 메뉴만 줄이 높아 글자가 커 보였다).
+                    gap: roomy ? 1.75 : 1.5,
                     px: roomy ? 2.5 : 2,
                     // 줄 위아래 13 — 10 은 폰에서 줄끼리 빽빽해 보였다(2026-09-13).
-                    py: roomy ? 1.6 : 1,
+                    py: roomy ? 1.6 : 0.75,
                     fontSize: 15,
                     // 폰에서 400 은 흐려 보인다 — 조직 고르기 팝업과 같은 500.
                     fontWeight: roomy ? 500 : undefined,

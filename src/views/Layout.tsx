@@ -52,6 +52,7 @@ import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutl
 import ReportGmailerrorredOutlinedIcon from "@mui/icons-material/ReportGmailerrorredOutlined";
 import RestoreFromTrashOutlinedIcon from "@mui/icons-material/RestoreFromTrashOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
+import DraftsOutlinedIcon from "@mui/icons-material/DraftsOutlined";
 import DriveFileMoveOutlinedIcon from "@mui/icons-material/DriveFileMoveOutlined";
 import { FolderIcon } from "../internal/FolderIcon";
 import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
@@ -724,8 +725,15 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         () => [
             {
                 label: t("open"),
-                icon: <OpenInNewOutlinedIcon fontSize="small" />,
+                icon: <DraftsOutlinedIcon fontSize="small" />,
                 onClick: (row) => void state.actions.selectMessage(row.seq),
+            },
+            // 새 창으로 열기(0.4.80, 2026-11-14 사용자 지시 "열기는 있는데 새 창 열기는 없네") — 상세 머리의 같은 단추처럼 소비처가 openMessageWindow 를 줄 때만.
+            {
+                label: t("openInNewWindow"),
+                icon: <OpenInNewOutlinedIcon fontSize="small" />,
+                hidden: !muaConfig.openMessageWindow || windowMessageSeq > 0,
+                onClick: (row) => void muaConfig.openMessageWindow?.(row.seq),
             },
             {
                 label: t("reply"),
@@ -853,6 +861,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             rowContextMenu.anchor,
             labelsEnabled,
             labelContextChildren,
+            muaConfig.openMessageWindow,
+            windowMessageSeq,
         ]
     );
     // 데스크탑: 항상 보이는 툴바(선택 없으면 비활성) — 헤더 필터 영역. 모바일: 선택 중일 때만 아이콘 바.
@@ -1118,6 +1128,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             labels={labelsEnabled ? allLabels : undefined}
             onOpenLabelMenu={labelsEnabled ? (position) => detail && setRowLabelMenu({ position, row: detail }) : undefined}
             onClose={() => (windowMessageSeq > 0 ? window.close() : state.actions.clearSelection())}
+            hideClose={windowMessageSeq > 0 && muaConfig.hideWindowClose === true}
             // 새 창으로 열기(0.4.12) — 소비처가 openMessageWindow 를 줄 때만, 메일 창 안에서는 숨긴다. 열면 이 상세는 닫는다.
             onOpenWindow={
                 muaConfig.openMessageWindow && windowMessageSeq === 0 && detail
