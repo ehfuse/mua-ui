@@ -142,6 +142,11 @@ function MobileListShell({
     );
 }
 
+/** 목록을 다시 읽을 거르기 열쇠 — 사용자 메일함 번호(mailFolderSeq)도 든다. */
+function filterKeyOf(filters: MailFilters): string {
+    return `${filters.mailAccountSeq}|${filters.folder}|${filters.mailFolderSeq}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}|${(filters.labelGroup ?? []).join(",")}`;
+}
+
 export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const controller = useMailController();
     const params = useParams<{ folder?: string; accountSeq?: string; folderSeq?: string }>();
@@ -401,7 +406,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     // 필터가 바뀌면 목록·건수 재조회
     // 사용자 메일함 번호(mailFolderSeq)도 열쇠에 든다(2026-10-21) — 빠져 있어 메일함끼리 옮기면(광고 → 정보) 목록은 비우고 "불러오는 중" 만 켠 채
     // 다시 받지 않아, 다음 실시간 갱신까지 스피너만 돌았다.
-    const filterKey = `${filters.mailAccountSeq}|${filters.folder}|${filters.mailFolderSeq}|${filters.search}|${filters.unreadOnly}|${filters.starredOnly}|${filters.labelSeq}|${(filters.labelGroup ?? []).join(",")}`;
+    const filterKey = filterKeyOf(filters);
     // 받은 목록을 거르기별로 적어 두고, 다시 받는 동안(비어 있을 때) 그것을 보인다 — 폰 자기 스크롤 목록만 쓴다
     // 실제로 받은 뒤(읽는 중 → 끝)거나 목록이 있을 때만 적는다 — 화면을 막 연 빈 상태로 덮어쓰지 않게
     const listWasLoading = useRef(false);
@@ -421,7 +426,13 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const mobileRows = messages.length === 0 && loadedKey !== filterKey ? (lastMobileRows.get(filterKey) ?? messages) : messages;
     // 안 읽음 목록에서 읽은 메일은 이 화면에 있는 동안만 남긴다 — 다른 화면으로 가면 버린다
     useEffect(() => () => resetKeptReadMessages(), []);
+    // 마지막으로 읽은 거르기 — 마운트할 때 이 effect 는 낡은 거르기(전역 상태)로 한 번, 라우트 → 거르기 effect 가 바꾼 거르기로 또 한 번 돈다.
+    // 첫 번째에서 이미 지금 거르기(context 값)로 읽었으므로 두 번째는 건너뛴다(0.4.84 — 메일 안에서 폴더를 옮기면 목록 · 건수가 진입 묶음과 함께 또 나갔다).
+    const loadedFilterKeyRef = useRef("");
     useEffect(() => {
+        const nowKey = filterKeyOf(state.getValue("filters") as MailFilters);
+        if (loadedFilterKeyRef.current === nowKey) return;
+        loadedFilterKeyRef.current = nowKey;
         void state.actions.loadMessages();
         void state.actions.loadCounts();
         // filterKey 로만 트리거한다.
