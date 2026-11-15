@@ -11,7 +11,7 @@ import { useGlobalFormaState } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime } from "../apis/useMailRealtime";
 import { subscribeMailTeamContext } from "../internal/teamContext";
-import { isMailSidebarFilled, markMailSidebarFilled, takeMailEntry } from "../internal/entryBootstrap";
+import { holdMailSidebarList, isMailSidebarFilled, markMailSidebarFilled, reloadMailSidebarList, takeMailEntry } from "../internal/entryBootstrap";
 import { MAIL_STATE_ID } from "../controllers/mailController";
 import { defaultMailState } from "../models/defaults";
 import type { MailAccount, MailState } from "../models/types";
@@ -29,14 +29,26 @@ export function useMailSidebarAccounts(enabled: boolean): MailAccount[] {
     const loadedRef = useRef(false);
 
     /** 계정 목록을 읽어 전역 상태에 넣는다(실패는 조용히 — 배지는 보조 정보). */
-    const load = useCallback(async () => {
-        try {
-            const data = unwrap(await mailApi.listAccounts(), "");
-            state.setValue("accounts", Array.isArray(data.items) ? data.items : []);
-        } catch {
-            // 비로그인/네트워크 오류 — 다음 realtime 이나 메일 화면 진입 때 다시 읽는다.
-        }
-    }, [state]);
+    // 훅이 여럿 떠 있어도(셸 사이드바 · 직원 목록 · 피드 프로필) 같은 때 다시 읽으면 요청 한 건을 나눠 쓴다(0.4.86).
+    const load = useCallback(
+        () =>
+            reloadMailSidebarList("accounts", async () => {
+                try {
+                    const data = unwrap(await mailApi.listAccounts(), "");
+                    state.setValue("accounts", Array.isArray(data.items) ? data.items : []);
+                } catch {
+                    // 비로그인/네트워크 오류 — 다음 realtime 이나 메일 화면 진입 때 다시 읽는다.
+                }
+            }),
+        [state]
+    );
+
+    // 켜져 있는 동안 이 목록을 맡는다 — 마지막 훅이 내려갈 때만 채움 표시가 지워진다(0.4.86, entryBootstrap.ts).
+    // 화면 안의 훅(직원 목록 등)이 내려가도 셸 사이드바 훅이 맡고 있으면 표시가 남아 다음 화면이 다시 읽지 않는다.
+    useEffect(() => {
+        if (!enabled) return;
+        return holdMailSidebarList("accounts");
+    }, [enabled]);
 
     useEffect(() => {
         if (!enabled) {
@@ -55,9 +67,6 @@ export function useMailSidebarAccounts(enabled: boolean): MailAccount[] {
                     .then(() => markMailSidebarFilled("accounts", true));
             }
         }
-        // 켜져 있던 훅이 꺼질 때(로그아웃)만 채움 표시를 지운다 — 처음 꺼진 상태로 도는 effect 에서 지우면
-        // 메일 화면이 방금 채운 표시까지 지워 다시 읽게 된다.
-        return () => markMailSidebarFilled("accounts", false);
     }, [enabled, load, state]);
 
     useMailRealtime({ enabled, onEvent: () => void load() });
