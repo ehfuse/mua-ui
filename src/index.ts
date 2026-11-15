@@ -46,6 +46,16 @@ export { useMailSidebarFolders } from "./hooks/useMailSidebarFolders";
 export { notifyMailTeamContextChanged } from "./internal/teamContext";
 // 앱 bootstrap 이 재로그인 때 부른다 — 다음 진입에서 /v1/mua/bootstrap 을 다시 읽게 한다.
 export { resetMailEntry } from "./internal/entryBootstrap";
+// 사서함 사용량 공용 저장소 · 건수 알림(0.4.84) — 앱 사이드바가 메일 화면과 같은 값을 쓰고 같은 요청을 이어받는다.
+export {
+    getMailboxUsage,
+    loadMailboxUsage,
+    mailboxUsageTarget,
+    refreshMailboxUsageSoon,
+    seedMailboxUsage,
+    subscribeMailboxUsage,
+} from "./internal/mailboxUsage";
+export { subscribeMailCounts } from "./internal/mailCountsFeed";
 export { MailManageHost } from "./views/MailManageHost";
 export {
     requestMailAccountForm,
@@ -87,7 +97,7 @@ export { useComposeController } from "./controllers/composeController";
 export { useMailAccountFormController } from "./controllers/mailAccountFormController";
 export { useContactFormController } from "./controllers/contactFormController";
 export { defaultMailState } from "./models/defaults";
-export { mailApi, unwrap } from "./apis/mailApi";
+export { mailApi, unwrap, type MailboxUsage, type MailCountsData, type MailScreenEntryData } from "./apis/mailApi";
 export { useMailRealtime, type MailChangedData } from "./apis/useMailRealtime";
 
 // 메일 본문 뷰어(정제 + 샌드박스 iframe) — 메일 화면 밖에서 메일 본문을 그릴 때(보안메일 열람 페이지).

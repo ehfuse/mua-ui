@@ -5,7 +5,9 @@ import { t } from "../i18n";
 
 import type { ActionContext } from "@ehfuse/forma";
 import { ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
-import { mailApi, unwrap, type BulkMessageAction } from "../apis/mailApi";
+import { mailApi, unwrap, type BulkMessageAction, type ListMessagesParams } from "../apis/mailApi";
+import { listParamsKey, takeMailScreenEntry } from "../internal/screenEntry";
+import { emitMailCounts } from "../internal/mailCountsFeed";
 import { defaultMailFolderCounts, storeMailScope } from "../models/defaults";
 import {
     MAIL_PAGE_SIZE,
@@ -129,6 +131,28 @@ export const setFilters =
         }
     };
 
+/** 그 거르기의 목록 쿼리 — 메일 화면 진입 묶음(screenEntry)도 같은 쿼리를 쓴다. */
+export function listParamsOf(filters: MailFilters, page: number, limit: number): ListMessagesParams {
+    return {
+        mail_account_seq: filters.mailAccountSeq,
+        folder: filters.folder,
+        mail_folder_seq: filters.folder === "custom" ? filters.mailFolderSeq : undefined,
+        page,
+        limit,
+        search: filters.search,
+        unread: filters.unreadOnly,
+        starred: filters.starredOnly,
+        label_seq: filters.labelSeq > 0 ? filters.labelSeq : undefined,
+        // 합친 라벨 탭(같은 이름의 개인 · 공용 라벨)이면 모두로 거른다 — labelSeq 가 그 묶음에 들어 있을 때만.
+        label_seqs:
+            filters.labelSeq > 0 && (filters.labelGroup?.length ?? 0) > 1 && filters.labelGroup?.includes(filters.labelSeq)
+                ? filters.labelGroup.join(",")
+                : undefined,
+        // 대화로 묶어 받는다(2026-10-20) — 같은 대화(답장 · 사본)는 한 줄, total 은 대화 수다.
+        thread: true,
+    };
+}
+
 /** 다시 채울 때 한 번에 받는 최대 쪽 수 — 서버 목록 limit 상한(200)을 넘지 않게. */
 const REFILL_MAX_PAGES = 4;
 
@@ -149,27 +173,11 @@ export const loadMessages =
         if (!options?.silent) context.setValue("loadingList", true);
         context.setValue("error", "");
         try {
-            const data = unwrap(
-                await mailApi.listMessages({
-                    mail_account_seq: filters.mailAccountSeq,
-                    folder: filters.folder,
-                    mail_folder_seq: filters.folder === "custom" ? filters.mailFolderSeq : undefined,
-                    page,
-                    limit: refillPages ? refillPages * MAIL_PAGE_SIZE : MAIL_PAGE_SIZE,
-                    search: filters.search,
-                    unread: filters.unreadOnly,
-                    starred: filters.starredOnly,
-                    label_seq: filters.labelSeq > 0 ? filters.labelSeq : undefined,
-                    // 합친 라벨 탭(같은 이름의 개인 · 공용 라벨)이면 모두로 거른다 — labelSeq 가 그 묶음에 들어 있을 때만.
-                    label_seqs:
-                        filters.labelSeq > 0 && (filters.labelGroup?.length ?? 0) > 1 && filters.labelGroup?.includes(filters.labelSeq)
-                            ? filters.labelGroup.join(",")
-                            : undefined,
-                    // 대화로 묶어 받는다(2026-10-20) — 같은 대화(답장 · 사본)는 한 줄, total 은 대화 수다.
-                    thread: true,
-                }),
-                t("loadListFailed")
-            );
+            const params = listParamsOf(filters, page, refillPages ? refillPages * MAIL_PAGE_SIZE : MAIL_PAGE_SIZE);
+            // 메일 화면을 막 열었으면 진입 묶음이 같은 쿼리로 받아 온 첫 쪽을 쓴다(0.4.84) — 쿼리가 다르거나 없으면 따로 읽는다.
+            const key = listParamsKey(params);
+            const fromEntry = append || refillPages ? undefined : await takeMailScreenEntry("messages", (sent) => listParamsKey(sent) === key);
+            const data = fromEntry ?? unwrap(await mailApi.listMessages(params), t("loadListFailed"));
             if (requestSeq !== latestListRequestSeq) return;
             let items = Array.isArray(data.items) ? data.items : [];
             let kept = 0;
@@ -207,7 +215,10 @@ export const loadCounts =
     async (context: ActionContext<MailState>): Promise<void> => {
         const filters = context.getValue("filters") as MailFilters;
         try {
-            const data = unwrap(await mailApi.counts(filters.mailAccountSeq), t("loadCountsFailed"));
+            // 진입 묶음의 건수(같은 계정으로 센 것)가 있으면 그것을 쓴다(0.4.84).
+            const fromEntry = await takeMailScreenEntry("counts", (sent) => (sent.mail_account_seq ?? 0) === filters.mailAccountSeq);
+            const data = fromEntry ?? unwrap(await mailApi.counts(filters.mailAccountSeq), t("loadCountsFailed"));
+            emitMailCounts(data, filters.mailAccountSeq);
             context.setValue("counts", { ...defaultMailFolderCounts, ...(data.folders ?? {}) } as MailFolderCounts);
             const accounts = context.getValue("accounts") as MailAccount[];
             const byAccount = data.by_account ?? {};
@@ -480,7 +491,7 @@ export const loadLabels =
     () =>
     async (context: ActionContext<MailState>): Promise<MailLabel[]> => {
         try {
-            const data = unwrap(await mailApi.listLabels(), t("loadLabelsFailed"));
+            const data = (await takeMailScreenEntry("labels")) ?? unwrap(await mailApi.listLabels(), t("loadLabelsFailed"));
             const items = Array.isArray(data.items) ? data.items : [];
             context.setValue("labels", items);
             const filters = context.getValue("filters") as MailFilters;
@@ -545,8 +556,8 @@ export const loadRules =
     () =>
     async (context: ActionContext<MailState>): Promise<MailRule[]> => {
         try {
-            const data = unwrap(await mailApi.listRules(), t("loadRulesFailed"));
-            const items = Array.isArray(data.items) ? data.items : [];
+            const fromEntry = await takeMailScreenEntry("rules");
+            const items = fromEntry ?? (unwrap(await mailApi.listRules(), t("loadRulesFailed")).items ?? []);
             context.setValue("rules", items);
             return items;
         } catch (error) {

@@ -50,6 +50,45 @@ export interface MailBootstrapData {
     folders: MailUserFolder[];
     rules: MailRule[];
 }
+/** 건수 응답 — GET /counts */
+export interface MailCountsData {
+    by_account: Record<string, number>;
+    by_folder?: Record<string, number>;
+    folders: MailFolderCounts;
+}
+/** 사서함 사용량 — GET /accounts/:seq/usage */
+export interface MailboxUsage {
+    seq: number;
+    kind: string;
+    quota_mb: number;
+    used_bytes: number;
+    spam_count: number;
+    spam_bytes: number;
+}
+/** 사용자 화면 설정 — GET /preferences */
+export interface MailPreferences {
+    view_mode: "list" | "split";
+    last_account_seq: number;
+}
+/**
+ * 메일 화면 진입 묶음 응답(0.4.84) — GET /v1/mua/entry. 각 조각은 개별 라우트의 data 와 같은 모양이고(rules 는 items 배열),
+ * 서버에서 그 조각만 실패하면 null 이다(부르는 쪽이 그 조각만 개별 라우트로 읽는다).
+ */
+export interface MailScreenEntryData {
+    messages: ListMessagesResponse | null;
+    counts: MailCountsData | null;
+    labels: {
+        items: MailLabel[];
+    } | null;
+    rules: MailRule[] | null;
+    preferences: MailPreferences | null;
+    usage: MailboxUsage | null;
+}
+/** 진입 묶음 쿼리 — 목록 쿼리 + 사용량을 볼 사서함(0 = 빼기) + 라벨을 쓰는지 */
+export interface MailScreenEntryParams extends ListMessagesParams {
+    usage_seq?: number;
+    labels?: boolean;
+}
 /** 메일 API */
 /** 원문 보기 응답 */
 export interface MailMessageSource {
@@ -62,6 +101,8 @@ export interface MailMessageSource {
 export declare const mailApi: {
     /** 진입 1회 — 계정·메일함·규칙을 한 번에(사이드바+메일 화면이 나눠 쓴다) */
     bootstrap: () => Promise<ApiOk<MailBootstrapData>>;
+    /** 메일 화면 진입 묶음(0.4.84) — 목록 첫 쪽 · 건수 · 라벨 · 규칙 · 설정 · 사용량을 한 번에. 옛 서버는 404 다. */
+    screenEntry: (params: MailScreenEntryParams) => Promise<ApiOk<MailScreenEntryData>>;
     /** 내 메일 계정 목록 */
     listAccounts: () => Promise<ApiOk<{
         items: MailAccount[];
@@ -92,11 +133,7 @@ export declare const mailApi: {
     /** 저장된 비밀번호(수정 폼 채우기) */
     getAccountSecrets: (seq: number) => Promise<ApiOk<MailAccountSecrets>>;
     /** 건수 */
-    counts: (mailAccountSeq: number) => Promise<ApiOk<{
-        by_account: Record<string, number>;
-        by_folder?: Record<string, number>;
-        folders: MailFolderCounts;
-    }>>;
+    counts: (mailAccountSeq: number) => Promise<ApiOk<MailCountsData>>;
     /** 목록 */
     listMessages: (params: ListMessagesParams) => Promise<ApiOk<ListMessagesResponse>>;
     /** 상세(+읽음 처리) */
@@ -168,14 +205,7 @@ export declare const mailApi: {
         deleted: number;
     }>>;
     /** 사서함 사용량 · 스팸 수 · 크기(기업메일 사서함만 한도가 있다 — 받은편지함 탭 줄 게이지, 2026-10-27) */
-    getAccountUsage: (seq: number) => Promise<ApiOk<{
-        seq: number;
-        kind: string;
-        quota_mb: number;
-        used_bytes: number;
-        spam_count: number;
-        spam_bytes: number;
-    }>>;
+    getAccountUsage: (seq: number) => Promise<ApiOk<MailboxUsage>>;
     /** 주소록 전용 라벨(2026-10-27 — 메일 라벨과 따로). 모양 · 규칙은 메일 라벨과 같다. */
     listContactLabels: () => Promise<ApiOk<{
         items: MailLabel[];

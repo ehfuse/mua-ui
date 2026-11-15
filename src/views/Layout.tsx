@@ -28,7 +28,10 @@ import { mailApi, unwrap } from "../apis/mailApi";
 import { useMailRealtime, type MailChangedData } from "../apis/useMailRealtime";
 import { useComposeController } from "../controllers/composeController";
 import { useMailController } from "../controllers/mailController";
-import { resetKeptReadMessages } from "../controllers/mailActions";
+import { listParamsOf, resetKeptReadMessages } from "../controllers/mailActions";
+import { beginMailScreenEntry, takeMailScreenEntry } from "../internal/screenEntry";
+import { mailboxUsageTarget } from "../internal/mailboxUsage";
+import { MAIL_PAGE_SIZE } from "../models/types";
 import type {
     MailAccount,
     MailFilters,
@@ -214,6 +217,23 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const counts = state.useValue("counts") as MailFolderCounts;
     // 색상 라벨(config.labels) — 켠 앱만 라벨 API 를 부르고 칩 · 탭 · 메뉴를 그린다(서버가 옛 것인 앱은 지금 화면 그대로).
     const labelsEnabled = Boolean(muaConfig.labels);
+    // 메일 화면 진입 묶음(0.4.84) — 마운트할 때 한 번, 목록 첫 쪽 · 건수 · 라벨 · 규칙 · 설정 · 사용량을 GET /entry 한 건으로 받는다.
+    // ⚠️ 이 effect 는 아래 로더 effect(라벨 · 첫 로드 · 거르기 · 설정)보다 **먼저** 선언한다 — 로더들이 같은 커밋에서 이 묶음을 찾는다.
+    // 쿼리는 같은 커밋의 effect 가 모두 돈 뒤(라우트 → 거르기 반영 뒤)의 거르기로 만든다(screenEntry.ts).
+    useEffect(() => {
+        if (!logined) return;
+        beginMailScreenEntry(() => {
+            const current = state.getValue("filters") as MailFilters;
+            return {
+                ...listParamsOf(current, 1, MAIL_PAGE_SIZE),
+                // 사용량 게이지 · 앱 사이드바 판은 넓은 화면만 그린다.
+                usage_seq: isMobile ? 0 : mailboxUsageTarget(state.getValue("accounts") as MailAccount[], current.mailAccountSeq),
+                labels: labelsEnabled || undefined,
+            };
+        });
+        // 마운트할 때 한 번 — 뒤의 동작(폴더 옮기기 · 쪽 넘기기)은 개별 라우트로 읽는다.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     const storedLabels = state.useValue("labels") as MailLabel[];
     // 모든 라벨(칩을 찾을 때) · 지금 보는 메일함의 라벨 묶음(탭 · 머리 메뉴 · 새 라벨) — 공용 메일함은 그 메일함의 공용 라벨(2026-11-11).
     const allLabels = useMemo(() => (labelsEnabled ? storedLabels : []), [labelsEnabled, storedLabels]);
@@ -315,9 +335,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 markMailSidebarFilled("accounts", true);
                 void state.actions.loadCounts();
             });
-        } else {
-            void state.actions.loadCounts();
         }
+        // 계정을 이어받았으면 건수는 아래 거르기 effect 가 읽는다(0.4.84 — 예전엔 여기서도 읽어 진입마다 /counts 가 두 번 나갔다).
         const folderEntry = isMailSidebarFilled("folders") ? null : takeMailEntry("folders");
         if (folderEntry) {
             void folderEntry.then((rows) => {
@@ -900,13 +919,15 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     useEffect(() => {
         if (!logined || isMobile) return;
         let cancelled = false;
-        void mailApi
-            .getPreferences()
-            .then((res) => {
-                if (cancelled || !res || res.ok === false) return;
-                const mode = res.data?.view_mode === "split" ? "split" : "list";
+        // 진입 묶음이 실어 온 설정이 있으면 그것을 쓴다(0.4.84).
+        const fromEntry = takeMailScreenEntry("preferences");
+        void (fromEntry ?? Promise.resolve(undefined))
+            .then(async (prefs) => prefs ?? unwrap(await mailApi.getPreferences(), ""))
+            .then((prefs) => {
+                if (cancelled || !prefs) return;
+                const mode = prefs.view_mode === "split" ? "split" : "list";
                 setViewMode(mode);
-                state.setValue("lastAccountSeq", Number(res.data?.last_account_seq ?? 0) || 0);
+                state.setValue("lastAccountSeq", Number(prefs.last_account_seq ?? 0) || 0);
                 try {
                     window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
                 } catch {

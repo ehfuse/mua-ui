@@ -1,5 +1,4 @@
 import type { MailAccount } from "../../models/types";
-/** 목록 보기 타입 — 목록형(상세는 드로어) / 분할화면(오른쪽 상세 패널) */
 export type MailViewMode = "list" | "split";
 interface MailHeaderActionsProps {
     accounts: MailAccount[];

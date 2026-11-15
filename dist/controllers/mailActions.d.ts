@@ -2,7 +2,7 @@
  * 메일 화면 Actions — 계정/목록/상세/건수/동기화/메시지 조작. API 호출은 전부 여기서만 한다.
  */
 import type { ActionContext } from "@ehfuse/forma";
-import { type BulkMessageAction } from "../apis/mailApi";
+import { type BulkMessageAction, type ListMessagesParams } from "../apis/mailApi";
 import { type MailAccount, type MailFilters, type MailLabel, type MailMoveTarget, type MailRule, type MailState, type MailUserFolder } from "../models/types";
 /** 남겨 둔 읽은 메일을 버린다 — 메일 화면을 떠날 때 부른다. */
 export declare function resetKeptReadMessages(): void;
@@ -10,6 +10,8 @@ export declare function resetKeptReadMessages(): void;
 export declare const loadAccounts: () => (context: ActionContext<MailState>) => Promise<MailAccount[]>;
 /** 필터를 바꾼다(목록 재조회는 Layout 의 effect 가 필터 변화를 보고 호출한다). */
 export declare const setFilters: () => (context: ActionContext<MailState>, patch: Partial<MailFilters>) => void;
+/** 그 거르기의 목록 쿼리 — 메일 화면 진입 묶음(screenEntry)도 같은 쿼리를 쓴다. */
+export declare function listParamsOf(filters: MailFilters, page: number, limit: number): ListMessagesParams;
 /**
  * 목록을 읽는다. append=true 면 다음 페이지를 이어 붙인다.
  * refill=N 이면 처음부터 N줄을 덮을 만큼(쪽 단위, 최대 200줄) 한 번에 다시 받는다 — 지우거나 옮겨 줄이 빠진 뒤 빈자리를 채운다

@@ -3,6 +3,7 @@ interface MessageDetailPanelProps {
     detail: MailMessageDetail | null;
     loading: boolean;
     onClose: () => void;
+    hideClose?: boolean;
     onReply: (mode: "reply" | "replyAll" | "forward") => void;
     onEditDraft: () => void;
     onComposeTo: (address: string) => void;

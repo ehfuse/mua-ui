@@ -6,8 +6,8 @@ import { t } from "../../i18n";
  */
 
 import { useEffect, useState } from "react";
+import { getMailboxUsage, loadMailboxUsage, subscribeMailboxUsage } from "../../internal/mailboxUsage";
 import { Box, LinearProgress, Tooltip, Typography } from "@mui/material";
-import { mailApi } from "../../apis/mailApi";
 import type { MailAccount } from "../../models/types";
 import { formatBytes } from "../../utils/format";
 
@@ -42,23 +42,22 @@ export function MailboxUsageGauge({
             ? hosted.find((account) => account.seq === mailAccountSeq)
             : (hosted.find((account) => account.scope === "personal") ?? hosted[0]);
     const targetSeq = target?.seq ?? 0;
-    const [usage, setUsage] = useState<Usage | null>(null);
+    const [usage, setUsage] = useState<Usage | null>(() => getMailboxUsage(targetSeq));
+
+    // 값은 공용 저장소(0.4.84)에서 — 앱 사이드바 판 · 진입 묶음(GET /entry)과 같은 값을 쓰고 같은 요청을 이어받는다.
+    useEffect(() => {
+        setUsage(targetSeq ? getMailboxUsage(targetSeq) : null);
+        return subscribeMailboxUsage((next) => {
+            if (next.seq === targetSeq) setUsage(next);
+        });
+    }, [targetSeq]);
 
     useEffect(() => {
-        if (!targetSeq) {
-            setUsage(null);
-            return;
-        }
-        let cancelled = false;
-        mailApi
-            .getAccountUsage(targetSeq)
-            .then((res) => {
-                if (!cancelled && res && res.ok !== false && res.data) setUsage(res.data);
-            })
-            .catch(() => undefined);
-        return () => {
-            cancelled = true;
-        };
+        if (!targetSeq) return;
+        // 한 틱 미룬다 — 이 effect 는 부모(메일 화면)의 진입 묶음 effect 보다 먼저 돈다. 미루면 묶음이 이 사서함을 읽는 중으로 걸린 뒤라 그것을 이어받는다.
+        // 방금(2초 안) 받은 값이 있으면 다시 읽지 않는다 — 첫 목록이 와 건수(refreshKey)가 0 → N 으로 바뀌는 것으로 또 읽어 진입마다 2번 나갔다.
+        const timer = setTimeout(() => void loadMailboxUsage(targetSeq, 2000), 0);
+        return () => clearTimeout(timer);
     }, [targetSeq, refreshKey]);
 
     if (!target || !usage) return null;
