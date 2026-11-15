@@ -18,10 +18,64 @@ export interface MailChangedData {
 
 /** 돌아왔을 때 다시 읽기의 최소 간격 — 창을 오갈 때마다 읽지 않는다. */
 const RESYNC_MIN_GAP_MS = 30_000;
+/** 다시 붙음과 다시 보임이 거의 같이 온다 — 그 사이는 한 번으로. */
+const RECONNECT_MIN_GAP_MS = 3_000;
 
 interface UseMailRealtimeOptions {
     enabled?: boolean; // 활성화(로그인 상태)
     onEvent?: (data: MailChangedData) => void; // 수신 콜백
+}
+
+/**
+ * 다시 읽기 신호는 모듈에서 한 벌만 듣는다(0.4.87) — 전에는 훅마다 상태 리스너를 붙이고 "처음 open 은 뺀다" 를 따로 셌다:
+ *   · 소켓이 이미 열린 뒤에 뜬 훅(메일 화면 · 직원 목록 등)은 다음 재연결을 처음 붙음으로 여겨 건너뛰었다 — 끊긴 사이 온 메일 · 읽음이 안 맞았다.
+ *   · 훅마다 따로 불러 같은 목록 다시 읽기가 훅 수만큼 나갔다(계정 · 메일함이 재연결마다 두 번).
+ * 이제 처음 붙음은 앱에서 한 번만 세고(붙일 때 이미 열려 있으면 지난 것으로 본다), 가려진 탭에서 다시 붙으면 보일 때 한 번 부른다.
+ * 듣는 쪽(훅)마다 마지막으로 부른 때를 따로 둔다 — 막 뜬 훅은 방금 읽었으니 30초 안의 다시 보임 · 포커스로는 또 읽지 않는다.
+ */
+interface ResyncListener {
+    call: () => void;
+    lastAt: number;
+}
+const resyncListeners = new Set<ResyncListener>();
+let resyncBound = false;
+let everOpened = false;
+let resyncPending = false;
+
+function resyncAll(minGapMs: number): void {
+    const now = Date.now();
+    for (const listener of resyncListeners) {
+        if (now - listener.lastAt < minGapMs) continue;
+        listener.lastAt = now;
+        listener.call();
+    }
+}
+
+function bindResync(): void {
+    if (resyncBound || typeof window === "undefined") return;
+    resyncBound = true;
+    if ((entityAppServer as unknown as { realtimeStatus?: string }).realtimeStatus === "open") everOpened = true;
+    entityAppServer.addRealtimeStatusListener((change: RealtimeStatusChange) => {
+        // 다시 붙을 때의 상태는 closed → connecting → open 이다 — "open 이 아니던 것이 open 이 됐다" 로 본다.
+        if (change.status !== "open" || change.previousStatus === "open") return;
+        if (!everOpened) {
+            everOpened = true;
+            return;
+        }
+        if (document.visibilityState === "hidden") {
+            resyncPending = true;
+            return;
+        }
+        resyncAll(RECONNECT_MIN_GAP_MS);
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible") return;
+        // 가려진 채 다시 붙었으면 끊긴 사이를 모른다 — 30초 간격과 상관없이 맞춘다.
+        const pending = resyncPending;
+        resyncPending = false;
+        resyncAll(pending ? RECONNECT_MIN_GAP_MS : RESYNC_MIN_GAP_MS);
+    });
+    window.addEventListener("focus", () => resyncAll(RESYNC_MIN_GAP_MS));
 }
 
 /** 메일 변동 이벤트를 수신한다. */
@@ -41,31 +95,13 @@ export function useMailRealtime({ enabled = true, onEvent }: UseMailRealtimeOpti
         const client = entityAppServer as unknown as { connectRealtime?: () => Promise<void> };
         void client.connectRealtime?.().catch(() => undefined);
         // 끊겨 있던 동안의 변동은 다시 오지 않는다 — 창을 내려 뒀다 올리면 다른 기기에서 읽은 메일이 안 읽음으로 남았다(2026-10-12).
-        // 다시 붙었을 때(closed → connecting → open 이라 "처음 붙은 것이 아닌 open" 으로 본다)와 화면으로 돌아왔을 때 다시 읽게 알린다.
-        let openedOnce = false;
-        let lastResyncAt = Date.now();
-        const resync = (minGapMs: number) => {
-            if (Date.now() - lastResyncAt < minGapMs) return;
-            lastResyncAt = Date.now();
-            onEventRef.current?.({ resync: true });
-        };
-        const onStatus = (change: RealtimeStatusChange) => {
-            if (change.status !== "open" || change.previousStatus === "open") return;
-            if (openedOnce) resync(3000);
-            openedOnce = true;
-        };
-        const onVisible = () => {
-            if (document.visibilityState === "visible") resync(RESYNC_MIN_GAP_MS);
-        };
-        const onFocus = () => resync(RESYNC_MIN_GAP_MS);
-        entityAppServer.addRealtimeStatusListener(onStatus);
-        document.addEventListener("visibilitychange", onVisible);
-        window.addEventListener("focus", onFocus);
+        // 다시 붙었을 때와 화면으로 돌아왔을 때 다시 읽게 알린다(모듈 한 벌 — bindResync).
+        bindResync();
+        const listener: ResyncListener = { call: () => onEventRef.current?.({ resync: true }), lastAt: Date.now() };
+        resyncListeners.add(listener);
         return () => {
             entityAppServer.removeRealtimeEventListener(MAIL_CHANGED_EVENT, handler);
-            entityAppServer.removeRealtimeStatusListener(onStatus);
-            document.removeEventListener("visibilitychange", onVisible);
-            window.removeEventListener("focus", onFocus);
+            resyncListeners.delete(listener);
         };
     }, [enabled]);
 }
