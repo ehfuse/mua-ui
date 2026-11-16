@@ -11,7 +11,7 @@
     "actionFailed": "処理できませんでした。",
     "actions": "アクション",
     "addAccount": "外部メールアカウント登録",
-    "addAccountButton": "アカウント追加",
+    "addAccountButton": "外部メール追加",
     "addAccountToSend": "メールを送信するには、まずメールアカウントを登録してください。",
     "addCondition": "条件を追加",
     "addContact": "連絡先を追加",
