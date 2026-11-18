@@ -21,7 +21,7 @@ import { formatCounterpart, formatMailListDate, scheduledPrefix, sendStateColor,
  * 표(VDT 1.19.1~)가 넘치는 칸을 "…" 로 자르게 되어 단추 옆에 "…" 가 붙었다(업무함 2026-11-18 사용자 지적) — 아이콘 칸은 안쪽 여백 없이 가운데(머리 칸 여백은 그대로).
  */
 const ICON_CELL_STYLE = { textAlign: "center" } as const;
-/** 노션풍 표는 칸 여백을 !important 로 주므로 style 로는 못 덮는다 — cellPadding 을 준 칸만 그 여백에서 빠진다(VDT). */
+/** 노션풍 표는 칸 여백을 !important 로 주므로 style 로는 못 덮는다 — cellPadding(본문) · headerPadding(머리, VDT 1.21.0)을 준 칸만 그 여백에서 빠진다. */
 const ICON_CELL_PADDING = 0;
 
 export interface MailListSelection {
@@ -63,6 +63,7 @@ export function getMailColumns(
             align: "center",
             style: ICON_CELL_STYLE,
             cellPadding: ICON_CELL_PADDING,
+            headerPadding: ICON_CELL_PADDING,
             render: (row) => (
                 <Checkbox
                     size="small"
@@ -81,6 +82,7 @@ export function getMailColumns(
             align: "center",
             style: ICON_CELL_STYLE,
             cellPadding: ICON_CELL_PADDING,
+            headerPadding: ICON_CELL_PADDING,
             render: (row) => (
                 <Box sx={{ display: "inline-flex", alignItems: "center" }}>
                 <IconButton
@@ -182,6 +184,7 @@ export function getMailColumns(
             align: "center",
             style: ICON_CELL_STYLE,
             cellPadding: ICON_CELL_PADDING,
+            headerPadding: ICON_CELL_PADDING,
             render: (row) =>
                 row.has_attachment ? <AttachFileIcon fontSize="small" sx={{ color: "#64748b" }} /> : null,
         },
