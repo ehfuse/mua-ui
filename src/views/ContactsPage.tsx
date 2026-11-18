@@ -266,6 +266,8 @@ export default function ContactsPage({ embedded = false }: ContactsPageProps) {
                 width: 84,
                 align: "center",
                 style: { textAlign: "center" },
+                // 노션풍 칸 여백(14px 씩)을 빼야 단추 둘이 칸 안에 든다 — 표가 넘치는 칸을 "…" 로 자르게 됐다(메일 목록과 같은 고침, 0.4.90).
+                cellPadding: 0,
                 render: (row) => (
                     <Box sx={{ display: "inline-flex", alignItems: "center" }}>
                         <IconButton

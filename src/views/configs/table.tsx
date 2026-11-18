@@ -16,6 +16,14 @@ import { MailLabelChips } from "../components/MailLabels";
 import { formatCounterpart, formatMailListDate, scheduledPrefix, sendStateColor, sendStateLabel } from "../../utils/format";
 
 /** 복수 선택 상태(체크박스 컬럼) */
+/**
+ * 체크박스 · 별/라벨 · 첨부 칸 — 단추가 칸의 좌우 안쪽 여백(14px)까지 들어가면 넘친다.
+ * 표(VDT 1.19.1~)가 넘치는 칸을 "…" 로 자르게 되어 단추 옆에 "…" 가 붙었다(업무함 2026-11-18 사용자 지적) — 아이콘 칸은 안쪽 여백 없이 가운데(머리 칸 여백은 그대로).
+ */
+const ICON_CELL_STYLE = { textAlign: "center" } as const;
+/** 노션풍 표는 칸 여백을 !important 로 주므로 style 로는 못 덮는다 — cellPadding 을 준 칸만 그 여백에서 빠진다(VDT). */
+const ICON_CELL_PADDING = 0;
+
 export interface MailListSelection {
     checked: Set<number>; // 선택된 seq
     allChecked: boolean; // 현재 목록 전부 선택
@@ -53,7 +61,8 @@ export function getMailColumns(
             // 칸 폭 = 체크박스(28) + 노션풍 칸 좌우 여백(14 × 2) — 40 이면 남는 폭(12)이 체크박스보다 좁아 머리와 줄의 체크박스가 서로 다르게 넘쳐 어긋났다(2026-11-03).
             width: 56,
             align: "center",
-            style: { textAlign: "center" },
+            style: ICON_CELL_STYLE,
+            cellPadding: ICON_CELL_PADDING,
             render: (row) => (
                 <Checkbox
                     size="small"
@@ -70,7 +79,8 @@ export function getMailColumns(
             text: "",
             width: onLabelClick ? 76 : 44,
             align: "center",
-            style: { textAlign: "center" },
+            style: ICON_CELL_STYLE,
+            cellPadding: ICON_CELL_PADDING,
             render: (row) => (
                 <Box sx={{ display: "inline-flex", alignItems: "center" }}>
                 <IconButton
@@ -170,7 +180,8 @@ export function getMailColumns(
             // 칸 폭 = 클립 아이콘(20) + 칸 좌우 여백(28) — 36 이면 아이콘이 칸 밖으로 넘쳐 가운데에서 비켜 섰다(2026-11-03).
             width: 48,
             align: "center",
-            style: { textAlign: "center" },
+            style: ICON_CELL_STYLE,
+            cellPadding: ICON_CELL_PADDING,
             render: (row) =>
                 row.has_attachment ? <AttachFileIcon fontSize="small" sx={{ color: "#64748b" }} /> : null,
         },
