@@ -26,6 +26,39 @@ export function sanitizeMailHtml(html: string, allowRemoteImages: boolean): stri
     return allowRemoteImages ? clean : blockRemoteImages(clean);
 }
 
+/** 글 속 주소 — http(s):// 또는 www. 로 시작, 공백 · 꺾쇠 · 따옴표 전까지. 끝의 마침표 · 쉼표 · 닫는 괄호는 문장 부호로 본다. */
+const URL_IN_TEXT = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+const TRAILING_PUNCT = /[.,;:!?)\]}'"]+$/;
+
+/** 이미 이스케이프된 글의 주소를 <a> 로 감싼다(2026-11-19 사용자 지시 "메일 내용에 url 들이 새 탭 링크로") — 새 탭은 문서의 <base target=_blank>. */
+export function linkifyEscapedText(escaped: string): string {
+    return escaped.replace(URL_IN_TEXT, (match) => {
+        const tail = match.match(TRAILING_PUNCT)?.[0] ?? "";
+        const url = tail ? match.slice(0, -tail.length) : match;
+        const href = /^www\./i.test(url) ? `https://${url}` : url;
+        return `<a href="${href.replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer">${url}</a>${tail}`;
+    });
+}
+
+/** HTML 본문에서 <a> 로 감싸지 않은 주소 글을 링크로 — 글 마디만 바꾸고 태그 · 속성은 건드리지 않는다. */
+export function linkifyHtml(html: string): string {
+    if (!html || typeof DOMParser === "undefined" || !/(?:https?:\/\/|www\.)/i.test(html)) return html;
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, "text/html");
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+    const targets: Text[] = [];
+    for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
+        if (!node.parentElement?.closest("a, script, style, textarea") && /(?:https?:\/\/|www\.)/i.test(node.data)) targets.push(node);
+    }
+    if (targets.length === 0) return html;
+    for (const node of targets) {
+        const escaped = node.data.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const holder = doc.createElement("span");
+        holder.innerHTML = linkifyEscapedText(escaped);
+        node.replaceWith(...Array.from(holder.childNodes));
+    }
+    return doc.body.innerHTML;
+}
+
 /**
  * 표로 짠 메일(뉴스레터 · 안내 메일)인지 본다 — 글의 대부분(80% 이상)이 표 안에 있을 때만 그렇다.
  * 표가 하나라도 있으면 레이아웃 메일로 보던 것을 고쳤다(2026-11-09 — 본문은 평범한 글이고 맨 아래 서명만 표인 메일이

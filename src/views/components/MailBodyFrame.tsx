@@ -5,7 +5,7 @@ import { t } from "../../i18n";
 
 import { useEffect, useMemo, useRef } from "react";
 import { Box } from "@mui/material";
-import { isLayoutMail, sanitizeMailHtml, wrapMailDocument, wrapWideTables } from "../../utils/html";
+import { isLayoutMail, linkifyEscapedText, linkifyHtml, sanitizeMailHtml, wrapMailDocument, wrapWideTables } from "../../utils/html";
 import { useMuaConfig } from "../../MuaProvider";
 
 interface MailBodyFrameProps {
@@ -14,12 +14,9 @@ interface MailBodyFrameProps {
     allowRemoteImages: boolean; // 외부 이미지 허용
 }
 
-/** 평문을 HTML 로 바꾼다. */
+/** 평문을 HTML 로 바꾼다 — 주소는 누르면 새 탭으로 여는 링크(linkifyEscapedText). */
 function textToHtml(text: string): string {
-    return `<pre style="white-space:pre-wrap;font-family:inherit;margin:0;">${text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")}</pre>`;
+    return `<pre style="white-space:pre-wrap;font-family:inherit;margin:0;">${linkifyEscapedText(text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"))}</pre>`;
 }
 
 /** 본문 iframe 컴포넌트 — 내용 높이에 맞춰 자동으로 늘어난다. */
@@ -32,7 +29,7 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
     openExternalRef.current = openExternalUrl;
     const srcDoc = useMemo(
         // 표로 짠 메일(글 대부분이 표 안)만 폰 폭에서 좌우 여백을 뺀다(html.ts isLayoutMail · mua-layout).
-        () => wrapMailDocument(html ? sanitizeMailHtml(html, allowRemoteImages) : textToHtml(text), { layout: isLayoutMail(html) }),
+        () => wrapMailDocument(html ? linkifyHtml(sanitizeMailHtml(html, allowRemoteImages)) : textToHtml(text), { layout: isLayoutMail(html) }),
         [html, text, allowRemoteImages]
     );
 

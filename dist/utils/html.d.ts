@@ -1,6 +1,10 @@
 import type { MailMessageDetail } from "../models/types";
 /** 본문 HTML 을 안전하게 정제한다. allowRemoteImages 가 false 면 외부 이미지를 막는다. */
 export declare function sanitizeMailHtml(html: string, allowRemoteImages: boolean): string;
+/** 이미 이스케이프된 글의 주소를 <a> 로 감싼다(2026-11-19 사용자 지시 "메일 내용에 url 들이 새 탭 링크로") — 새 탭은 문서의 <base target=_blank>. */
+export declare function linkifyEscapedText(escaped: string): string;
+/** HTML 본문에서 <a> 로 감싸지 않은 주소 글을 링크로 — 글 마디만 바꾸고 태그 · 속성은 건드리지 않는다. */
+export declare function linkifyHtml(html: string): string;
 /**
  * 표로 짠 메일(뉴스레터 · 안내 메일)인지 본다 — 글의 대부분(80% 이상)이 표 안에 있을 때만 그렇다.
  * 표가 하나라도 있으면 레이아웃 메일로 보던 것을 고쳤다(2026-11-09 — 본문은 평범한 글이고 맨 아래 서명만 표인 메일이
