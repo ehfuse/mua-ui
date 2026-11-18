@@ -1,6 +1,5 @@
 import type { DataColumn } from "@ehfuse/mui-virtual-data-table";
 import type { MailLabel, MailMessageListItem } from "../../models/types";
-/** 복수 선택 상태(체크박스 컬럼) */
 export interface MailListSelection {
     checked: Set<number>;
     allChecked: boolean;

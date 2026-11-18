@@ -95,7 +95,7 @@ export function MailManageHost() {
                 setHostedEditing(account);
                 setHostedOpen(true);
             }
-            else accountForm.form.actions.openDialog(account);
+            else if (!accountsReadOnly) accountForm.form.actions.openDialog(account);
         },
         [accountForm.form.actions]
     );
@@ -112,6 +112,8 @@ export function MailManageHost() {
     });
     // 쓰기 창(0.4.78) — 새 창으로 옮긴 임시보관 메일을 읽어 바로 쓰기 창으로 연다. 창이 쓰기 창을 닫으면 창도 닫힌다(ComposeDialog).
     const composeWindowSeq = Number(useMuaConfig().windowComposeDraftSeq ?? 0) || 0;
+    // 계정을 손대지 못하게(0.4.93, config accountsReadOnly) — 계정 등록 · 고치기 창을 열지 않는다.
+    const accountsReadOnly = useMuaConfig().accountsReadOnly === true;
     useEffect(() => {
         if (!(composeWindowSeq > 0)) return;
         let alive = true;
@@ -137,7 +139,7 @@ export function MailManageHost() {
                 sidebarAccounts[0];
             // 계정이 하나도 없으면 등록부터 — 빈 작성 창을 열어 봐야 보낼 수 없다.
             if (!account) {
-                accountForm.form.actions.openDialog(null);
+                if (!accountsReadOnly) accountForm.form.actions.openDialog(null);
                 return;
             }
             // 받는 사람 미리 채우기(앱 본문의 이메일 주소를 눌렀을 때, 2026-09-13).
@@ -276,7 +278,7 @@ export function MailManageHost() {
             // 계정을 집어 열면(사이드바 계정 우클릭 "계정 관리", 2026-11-13) 관리 목록의 연필과 같은 길 — 기업메일 사서함은 이름 · 서명 창이다.
             else if (request.kind === "account") {
                 if (request.account) handleEditAccount(request.account);
-                else accountForm.form.actions.openDialog(null);
+                else if (!accountsReadOnly) accountForm.form.actions.openDialog(null);
             }
             else if (request.kind === "message") openView(request.seq);
             else setRuleEditing({ rule: request.rule, prefill: request.prefill });
@@ -317,6 +319,7 @@ export function MailManageHost() {
                 folders={allFolders}
                 rules={rules}
                 onAddAccount={() => accountForm.form.actions.openDialog(null)}
+                accountsReadOnly={accountsReadOnly}
                 onEditAccount={handleEditAccount}
                 onDeleteAccount={handleDeleteAccount}
                 onSyncAccount={(account) => void state.actions.syncNow(account.seq).then(() => requestMailRefresh())}

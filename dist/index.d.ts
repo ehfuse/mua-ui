@@ -18,6 +18,7 @@ export { subscribeMailCounts } from "./internal/mailCountsFeed";
 export { MailManageHost } from "./views/MailManageHost";
 export { requestMailAccountForm, requestMailFoldersManage, requestMailCompose, requestMailMessageView, requestMailManage, requestMailRuleForm, type MailComposeDraft, type MailManageRequest, type MailManageTab, } from "./internal/manageRequest";
 export { requestMailRefresh } from "./internal/refreshRequest";
+export { MAIL_DRAG_TYPE, MAIL_DROP_OVER_ATTR, mailDropHandlers, type MailDropTarget } from "./internal/mailDrag";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";
 export { FolderIcon as MailFolderIcon } from "./internal/FolderIcon";
 export { findMailProvider, type MailProviderInfo, type MailProviderKey } from "./utils/providers";

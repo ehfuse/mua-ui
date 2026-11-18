@@ -42,6 +42,8 @@ interface MailManageDialogProps {
     folders: MailUserFolder[]; // 사용자 메일함
     rules: MailRule[]; // 규칙
     onAddAccount: () => void; // 계정 추가
+    /** 계정을 손대지 못하게(0.4.93) — 계정 탭의 [+ 계정 추가] · 줄의 고치기 · 지우기를 숨긴다. */
+    accountsReadOnly?: boolean;
     onEditAccount: (account: MailAccount) => void; // 계정 수정
     onDeleteAccount: (account: MailAccount) => void; // 계정 삭제
     onSyncAccount: (account: MailAccount) => void; // 지금 동기화
@@ -65,6 +67,7 @@ export function MailManageDialog({
     folders,
     rules,
     onAddAccount,
+    accountsReadOnly = false,
     onEditAccount,
     onDeleteAccount,
     onSyncAccount,
@@ -88,7 +91,7 @@ export function MailManageDialog({
         else if (tab === "labels") setLabelAddOpen(true);
         else onAddRule();
     };
-    const addButton = (
+    const addButton = tab === "accounts" && accountsReadOnly ? null : (
         <Button
             variant="outlined"
             startIcon={<AddIcon />}
@@ -152,6 +155,7 @@ export function MailManageDialog({
                                 syncingSeqs={syncingSeqs}
                                 onEdit={onEditAccount}
                                 onDelete={onDeleteAccount}
+                                readOnly={accountsReadOnly}
                                 onSync={onSyncAccount}
                                 onReorder={onReorderAccounts}
                             />

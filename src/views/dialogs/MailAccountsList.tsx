@@ -20,6 +20,8 @@ interface MailAccountsListProps {
     syncingSeqs: number[]; // 동기화 중인 계정 seq 목록
     onEdit: (account: MailAccount) => void; // 수정
     onDelete: (account: MailAccount) => void; // 삭제
+    /** 고치기 · 지우기 단추를 숨긴다(0.4.93, config accountsReadOnly). */
+    readOnly?: boolean;
     onSync: (account: MailAccount) => void; // 지금 동기화
     /** 순서 바꾸기 — 드래그로 놓은 순간의 seq 배열(위에서부터). 주지 않으면 드래그가 꺼진다. */
     onReorder?: (seqs: number[]) => void;
@@ -40,6 +42,7 @@ function AccountRow({
     syncing,
     onEdit,
     onDelete,
+    readOnly = false,
     onSync,
     dragProps,
     onDragEnter,
@@ -49,6 +52,7 @@ function AccountRow({
     syncing: boolean;
     onEdit: () => void;
     onDelete: () => void;
+    readOnly?: boolean;
     onSync: () => void;
     /** 손잡이(왼쪽 아이콘)에 걸 드래그 핸들러 — 없으면 순서 바꾸기가 꺼진 상태다. */
     dragProps?: { onDragStart: () => void; onDragEnd: () => void };
@@ -221,6 +225,8 @@ function AccountRow({
                         </span>
                     </Tooltip>
                 )}
+                {readOnly ? null : (
+                    <>
                 {/* 기업메일 사서함도 연필은 열린다 — 주소·수신 설정이 아니라 **내가 쓰는** 보내는 사람 이름·서명을 고친다
                     (can_edit_profile). 사서함 자체는 여전히 팀 관리 › 기업메일 소관이다(2026-09-07). */}
                 <Tooltip title={
@@ -256,13 +262,15 @@ function AccountRow({
                         </IconButton>
                     </span>
                 </Tooltip>
+                    </>
+                )}
             </Stack>
         </Box>
     );
 }
 
 /** 계정 목록 */
-export function MailAccountsList({ accounts, syncingSeqs, onEdit, onDelete, onSync, onReorder }: MailAccountsListProps) {
+export function MailAccountsList({ accounts, syncingSeqs, onEdit, onDelete, readOnly = false, onSync, onReorder }: MailAccountsListProps) {
     // 끌고 있는 행(0=없음)과 놓기 전 미리보기 순서 — 놓거나 취소하면 비운다.
     const [dragSeq, setDragSeq] = useState(0);
     const [orderPreview, setOrderPreview] = useState<number[] | null>(null);
@@ -308,6 +316,7 @@ export function MailAccountsList({ accounts, syncingSeqs, onEdit, onDelete, onSy
                         syncing={syncingSeqs.includes(account.seq)}
                         onEdit={() => onEdit(account)}
                         onDelete={() => onDelete(account)}
+                        readOnly={readOnly}
                         onSync={() => onSync(account)}
                         dragProps={
                             onReorder

@@ -109,6 +109,11 @@ export interface MuaTeamOption {
 /** 메일 UI 횡단 주입 설정이다(모두 선택 — 없으면 각 지점이 기본값으로 동작한다). */
 export interface MuaConfig {
     account?: MuaAccount | null; // 로그인 계정(소비처가 구독한 리액티브 값) — null/미지정이면 비로그인으로 본다
+    /**
+     * 메일 계정을 손대지 못하게(0.4.93) — 켜면 계정 추가 · 고치기 · 지우기 단추가 숨고, 계정 등록 창이 열리지 않는다(계정이 없을 때 쓰기 · 사이드바 계정 관리도).
+     * 여러 사람이 한 계정을 함께 쓰는 시연 계정처럼 남의 메일 계정 · 비밀번호가 저장되면 안 되는 곳에서 쓴다. 메일함 · 규칙 · 라벨 관리는 그대로다.
+     */
+    accountsReadOnly?: boolean;
     isAdmin?: boolean; // 라이선스 관리자 여부(미지정 시 account.rbac_role === "admin")
     FormDialogComponent?: ComponentType<any>; // 앱 공통 FormDialog(폰트 배율 등) — 미지정 시 mfd 기본
     FileUploadBoxComponent?: ComponentType<MuaFileUploadBoxProps>; // 첨부 선택 박스 — 미지정 시 패키지 기본 드롭존
