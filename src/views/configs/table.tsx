@@ -24,6 +24,9 @@ const ICON_CELL_STYLE = { textAlign: "center" } as const;
 /** 노션풍 표는 칸 여백을 !important 로 주므로 style 로는 못 덮는다 — cellPadding(본문) · headerPadding(머리, VDT 1.21.0)을 준 칸만 그 여백에서 빠진다. */
 const ICON_CELL_PADDING = 0;
 
+/** 체크 칸의 체크박스 — 안쪽 여백을 빼야 머리 칸과 줄 칸의 가운데가 맞는다(업무함 TABLE_CHECK_SX 와 같은 값). */
+const CHECK_SX = { p: 0, "&:hover": { bgcolor: "transparent" } } as const;
+
 export interface MailListSelection {
     checked: Set<number>; // 선택된 seq
     allChecked: boolean; // 현재 목록 전부 선택
@@ -54,23 +57,23 @@ export function getMailColumns(
                     indeterminate={!selection.allChecked && selection.someChecked}
                     onChange={selection.onToggleAll}
                     onClick={(event) => event.stopPropagation()}
-                    sx={{ p: 0.5 }}
+                    disableRipple
+                    sx={CHECK_SX}
                     inputProps={{ "aria-label": t("selectAll") }}
                 />
             ),
-            // 칸 폭 = 체크박스(28) + 노션풍 칸 좌우 여백(14 × 2) — 40 이면 남는 폭(12)이 체크박스보다 좁아 머리와 줄의 체크박스가 서로 다르게 넘쳐 어긋났다(2026-11-03).
-            width: 56,
+            // 업무함 문자 주소록 표의 체크 칸과 같은 꼴(0.4.92, 2026-11-18 사용자 지시 "이메일 목록 체크도 같은 스타일로") — 칸 폭 52 · 칸 여백은 표 기본 ·
+            // 체크박스 안쪽 여백 없이(체크 아이콘만, 20px) · 물결 · 호버 바탕 없이. 줄 앞 손잡이(rowDrag)가 서면 표가 이 칸 앞에 손잡이 자리를 더한다.
+            width: 52,
             align: "center",
-            style: ICON_CELL_STYLE,
-            cellPadding: ICON_CELL_PADDING,
-            headerPadding: ICON_CELL_PADDING,
             render: (row) => (
                 <Checkbox
                     size="small"
                     checked={selection.checked.has(row.seq)}
                     onChange={() => selection.onToggle(row.seq)}
                     onClick={(event) => event.stopPropagation()}
-                    sx={{ p: 0.5 }}
+                    disableRipple
+                    sx={CHECK_SX}
                     inputProps={{ "aria-label": t("select") }}
                 />
             ),

@@ -73,6 +73,7 @@ import { asMenuRows, labelGroupOf, labelScopeOf, labelsInScope, mergeLabelsByNam
 import { MailMobileOwnScroll } from "./components/MailMobileOwnScroll";
 import { MessageDetailPanel } from "./components/MessageDetailPanel";
 import { getMailColumns } from "./configs/table";
+import { MAIL_DRAG_TYPE, beginMailDrag, endMailDrag, mailDropAccepts } from "../internal/mailDrag";
 import LabelOutlinedIcon from "@mui/icons-material/LabelOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import { LabelCheckIcon, MailLabelDot, MailLabelMenu, labelCheckStates, labelColor } from "./components/MailLabels";
@@ -639,21 +640,24 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         },
         [rowContextMenu]
     );
-    const rowAction = useCallback(
-        (row: MailMessageListItem, action: BulkMessageAction, move?: MailMoveTarget) =>
-            void state.actions.applyMessageAction([row.seq], action, move, true).then((ok: boolean) => {
+    /** 고른 메일(대화) 몇 통에 한 동작 — 우클릭 메뉴(한 통)와 사이드바로 끌어 놓기(체크한 메일 모두)가 같이 쓴다. */
+    const applyToSeqs = useCallback(
+        (seqs: number[], action: BulkMessageAction, move?: MailMoveTarget) =>
+            void state.actions.applyMessageAction(seqs, action, move, true).then((ok: boolean) => {
                 if (!ok) return;
-                if (
-                    action !== "read" &&
-                    action !== "unread" &&
-                    action !== "star" &&
-                    action !== "unstar" &&
-                    detail?.seq === row.seq
-                )
-                    state.actions.clearSelection();
+                const stays = action === "read" || action === "unread" || action === "star" || action === "unstar";
+                if (!stays) {
+                    if (detail && seqs.includes(detail.seq)) state.actions.clearSelection();
+                    // 옮긴 메일은 목록에서 빠진다 — 체크도 함께 푼다(남은 체크 수가 어긋나지 않게).
+                    setCheckedSeqs((prev) => (seqs.some((seq) => prev.has(seq)) ? new Set([...prev].filter((seq) => !seqs.includes(seq))) : prev));
+                }
                 void state.actions.loadCounts();
             }),
         [state, detail]
+    );
+    const rowAction = useCallback(
+        (row: MailMessageListItem, action: BulkMessageAction, move?: MailMoveTarget) => applyToSeqs([row.seq], action, move),
+        [applyToSeqs]
     );
     const isTrashFolder = filters.folder === "trash";
     const isSpamFolder = filters.folder === "spam";
@@ -700,6 +704,32 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         if (filters.folder !== "trash") items.push({ key: "trash", label: t("folderTrash"), target: { folder: "trash" } });
         return items;
     }, [folders, filters.folder, filters.mailFolderSeq]);
+    /**
+     * 줄 앞 손잡이로 메일을 끌어 사이드바 메일함에 놓기(0.4.92, 2026-11-18 사용자 지시 "이메일도 끌어서 폴더에 담을 수 있어야") — 넓은 화면 표만(폰 카드 목록은 끌지 않는다).
+     * 받는 자리는 우클릭 "이동 ▸" 과 같은 목록(moveTargets)이고, 이동 메뉴가 없는 임시보관 · 예약편지함에서는 끌지 않는다.
+     * 중요편지함에 놓으면 별표를 단다 — 우클릭 "별표" 가 숨는 곳(휴지통 · 스팸)과 이미 별표만 보는 곳에서는 받지 않는다.
+     * 체크한 메일 하나를 끌면 체크한 메일 모두 — 표의 여러 줄 고르기(multiSelect)를 체크와 한 벌로 묶어 두어 표가 "1,2,3" 으로 잇는다.
+     */
+    const rowDrag = useMemo(
+        () =>
+            isDraftFolder
+                ? undefined
+                : {
+                      type: MAIL_DRAG_TYPE,
+                      getData: (row: MailMessageListItem) => String(row.seq),
+                      onStart: () =>
+                          beginMailDrag({
+                              accepts: mailDropAccepts(
+                                  moveTargets.map((item) => item.target),
+                                  !isTrashFolder && !isSpamFolder && !filters.starredOnly && filters.folder !== "starred"
+                              ),
+                              drop: (seqs, target) =>
+                                  target.folder === "starred" ? applyToSeqs(seqs, "star") : applyToSeqs(seqs, "move", target),
+                          }),
+                      onEnd: endMailDrag,
+                  },
+        [isDraftFolder, isTrashFolder, isSpamFolder, filters.starredOnly, filters.folder, moveTargets, applyToSeqs]
+    );
     /** 이 메일을 힌트로 규칙 폼을 연다(우클릭 "규칙 만들기"·상세 ⋮ "규칙 만들기" 공용). */
     const openRuleFromMessage = useCallback((row: MailMessageListItem) => {
         requestMailRuleForm(null, {
@@ -1554,6 +1584,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         data: messages,
         totalCount: total,
         getRowId: (row: MailMessageListItem) => row.seq,
+        // 줄 앞 손잡이 끌기(위 rowDrag) · Ctrl(⌘) · Shift 클릭 여러 줄 고르기는 체크 칸과 한 벌이다(업무함 문자 주소록과 같다).
+        rowDrag,
+        multiSelect: {
+            selected: messages.filter((row) => checkedSeqs.has(row.seq)).map((row) => String(row.seq)),
+            onChange: (ids: string[]) => setCheckedSeqs(new Set(ids.map(Number).filter(Boolean))),
+        },
         // 44(2026-11-03 사용자 지시 "row py 조금 줄이자") — 48 이면 한 화면에 들어오는 메일이 적었다. 위아래 2px 씩 줄였다.
         rowHeight: 44,
         loading: loadingList,

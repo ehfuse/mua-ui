@@ -69,6 +69,8 @@ export {
     type MailManageTab,
 } from "./internal/manageRequest";
 export { requestMailRefresh } from "./internal/refreshRequest";
+// 메일 줄을 끌어 앱 사이드바 메일함에 놓기(0.4.92) — 사이드바 줄에 mailDropHandlers(대상) 를 단다.
+export { MAIL_DRAG_TYPE, MAIL_DROP_OVER_ATTR, mailDropHandlers, type MailDropTarget } from "./internal/mailDrag";
 export { MailProviderIcon } from "./views/components/MailProviderIcon";
 export { FolderIcon as MailFolderIcon } from "./internal/FolderIcon";
 export { findMailProvider, type MailProviderInfo, type MailProviderKey } from "./utils/providers";

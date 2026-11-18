@@ -371,6 +371,12 @@ export const applyMessageAction =
     ): Promise<boolean> => {
         const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
         if (targets.length === 0) return false;
+        // 스팸함 · 휴지통으로 "이동" 은 서버의 스팸 · 휴지통 동작이다 — 서버의 이동(move)은 받은편지함 · 사용자 메일함만 받아,
+        // 우클릭 "이동 ▸ 스팸함 · 휴지통" 이 400 으로 실패하고 있었다(0.4.92, 2026-11-18 끌어 놓기를 붙이다 찾음).
+        if (action === "move" && (move?.folder === "trash" || move?.folder === "spam")) {
+            action = move.folder;
+            move = undefined;
+        }
         // 처리 전 받아 둔 줄 — 지우거나 옮긴 뒤 이만큼 다시 채운다.
         const rows = context.getValue("messages") as MailMessageListItem[];
         try {
