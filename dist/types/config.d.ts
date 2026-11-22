@@ -97,6 +97,12 @@ export interface MuaConfig {
      * 여러 사람이 한 계정을 함께 쓰는 시연 계정처럼 남의 메일 계정 · 비밀번호가 저장되면 안 되는 곳에서 쓴다. 메일함 · 규칙 · 라벨 관리는 그대로다.
      */
     accountsReadOnly?: boolean;
+    /**
+     * 메일함을 옮길 때 넓은 화면 목록을 비우지 않는다(0.4.95) — 새 목록이 올 때까지 그 메일함의 기억한 목록(다녀간 메일함)이나 보던 목록을 둔 채
+     * 표 위에 스피너만 띄우고, 받으면 한 번에 바꾼다. 끄면(기본) 예전처럼 옮기는 순간 비우고 "불러오는 중" 을 보인다.
+     * 다른 화면 이동과 같은 "로딩만 보이다 한 번에 그리기" 를 메일함에도 맞추려는 앱이 켠다(업무함 2026-11-22).
+     */
+    keepListOnSwitch?: boolean;
     isAdmin?: boolean;
     FormDialogComponent?: ComponentType<any>;
     FileUploadBoxComponent?: ComponentType<MuaFileUploadBoxProps>;

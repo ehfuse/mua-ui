@@ -425,6 +425,14 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         listWasLoading.current = false;
     }, [filterKey, loadingList, messages]);
     const mobileRows = messages.length === 0 && loadedKey !== filterKey ? (lastMobileRows.get(filterKey) ?? messages) : messages;
+    // 넓은 화면 표(config.keepListOnSwitch, 0.4.95) — 메일함을 옮겨 새 목록을 받는 동안 비우지 않는다:
+    // 그 메일함을 받아 둔 목록이 있으면 그것, 없으면 보던 목록을 둔 채 표 위 스피너(loading)만 보이다 받으면 한 번에 바꾼다.
+    const shownDesktopRows = useRef<MailMessageListItem[]>([]);
+    const desktopRows =
+        muaConfig.keepListOnSwitch && messages.length === 0 && loadedKey !== filterKey
+            ? (lastMobileRows.get(filterKey) ?? shownDesktopRows.current)
+            : messages;
+    shownDesktopRows.current = desktopRows;
     // 안 읽음 목록에서 읽은 메일은 이 화면에 있는 동안만 남긴다 — 다른 화면으로 가면 버린다
     useEffect(() => () => resetKeptReadMessages(), []);
     // 마지막으로 읽은 거르기 — 마운트할 때 이 effect 는 낡은 거르기(전역 상태)로 한 번, 라우트 → 거르기 effect 가 바꾼 거르기로 또 한 번 돈다.
@@ -1581,8 +1589,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         // 끝 칸(일시, 오른쪽 맞춤)이 스크롤바에 가리지 않게 스크롤바 자리를 비운다(VDT 1.11.1 scrollbarGutter, 2026-11-03 사용자 지적).
         scrollbarGutter: true,
         columns,
-        data: messages,
-        totalCount: total,
+        data: desktopRows,
+        // 받기 전 잠깐 둔 목록이면 그 줄 수로(앞 메일함의 건수가 새 메일함 건수로 보이지 않게).
+        totalCount: desktopRows === messages ? total : desktopRows.length,
         getRowId: (row: MailMessageListItem) => row.seq,
         // 줄 앞 손잡이 끌기(위 rowDrag) · Ctrl(⌘) · Shift 클릭 여러 줄 고르기는 체크 칸과 한 벌이다(업무함 문자 주소록과 같다).
         rowDrag,
