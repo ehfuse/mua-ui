@@ -117,6 +117,13 @@ export function MailMobileOwnScroll({
     config.useOwnScroll();
     const headRef = useRef<HTMLDivElement | null>(null);
     const listRef = useRef<HTMLDivElement | null>(null);
+    // 머리(앱바 자리 · 탭 · 계정 줄)를 목록 첫 줄 안에 그리면 가상 표 칸의 글꼴(MUI 테마)을 물려받아, 목록이 빈 화면(표 밖)과 글꼴이 달랐다 —
+    // 같은 21px 제목이 90.7 ↔ 96.6px 로 "탭마다 앱바 글자 크기가 다르다"(2026-11-24 업무함 사용자 지적). 표 밖(이 칸)의 글꼴을 읽어 머리에 입힌다.
+    const [outerFont, setOuterFont] = useState<string | undefined>(undefined);
+    useLayoutEffect(() => {
+        const el = listRef.current;
+        if (el) setOuterFont(getComputedStyle(el).fontFamily || undefined);
+    }, []);
     const [headH, setHeadH] = useState(0);
     useLayoutEffect(() => {
         const el = headRef.current;
@@ -364,7 +371,7 @@ export function MailMobileOwnScroll({
             // 계정 줄 — 덮개와 같은 좌우 여백(띠는 음수 여백으로 끝까지 나간다)
             <Box sx={{ px: `${BLEED}px`, position: "relative" }}>
                 {/* 머리 — 앱바 자리(셸이 포털로 앱바를 그린다, 화면 끝까지 · 앱바가 위로 떠 있는 동안도 자리는 지킨다) + 탭 */}
-                <Box ref={measureHeadBlock}>
+                <Box ref={measureHeadBlock} style={outerFont ? { fontFamily: outerFont } : undefined}>
                     {inList && <Box ref={setInListSlot} sx={{ mx: `-${BLEED}px`, minHeight: config.appBarHeight }} />}
                     {listHead}
                     <Box ref={measureToolbar}>{listToolbar}</Box>
@@ -434,7 +441,7 @@ export function MailMobileOwnScroll({
             {showFloat && (
                 <Box
                     ref={floatRef}
-                    style={{ transform: `translate3d(0, ${-hiddenRef.current}px, 0)` }}
+                    style={{ transform: `translate3d(0, ${-hiddenRef.current}px, 0)`, ...(outerFont ? { fontFamily: outerFont } : {}) }}
                     sx={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 3, px: `${BLEED}px`, bgcolor: config.background, willChange: "transform" }}
                 >
                     <Box ref={setFloatSlot} sx={{ mx: `-${BLEED}px`, minHeight: config.appBarHeight }} />

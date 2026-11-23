@@ -24,9 +24,12 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
     const frameRef = useRef<HTMLIFrameElement | null>(null);
     // 링크 열기 — 소비처 주입(앱 웹뷰=외부 브라우저) 우선, 없으면 부모 창의 새 탭.
     // iframe 의 <base target=_blank> 는 앱 웹뷰에서 새 창을 못 열어 링크가 먹통이었다(2026-08-31).
-    const { openExternalUrl } = useMuaConfig();
+    const { openExternalUrl, previewAttachment } = useMuaConfig();
     const openExternalRef = useRef(openExternalUrl);
     openExternalRef.current = openExternalUrl;
+    // 본문 이미지를 누르면 앱의 파일 뷰어(previewAttachment — 첨부 미리 보기와 같은 길)로 연다(2026-11-24 업무함 사용자 지적 "이미지 클릭해서 파일 뷰어로 연결이 안 돼").
+    const previewRef = useRef(previewAttachment);
+    previewRef.current = previewAttachment;
     const srcDoc = useMemo(
         // 표로 짠 메일(글 대부분이 표 안)만 폰 폭에서 좌우 여백을 뺀다(html.ts isLayoutMail · mua-layout).
         () => wrapMailDocument(html ? linkifyHtml(sanitizeMailHtml(html, allowRemoteImages)) : textToHtml(text), { layout: isLayoutMail(html) }),
@@ -92,6 +95,16 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
         const onDocClick = (event: Event) => {
             const target = event.target as Element | null;
             const anchor = target?.closest?.("a[href]") as HTMLAnchorElement | null;
+            // 링크로 감싸지 않은 이미지 — 뷰어로 연다. 링크 안의 이미지는 링크가 맡는다(배너 · 버튼 그림).
+            // iframe 안 요소라 instanceof HTMLImageElement 는 거짓이다(창이 다르다) — 태그 이름으로 가린다.
+            if (!anchor && target?.tagName === "IMG") {
+                const img = target as HTMLImageElement;
+                const preview = previewRef.current;
+                if (!preview || (!img.currentSrc && !img.src)) return;
+                event.preventDefault();
+                void openImage(img, preview);
+                return;
+            }
             if (!anchor) return;
             const href = anchor.href;
             if (!/^https?:\/\//i.test(href)) return;
@@ -99,6 +112,25 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             const open = openExternalRef.current;
             if (open) open(href);
             else window.open(href, "_blank", "noopener,noreferrer");
+        };
+        /** 이미지를 받아 뷰어로 — 남의 서버가 내려받기를 막으면(CORS) 새 창으로 그 주소를 연다. */
+        const openImage = async (img: HTMLImageElement, preview: NonNullable<typeof previewAttachment>) => {
+            const src = img.currentSrc || img.src;
+            try {
+                const res = await fetch(src);
+                if (!res.ok) throw new Error(String(res.status));
+                const blob = await res.blob();
+                const fromUrl = decodeURIComponent((src.split(/[?#]/)[0].split("/").pop() ?? "").trim());
+                const ext = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg").replace(/\+.*$/, "");
+                const base = (img.alt || "").trim() || (/\.[a-z0-9]{2,5}$/i.test(fromUrl) ? fromUrl : "") || `image.${ext}`;
+                const name = /\.[a-z0-9]{2,5}$/i.test(base) ? base : `${base}.${ext}`;
+                preview({ name, mime: blob.type || `image/${ext}`, size: blob.size, blob });
+            } catch {
+                if (!/^https?:\/\//i.test(src)) return;
+                const open = openExternalRef.current;
+                if (open) open(src);
+                else window.open(src, "_blank", "noopener,noreferrer");
+            }
         };
         let listenedDoc: Document | null = null;
         let observer: ResizeObserver | null = null;
@@ -138,6 +170,12 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
             {
                 doc.addEventListener("click", onDocClick);
                 listenedDoc = doc;
+                // 누르면 뷰어로 열리는 이미지(링크 밖) — 손가락 · 돋보기 커서로 알린다.
+                if (previewRef.current) {
+                    const style = doc.createElement("style");
+                    style.textContent = "img{cursor:zoom-in}a img{cursor:pointer}";
+                    doc.head?.appendChild(style);
+                }
                 // 문서가 커지거나 줄어들 때마다 — 이미지 지연 로드·mua-fit 개행 모두 여기서 잡힌다.
                 // iframe 자신도 함께 본다 — 창이 미끄러져 들어오며 폭이 커지는 것은 여기서만 잡힌다.
                 if (typeof ResizeObserver !== "undefined") {
