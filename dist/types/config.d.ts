@@ -165,10 +165,15 @@ export interface MuaConfig {
      * flat(0.4.56, 기본 false) — 넓은 화면 목록을 평평하게: 머리 · 목록을 한 장 흰 바탕에 구분선으로(mdl ListLayout flat), 표는 바깥 틀 없이(VDT framed=false).
      * 콘텐츠 여백까지 없애려면 소비처가 메일 화면에서 mdl useContentFullBleed() 를 함께 부른다.
      */
+    /**
+     * composeButton(0.4.96, 기본 false) — 넓은 화면 머리 줄 왼쪽에 [새 메일] 단추. 사이드바에 새 메일이 없는 앱(코드샵)만 켠다.
+     * 0.4.70 에서 뺐다 — 앱 사이드바 머리 판에 [새 메일]이 있는 앱(업무함)에서 단추가 둘로 겹쳤다. 폰은 늘 우하단 FAB 다.
+     */
     desktop?: {
         iconToolbar?: boolean;
         scopeTabs?: boolean;
         flat?: boolean;
+        composeButton?: boolean;
     };
     /**
      * 색상 라벨(0.3.158) — 켜면 목록 행에 라벨 칩, 머리 툴바 [라벨] 단추 · 우클릭 "라벨" 하위 메뉴, 갈래 탭 뒤에 라벨마다 탭,
