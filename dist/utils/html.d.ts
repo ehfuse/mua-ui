@@ -21,6 +21,11 @@ export declare function wrapMailDocument(bodyHtml: string, { layout }?: {
     layout?: boolean;
 }): string;
 /**
+ * 글이 화면 좌우 끝에 붙어 있나(본문 여백을 뺀 표 메일 — mua-layout). 글 조각(텍스트 노드)의 줄 상자를 재서
+ * 가장자리에서 `gap` px 안에 있는 글이 하나라도 있으면 참. 많은 메일도 느려지지 않게 앞 400 조각만 본다.
+ */
+export declare function edgeHuggingText(doc: Document, gap?: number): boolean;
+/**
  * 화면 폭보다 넓은 표를 가로 스크롤 상자(.mua-scroll)로 감싼다(2026-10-12).
  *
  * mua-fit 으로 고정 폭을 풀어도 줄지 않는 표가 있다 — 칸 안의 글이 줄을 바꾸지 않으면 표는 그 글 폭 아래로 못 줄어든다.

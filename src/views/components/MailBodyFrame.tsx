@@ -5,7 +5,15 @@ import { t } from "../../i18n";
 
 import { useEffect, useMemo, useRef } from "react";
 import { Box } from "@mui/material";
-import { isLayoutMail, linkifyEscapedText, linkifyHtml, sanitizeMailHtml, wrapMailDocument, wrapWideTables } from "../../utils/html";
+import {
+    isLayoutMail,
+    linkifyEscapedText,
+    linkifyHtml,
+    sanitizeMailHtml,
+    edgeHuggingText,
+    wrapMailDocument,
+    wrapWideTables,
+} from "../../utils/html";
 import { useMuaConfig } from "../../MuaProvider";
 
 interface MailBodyFrameProps {
@@ -32,7 +40,10 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
     previewRef.current = previewAttachment;
     const srcDoc = useMemo(
         // 표로 짠 메일(글 대부분이 표 안)만 폰 폭에서 좌우 여백을 뺀다(html.ts isLayoutMail · mua-layout).
-        () => wrapMailDocument(html ? linkifyHtml(sanitizeMailHtml(html, allowRemoteImages)) : textToHtml(text), { layout: isLayoutMail(html) }),
+        () =>
+            wrapMailDocument(html ? linkifyHtml(sanitizeMailHtml(html, allowRemoteImages)) : textToHtml(text), {
+                layout: isLayoutMail(html),
+            }),
         [html, text, allowRemoteImages]
     );
 
@@ -76,8 +87,20 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
                 // 접어도 안 들어오는 표는 그 표만 가로로 밀게 감싼다 — 문서 전체가 넘치면 스크롤 막대가 메일 맨 아래에만 생겨 PC 에서 못 쓴다.
                 if (shouldFit) wrapWideTables(doc);
 
+                // 폰 폭에서 좌우 여백을 뺀 표 메일(mua-layout)인데 글이 화면 끝에 붙으면 여백을 되살린다(mua-pad, 2026-11-24).
+                // 판정은 여백을 뺀 상태로 한다 — 붙인 채로 재면 늘 "안 붙는다" 가 되어 붙였다 뗐다를 되풀이한다.
+                let padChanged = false;
+                if (doc.body.classList.contains("mua-layout") && (doc.defaultView?.innerWidth ?? 0) < 600) {
+                    const wasPad = doc.body.classList.contains("mua-pad");
+                    if (wasPad) doc.body.classList.remove("mua-pad");
+                    const pad = edgeHuggingText(doc);
+                    doc.body.classList.toggle("mua-pad", pad);
+                    padChanged = pad !== wasPad;
+                    if (pad && shouldFit) wrapWideTables(doc);
+                }
+
                 // 클래스를 막 바꿨으면 레이아웃이 다시 잡힌 뒤의 높이를 재야 한다 — 강제 리플로를 한 번 일으킨다.
-                if (shouldFit !== wasFit) void doc.body.offsetHeight;
+                if (shouldFit !== wasFit || padChanged) void doc.body.offsetHeight;
                 const height = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
                 // ⚠️ 여유 8px 은 **누적되면 안 된다**(2026-09-11). iframe 을 높이면 안쪽 문서도 그만큼 커져
                 // 관찰자가 다시 돌고, 그때 또 8 을 더하면 8px 씩 끝없이 자란다(크로미움에서 1454→1462→1470 확인).
@@ -122,7 +145,8 @@ export function MailBodyFrame({ html, text, allowRemoteImages }: MailBodyFramePr
                 const blob = await res.blob();
                 const fromUrl = decodeURIComponent((src.split(/[?#]/)[0].split("/").pop() ?? "").trim());
                 const ext = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg").replace(/\+.*$/, "");
-                const base = (img.alt || "").trim() || (/\.[a-z0-9]{2,5}$/i.test(fromUrl) ? fromUrl : "") || `image.${ext}`;
+                const base =
+                    (img.alt || "").trim() || (/\.[a-z0-9]{2,5}$/i.test(fromUrl) ? fromUrl : "") || `image.${ext}`;
                 const name = /\.[a-z0-9]{2,5}$/i.test(base) ? base : `${base}.${ext}`;
                 preview({ name, mime: blob.type || `image/${ext}`, size: blob.size, blob });
             } catch {

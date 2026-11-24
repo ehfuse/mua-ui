@@ -47,7 +47,8 @@ export function linkifyHtml(html: string): string {
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
     const targets: Text[] = [];
     for (let node = walker.nextNode() as Text | null; node; node = walker.nextNode() as Text | null) {
-        if (!node.parentElement?.closest("a, script, style, textarea") && /(?:https?:\/\/|www\.)/i.test(node.data)) targets.push(node);
+        if (!node.parentElement?.closest("a, script, style, textarea") && /(?:https?:\/\/|www\.)/i.test(node.data))
+            targets.push(node);
     }
     if (targets.length === 0) return html;
     for (const node of targets) {
@@ -109,7 +110,32 @@ blockquote{margin:8px 0;padding-left:12px;border-left:3px solid #cbd5e1;color:#4
 /* mua-layout — 표로 짠 메일(뉴스레터 · 안내 메일)은 제 여백 · 배경이 있어, 폰 폭에서는 좌우 여백을 빼 화면 끝까지 쓴다
    (2026-11-09 사용자 지시 "메일 상세 본문 양쪽 여백 제거" — 우리 16px 에 메일 자신의 여백이 겹쳐 본문이 좁았다). 평문 · 글 위주 HTML(서명만 표인 메일 등)은 그대로 16px — isLayoutMail. */
 @media (max-width:599px){body.mua-layout{padding-left:0;padding-right:0;}}
+/* mua-pad — 표로 짰어도 제 여백이 없어 글이 화면 끝에 붙는 메일(2026-11-24 업무함 사용자 지적 "이메일은 왼쪽 여백이 왜 없는 거지?" — KCP 안내 메일)은
+   여백을 되살린다. 붙는지는 MailBodyFrame 이 글의 위치를 재서 정한다(edgeHuggingText). */
+@media (max-width:599px){body.mua-layout.mua-pad{padding-left:16px;padding-right:16px;}}
 </style></head><body${layout ? ' class="mua-layout"' : ""}>${bodyHtml}</body></html>`;
+}
+
+/**
+ * 글이 화면 좌우 끝에 붙어 있나(본문 여백을 뺀 표 메일 — mua-layout). 글 조각(텍스트 노드)의 줄 상자를 재서
+ * 가장자리에서 `gap` px 안에 있는 글이 하나라도 있으면 참. 많은 메일도 느려지지 않게 앞 400 조각만 본다.
+ */
+export function edgeHuggingText(doc: Document, gap = 6): boolean {
+    const width = doc.documentElement?.clientWidth ?? 0;
+    if (width <= 0) return false;
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+    const range = doc.createRange();
+    let seen = 0;
+    for (let node = walker.nextNode(); node && seen < 400; node = walker.nextNode()) {
+        if (!(node.textContent ?? "").trim()) continue;
+        seen++;
+        range.selectNodeContents(node);
+        for (const rect of Array.from(range.getClientRects())) {
+            if (rect.width <= 0 || rect.height <= 0) continue;
+            if (rect.left < gap || rect.right > width - gap) return true;
+        }
+    }
+    return false;
 }
 
 /**
