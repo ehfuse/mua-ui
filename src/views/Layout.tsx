@@ -269,9 +269,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     }, [filters.labelSeq, filters.mailAccountSeq, allLabels, allAccounts, tabLabels]);
     /** 메일 한 통에 달 수 있는 라벨 — 그 메일의 메일함 묶음(공용 메일이면 그 공용 라벨). */
     const labelsForRow = useCallback(
-        // 그 메일 자리(공용 메일함 · 개인)의 라벨 + 내 개인 라벨 이름(0.4.75 — 이름으로 다시 쓴다. 서버가 그 자리 라벨로 바꿔 달고 없으면 만든다).
-        (row: { mail_account_seq: number }) => mergeLabelsByName(labelsInScope(allLabels, labelScopeOf(allAccounts, row.mail_account_seq)), labelsInScope(allLabels, 0)),
-        [allLabels, allAccounts]
+        // 그 메일 자리(공용 메일함 · 개인)의 라벨 + 내 개인 라벨 + 탭에 선 라벨 이름(0.4.75 — 이름으로 다시 쓴다. 서버가 그 자리 라벨로 바꿔 달고 없으면 만든다).
+        // 탭 라벨도 넣는다(0.4.100, 2026-11-25 사용자 지적 "수원대학교 라벨이 왜 안 나오지") — 전체 보기 탭에는 공용 메일함 라벨이 서는데,
+        // 개인 메일의 메뉴에는 그 자리 · 개인 라벨만 떠 탭에 보이는 라벨을 달 수 없었다.
+        (row: { mail_account_seq: number }) =>
+            mergeLabelsByName(labelsInScope(allLabels, labelScopeOf(allAccounts, row.mail_account_seq)), labelsInScope(allLabels, 0), tabLabels),
+        [allLabels, allAccounts, tabLabels]
     );
     useEffect(() => {
         if (labelsEnabled && logined) void state.actions.loadLabels();
