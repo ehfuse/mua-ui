@@ -16,6 +16,8 @@ export interface MailAccountSecrets {
     incoming_password: string;
     smtp_password: string;
 }
+/** 공용 계정 공개 범위(0.4.101) — all=조직 전체, members=지정한 구성원만, units=지정한 부서(하위 포함)만. */
+export type MailShareVisibility = "all" | "members" | "units";
 /** 메일 계정(비밀번호 제외) */
 export interface MailAccount {
     seq: number;
@@ -25,6 +27,9 @@ export interface MailAccount {
     team_name?: string;
     kind?: string;
     in_sidebar?: boolean;
+    share_visibility?: MailShareVisibility;
+    share_members?: number[];
+    share_units?: number[];
     name: string;
     email: string;
     incoming_protocol: IncomingProtocol;
@@ -236,6 +241,9 @@ export interface MailAccountForm {
     seq: number;
     is_shared: boolean;
     team_seq: number;
+    share_visibility: MailShareVisibility;
+    share_members: number[];
+    share_units: number[];
     name: string;
     email: string;
     incoming_protocol: IncomingProtocol;
@@ -331,7 +339,10 @@ export interface MailHostedProfileRequest {
     signature: string;
     is_default: boolean;
 }
-export type MailAccountRequest = Omit<MailAccountForm, "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared" | "team_seq"> & {
+export type MailAccountRequest = Omit<MailAccountForm, "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared" | "team_seq" | "share_visibility" | "share_members" | "share_units"> & {
+    share_visibility?: MailShareVisibility;
+    share_members?: number[];
+    share_units?: number[];
     scope: MailAccountScope;
     team_seq?: number;
     seq?: number;

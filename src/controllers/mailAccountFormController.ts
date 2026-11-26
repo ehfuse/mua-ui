@@ -5,7 +5,7 @@ import { t } from "../i18n";
 
 import { useCallback, useState } from "react";
 import { useGlobalForm, useModal, type ActionContext } from "@ehfuse/forma";
-import { useMuaAccount } from "../MuaProvider";
+import { useMuaAccount, useMuaConfig } from "../MuaProvider";
 import { ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap } from "../apis/mailApi";
 import type { MuaModalControl } from "../types/modal";
@@ -23,6 +23,9 @@ function toForm(account: MailAccount): MailAccountForm {
         seq: account.seq,
         is_shared: account.scope === "shared",
         team_seq: Number(account.team_seq ?? 0) || 0,
+        share_visibility: account.share_visibility ?? "all",
+        share_members: account.share_members ?? [],
+        share_units: account.share_units ?? [],
         name: account.name ?? "",
         email: account.email ?? "",
         incoming_protocol: account.incoming_protocol,
@@ -48,13 +51,16 @@ function toForm(account: MailAccount): MailAccountForm {
     };
 }
 
-/** 폼 값을 요청 본문으로 변환한다. */
-export function toRequest(values: MailAccountForm): MailAccountRequest {
+/** 폼 값을 요청 본문으로 변환한다. shareScopeEnabled — 앱이 공개 범위 칸(renderShareScope)을 줬는가. */
+export function toRequest(values: MailAccountForm, shareScopeEnabled = false): MailAccountRequest {
     // has_* 플래그는 화면 안내용이라 요청에 싣지 않는다.
     const {
         seq,
         is_shared,
         team_seq,
+        share_visibility,
+        share_members,
+        share_units,
         has_incoming_password: _hasIncoming,
         has_smtp_password: _hasSmtp,
         incoming_port,
@@ -66,6 +72,8 @@ export function toRequest(values: MailAccountForm): MailAccountRequest {
         scope: is_shared ? "shared" : "personal",
         // 공용일 때만 팀을 싣는다(팀 선택 UI 는 팀 주입 앱에서만 그려진다 — 0 이면 서버가 현재 팀).
         ...(is_shared && team_seq > 0 ? { team_seq } : {}),
+        // 공개 범위 — 공용이고 앱이 그 칸을 줄 때만(주지 않는 앱이면 서버가 지금 값을 둔다).
+        ...(is_shared && shareScopeEnabled ? { share_visibility, share_members, share_units } : {}),
         ...(seq > 0 ? { seq } : {}),
         ...(incoming_port ? { incoming_port: Number(incoming_port) } : {}),
         ...(smtp_port ? { smtp_port: Number(smtp_port) } : {}),
@@ -118,6 +126,7 @@ export function useMailAccountFormController({ onSaved }: MailAccountFormControl
     const modal: MuaModalControl = useModal({ modalId: "mail-account-form-dialog" });
     // 신규 계정의 보내는 사람 이름 기본값 = 로그인 계정 이름.
     const account = useMuaAccount();
+    const shareScopeEnabled = Boolean(useMuaConfig().renderShareScope);
     const defaultSenderName = () => String(account?.name ?? "").trim();
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<MailConnectionTestResult | null>(null);
@@ -132,7 +141,7 @@ export function useMailAccountFormController({ onSaved }: MailAccountFormControl
                 return false;
             }
             try {
-                const body = toRequest(values);
+                const body = toRequest(values, shareScopeEnabled);
                 if (values.seq > 0) {
                     unwrap(await mailApi.updateAccount(values.seq, body), t("accountSaveFailed"));
                 } else {

@@ -52,6 +52,9 @@ const ROW_SMTP_SX = {
 } as const;
 /** 서명 에디터 툴바 — sm 폭에 맞춰 서명에 필요한 것만(굵게/기울임/밑줄 · 글자색 · 링크/이미지 · 서식 지우기). */
 
+/** 공개 범위 빈 목록(참조가 렌더마다 바뀌지 않게). */
+const EMPTY_SEQS: number[] = [];
+
 /** 섹션 하단 안내 문구. */
 const NOTE_SX = { fontSize: "15px", color: "#111" } as const;
 
@@ -70,11 +73,15 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
     // 모바일은 풀스크린 우→좌 슬라이드(고정 높이 없음).
     const isMobile = useIsMobile();
     // 안내 링크(앱 비밀번호 만드는 방법 등) — 앱 웹뷰는 새 탭이 없어 소비처 주입(외부 브라우저)으로 연다.
-    const { openExternalUrl, editorFontOptions } = useMuaConfig();
+    const { openExternalUrl, editorFontOptions, renderShareScope } = useMuaConfig();
     const { form, modal, testing, testResult, testConnection, removeAccount, clearTestResult } = controller;
     const seq = Number(form.useFormValue("seq") ?? 0);
     const email = String(form.useFormValue("email") ?? "");
     const isShared = Boolean(form.useFormValue("is_shared"));
+    const shareVisibility = (String(form.useFormValue("share_visibility") ?? "all") || "all") as "all" | "members" | "units";
+    const shareMembers = (form.useFormValue("share_members") as number[] | undefined) ?? EMPTY_SEQS;
+    const shareUnits = (form.useFormValue("share_units") as number[] | undefined) ?? EMPTY_SEQS;
+    const formTeamSeq = Number(form.useFormValue("team_seq") ?? 0) || 0;
     // 서명 에디터 — 작성 창(ComposeDialog)과 같은 동기화 패턴(입력→폼 / 폼→에디터, 에코 방지 ref).
     const signature = String(form.useFormValue("signature") ?? "");
     const signatureEditorRef = useRef<EhfuseEditorRef>(null);
@@ -181,6 +188,9 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
         if (seq > 0) await removeAccount(seq);
     }, [seq, removeAccount]);
 
+    // 공개 범위 칸이 볼 조직 — 고른 팀(새 공용), 없으면 현재 팀.
+    const shareTeamSeq = formTeamSeq || currentTeamSeq;
+
     const sections = useMemo<FormDialogSection[]>(
         () => [
             {
@@ -223,6 +233,19 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
                                 formControlProps={{ sx: { width: 240 } }}
                             />
                         ) : null}
+                        {/* 공개 범위(0.4.101) — 앱이 칸을 줄 때만. 조직 전체 / 구성원 / 부서 고르기는 앱의 조직도라 앱이 그린다. */}
+                        {isShared && renderShareScope
+                            ? renderShareScope({
+                                  teamSeq: shareTeamSeq,
+                                  value: { visibility: shareVisibility, members: shareMembers, units: shareUnits },
+                                  onChange: (next) => {
+                                      form.setFormValue("share_visibility", next.visibility);
+                                      form.setFormValue("share_members", next.members);
+                                      form.setFormValue("share_units", next.units);
+                                  },
+                                  disabled: !canShare,
+                              })
+                            : null}
                         {isShared ? (
                             <Typography sx={NOTE_SX}>
                                 {teams.length > 0 ? t("sharedAccountNoteTeam") : t("sharedAccountNoteCompany")}
@@ -450,6 +473,12 @@ export function MailAccountFormDialog({ controller }: MailAccountFormDialogProps
             isAdmin,
             signature,
             signatureEditorConfig,
+            renderShareScope,
+            shareVisibility,
+            shareMembers,
+            shareUnits,
+            shareTeamSeq,
+            canShare,
         ]
     );
 

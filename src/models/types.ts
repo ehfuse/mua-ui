@@ -19,6 +19,9 @@ export interface MailAccountSecrets {
     smtp_password: string; // SMTP 비밀번호
 }
 
+/** 공용 계정 공개 범위(0.4.101) — all=조직 전체, members=지정한 구성원만, units=지정한 부서(하위 포함)만. */
+export type MailShareVisibility = "all" | "members" | "units";
+
 /** 메일 계정(비밀번호 제외) */
 export interface MailAccount {
     seq: number; // 계정 seq
@@ -28,6 +31,9 @@ export interface MailAccount {
     team_name?: string; // 소속 팀 이름(칩 표시용 — 서버가 채운다)
     kind?: string; // "external"(외부 계정) | "hosted"(기업메일 사서함 — 서버 설정은 읽기 전용, 이름·서명만 고친다)
     in_sidebar?: boolean; // 보기 범위(사이드바/셸) 표시 여부 — 관리 다이얼로그는 무시하고 전부 보여준다
+    share_visibility?: MailShareVisibility; // 공용 공개 범위(0.4.101 — 서버가 주면) — 조직 전체 / 지정한 구성원 / 지정한 부서
+    share_members?: number[]; // 공개 범위가 members 일 때의 구성원 seq
+    share_units?: number[]; // 공개 범위가 units 일 때의 부서 seq
     name: string; // 표시 이름
     email: string; // 메일 주소
     incoming_protocol: IncomingProtocol; // 수신 프로토콜
@@ -243,6 +249,9 @@ export interface MailAccountForm {
     seq: number; // 0 = 신규
     is_shared: boolean; // 공용 계정 여부(요청 시 scope 로 변환)
     team_seq: number; // 공용일 때 소속 팀(팀 주입 앱 전용 — 0 이면 서버가 현재 팀)
+    share_visibility: MailShareVisibility; // 공용 공개 범위(앱이 renderShareScope 를 줄 때만 고른다 — 0.4.101)
+    share_members: number[]; // 지정한 구성원 seq
+    share_units: number[]; // 지정한 부서 seq
     name: string; // 표시 이름
     email: string; // 메일 주소
     incoming_protocol: IncomingProtocol; // 수신 프로토콜
@@ -343,8 +352,11 @@ export interface MailHostedProfileRequest {
 
 export type MailAccountRequest = Omit<
     MailAccountForm,
-    "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared" | "team_seq"
+    "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared" | "team_seq" | "share_visibility" | "share_members" | "share_units"
 > & {
+    share_visibility?: MailShareVisibility; // 공용일 때만 싣는다(앱이 공개 범위 칸을 줄 때)
+    share_members?: number[];
+    share_units?: number[];
     scope: MailAccountScope; // 개인/공용(폼 is_shared 에서 변환)
     team_seq?: number; // 공용일 때 소속 팀(생략 시 서버가 현재 팀)
     seq?: number; // 테스트 시 저장값 참조용

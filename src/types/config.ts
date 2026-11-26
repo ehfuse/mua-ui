@@ -1,3 +1,19 @@
+/**
+ * 공용 계정 공개 범위 칸(0.4.101) — 앱이 그린다. 구성원 · 부서 고르기는 앱의 조직도라 패키지가 모른다.
+ * value 를 보여 주고 바꾸면 onChange 로 돌려준다. 저장 때 그 값이 share_visibility · share_members · share_units 로 실린다.
+ */
+export interface MuaShareScopeValue {
+    visibility: "all" | "members" | "units";
+    members: number[];
+    units: number[];
+}
+export interface MuaShareScopeRenderProps {
+    teamSeq: number; // 이 공용 계정의 조직(새로 만들면 고른 조직)
+    value: MuaShareScopeValue;
+    onChange: (next: MuaShareScopeValue) => void;
+    disabled?: boolean;
+}
+
 /** MuaProvider 주입 설정 타입이다. */
 
 import type { VirtualDataTableProps } from "@ehfuse/mui-virtual-data-table";
@@ -198,6 +214,11 @@ export interface MuaConfig {
      * 서버도 팀 단위로 공용을 격리한다(팀별로 공용 메일이 다르다). 미지정이면 팀 UI 없음(단일 조직 앱).
      */
     teams?: MuaTeamOption[];
+    /**
+     * 공용 계정 공개 범위 칸(0.4.101) — 주면 계정 폼에서 공용을 켰을 때 팀 선택 아래에 그리고, 저장 때 공개 범위를 싣는다.
+     * 안 주면 칸도 없고 공개 범위를 보내지 않는다(서버가 지금 값을 둔다).
+     */
+    renderShareScope?: (props: MuaShareScopeRenderProps) => ReactNode;
     /** 현재 팀 seq — 팀 선택의 기본값(미지정/0 이면 첫 팀). */
     currentTeamSeq?: number;
     /**
