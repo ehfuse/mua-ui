@@ -368,7 +368,7 @@
     "sharedAccountDeleteOnly": "Chỉ quản trị viên hoặc người đăng ký mới có thể xóa tài khoản dùng chung",
     "sharedAccountEditOnly": "Chỉ quản trị viên hoặc người đăng ký mới có thể sửa tài khoản dùng chung",
     "sharedAccountNoteCompany": "Tất cả mọi người trong công ty đều có thể xem và gửi thư từ hộp thư đến/hộp thư đã gửi của tài khoản dùng chung này. Trạng thái đã đọc/đánh dấu sao được chia sẻ chung; thư nháp chỉ người tạo mới có thể xem. Chỉ quản trị viên hoặc người đăng ký mới có thể sửa hoặc xóa.",
-    "sharedAccountNoteTeam": "Tất cả thành viên trong nhóm đều có thể xem và gửi thư từ hộp thư đến/hộp thư đã gửi của tài khoản dùng chung này. Trạng thái đã đọc/đánh dấu sao được chia sẻ chung; thư nháp chỉ người tạo mới có thể xem. Chỉ chủ sở hữu/quản trị viên nhóm hoặc người đăng ký mới có thể sửa hoặc xóa.",
+    "sharedAccountNoteTeam": "Những người trong nhóm thuộc phạm vi công khai (mặc định là tất cả thành viên) có thể xem và gửi thư từ hộp thư đến/hộp thư đã gửi của tài khoản dùng chung này. Trạng thái đã đọc/đánh dấu sao được chia sẻ chung; thư nháp chỉ người tạo mới có thể xem. Chỉ chủ sở hữu/quản trị viên nhóm hoặc người đăng ký mới có thể sửa hoặc xóa.",
     "sharedContactEditOnly": "Chỉ quản trị viên hoặc người đăng ký mới có thể sửa hoặc xóa liên hệ dùng chung.",
     "sharedContacts": "Danh bạ dùng chung",
     "sharedFolder": "Hộp thư dùng chung",

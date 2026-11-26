@@ -368,7 +368,7 @@
     "sharedAccountDeleteOnly": "Seuls les administrateurs ou la personne qui l'a ajouté peuvent supprimer un compte partagé",
     "sharedAccountEditOnly": "Seuls les administrateurs ou la personne qui l'a ajouté peuvent modifier un compte partagé",
     "sharedAccountNoteCompany": "Tous les membres de l'entreprise peuvent consulter et envoyer des e-mails depuis la boîte de réception et les messages envoyés de ce compte partagé. Le statut de lecture et les favoris sont partagés ; les brouillons ne sont visibles que par leur auteur. Seuls les administrateurs ou la personne qui l'a ajouté peuvent le modifier ou le supprimer.",
-    "sharedAccountNoteTeam": "Tous les membres de l'équipe peuvent consulter et envoyer des e-mails depuis la boîte de réception et les messages envoyés de ce compte partagé. Le statut de lecture et les favoris sont partagés ; les brouillons ne sont visibles que par leur auteur. Seuls les propriétaires/administrateurs de l'équipe ou la personne qui l'a ajouté peuvent le modifier ou le supprimer.",
+    "sharedAccountNoteTeam": "Les membres de l'équipe compris dans la visibilité (tous par défaut) peuvent consulter et envoyer des e-mails depuis la boîte de réception et les messages envoyés de ce compte partagé. Le statut de lecture et les favoris sont partagés ; les brouillons ne sont visibles que par leur auteur. Seuls les propriétaires/administrateurs de l'équipe ou la personne qui l'a ajouté peuvent le modifier ou le supprimer.",
     "sharedContactEditOnly": "Seuls les administrateurs ou la personne qui l'a ajouté peuvent modifier ou supprimer un contact partagé.",
     "sharedContacts": "Contacts partagés",
     "sharedFolder": "Dossier partagé",

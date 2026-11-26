@@ -368,7 +368,7 @@
     "sharedAccountDeleteOnly": "Only admins or the person who added it can delete a shared account",
     "sharedAccountEditOnly": "Only admins or the person who added it can edit a shared account",
     "sharedAccountNoteCompany": "Everyone in the company can read and send from this shared account's inbox and sent mail. Read and starred marks are shared; drafts are visible only to their author. Only admins or the person who added it can edit or delete it.",
-    "sharedAccountNoteTeam": "Everyone on the team can read and send from this shared account's inbox and sent mail. Read and starred marks are shared; drafts are visible only to their author. Only team owners/admins or the person who added it can edit or delete it.",
+    "sharedAccountNoteTeam": "People on the team within the visibility setting (everyone by default) can read and send from this shared account's inbox and sent mail. Read and starred marks are shared; drafts are visible only to their author. Only team owners/admins or the person who added it can edit or delete it.",
     "sharedContactEditOnly": "Only admins or the person who added it can edit or delete a shared contact.",
     "sharedContacts": "Shared contacts",
     "sharedFolder": "Shared folder",

@@ -368,7 +368,7 @@
     "sharedAccountDeleteOnly": "仅管理员或添加者可以删除公用账号",
     "sharedAccountEditOnly": "仅管理员或添加者可以修改公用账号",
     "sharedAccountNoteCompany": "同公司的所有成员均可查阅并使用此公用账号的收件箱和已发送邮件。已读/星标状态共用，草稿仅作者可见。仅管理员或添加者可以修改或删除。",
-    "sharedAccountNoteTeam": "该团队的所有成员均可查阅并使用此公用账号的收件箱和已发送邮件。已读/星标状态共用，草稿仅作者可见。仅团队所有者/管理员或添加者可以修改或删除。",
+    "sharedAccountNoteTeam": "该团队中在公开范围内的人员（默认为全体成员）可查阅并使用此公用账号的收件箱和已发送邮件。已读/星标状态共用，草稿仅作者可见。仅团队所有者/管理员或添加者可以修改或删除。",
     "sharedContactEditOnly": "仅管理员或添加者可以修改或删除公用联系人。",
     "sharedContacts": "公用通讯录",
     "sharedFolder": "公用邮箱文件夹",

@@ -368,7 +368,7 @@
     "sharedAccountDeleteOnly": "Nur Administratoren oder die Person, die es hinzugefügt hat, können ein geteiltes Konto löschen",
     "sharedAccountEditOnly": "Nur Administratoren oder die Person, die es hinzugefügt hat, können ein geteiltes Konto bearbeiten",
     "sharedAccountNoteCompany": "Alle im Unternehmen können den Posteingang und die gesendeten E-Mails dieses geteilten Kontos einsehen und daraus senden. Gelesen- und Markierungsstatus werden geteilt; Entwürfe sind nur für den Verfasser sichtbar. Nur Administratoren oder die Person, die es hinzugefügt hat, können es bearbeiten oder löschen.",
-    "sharedAccountNoteTeam": "Alle im Team können den Posteingang und die gesendeten E-Mails dieses geteilten Kontos einsehen und daraus senden. Gelesen- und Markierungsstatus werden geteilt; Entwürfe sind nur für den Verfasser sichtbar. Nur Team-Inhaber/-Administratoren oder die Person, die es hinzugefügt hat, können es bearbeiten oder löschen.",
+    "sharedAccountNoteTeam": "Personen im Team innerhalb der Sichtbarkeit (standardmäßig alle) können den Posteingang und die gesendeten E-Mails dieses geteilten Kontos einsehen und daraus senden. Gelesen- und Markierungsstatus werden geteilt; Entwürfe sind nur für den Verfasser sichtbar. Nur Team-Inhaber/-Administratoren oder die Person, die es hinzugefügt hat, können es bearbeiten oder löschen.",
     "sharedContactEditOnly": "Nur Administratoren oder die Person, die ihn hinzugefügt hat, können einen geteilten Kontakt bearbeiten oder löschen.",
     "sharedContacts": "Geteilte Kontakte",
     "sharedFolder": "Geteilter Ordner",

@@ -368,7 +368,7 @@
     "sharedAccountDeleteOnly": "Solo gli amministratori o chi lo ha aggiunto possono eliminare un account condiviso",
     "sharedAccountEditOnly": "Solo gli amministratori o chi lo ha aggiunto possono modificare un account condiviso",
     "sharedAccountNoteCompany": "Tutti i membri dell'azienda possono visualizzare e inviare email dalla posta in arrivo e inviata di questo account condiviso. Lo stato di lettura e le stelle sono condivisi; le bozze sono visibili solo all'autore. Solo gli amministratori o chi lo ha aggiunto possono modificarlo o eliminarlo.",
-    "sharedAccountNoteTeam": "Tutti i membri del team possono visualizzare e inviare email dalla posta in arrivo e inviata di questo account condiviso. Lo stato di lettura e le stelle sono condivisi; le bozze sono visibili solo all'autore. Solo i proprietari/amministratori del team o chi lo ha aggiunto possono modificarlo o eliminarlo.",
+    "sharedAccountNoteTeam": "I membri del team inclusi nella visibilità (per impostazione predefinita tutti) possono visualizzare e inviare email dalla posta in arrivo e inviata di questo account condiviso. Lo stato di lettura e le stelle sono condivisi; le bozze sono visibili solo all'autore. Solo i proprietari/amministratori del team o chi lo ha aggiunto possono modificarlo o eliminarlo.",
     "sharedContactEditOnly": "Solo gli amministratori o chi lo ha aggiunto possono modificare o eliminare un contatto condiviso.",
     "sharedContacts": "Contatti condivisi",
     "sharedFolder": "Cartella condivisa",
