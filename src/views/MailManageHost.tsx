@@ -350,6 +350,7 @@ export function MailManageHost() {
                 rule={ruleEditing?.rule ?? null}
                 prefill={ruleEditing?.prefill ?? null}
                 folders={folders}
+                onFoldersChanged={refreshFolders}
                 onClose={() => setRuleEditing(null)}
                 onSaved={refreshRules}
             />

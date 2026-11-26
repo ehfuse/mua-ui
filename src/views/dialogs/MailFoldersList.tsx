@@ -277,7 +277,7 @@ export function MailFolderFormDialog({
     open: boolean; // 열림
     folder?: MailUserFolder | null; // 수정 대상(없으면 신규)
     onClose: () => void; // 닫기
-    onChanged: () => void; // 저장 후(목록 재조회)
+    onChanged: (created?: MailUserFolder) => void; // 저장 후(목록 재조회) — 새로 만들었으면 만든 메일함을 넘긴다(규칙 창이 바로 고른다)
 }) {
     const isMobile = useIsMobile();
     const FormDialog = useMuaFormDialog();
@@ -312,6 +312,7 @@ export function MailFolderFormDialog({
         const next = name.trim();
         if (!next) return;
         setBusy(true);
+        let created: MailUserFolder | undefined;
         try {
             const body = {
                 name: next,
@@ -325,11 +326,11 @@ export function MailFolderFormDialog({
                 unwrap(await mailApi.updateFolder(folder.seq, body), t("folderSaveFailed"));
                 SuccessAlert(t("folderSaved"));
             } else {
-                unwrap(await mailApi.createFolder(body), t("folderAddFailed"));
+                created = unwrap(await mailApi.createFolder(body), t("folderAddFailed"));
                 SuccessAlert(t("folderAdded"));
             }
             onClose();
-            onChanged();
+            onChanged(created);
         } catch (error) {
             ErrorAlert({ message: error instanceof Error ? error.message : t("folderSaveFailed") });
         } finally {

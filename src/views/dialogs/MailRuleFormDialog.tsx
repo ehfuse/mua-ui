@@ -27,6 +27,7 @@ import { OptionToggleGroup } from "../../internal/OptionToggleGroup";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
 import { MOBILE_FULL_WIDTH_ACTIONS_SX } from "../../internal/mobileActionsSx";
+import { MailFolderFormDialog } from "./MailFoldersList";
 import { useMuaFormDialog } from "../../MuaProvider";
 import { defaultMailRuleForm } from "../../models/defaults";
 import type {
@@ -43,6 +44,7 @@ interface MailRuleFormDialogProps {
     rule: MailRule | null; // 수정 대상(null = 신규)
     prefill?: MailRuleFormPrefill | null; // 신규 미리 채움(우클릭 "규칙 만들기", hints=보낸 사람 후보)
     folders: MailUserFolder[]; // 사용자 메일함(이동 대상)
+    onFoldersChanged?: () => void; // 이동 고르기에서 새 메일함을 만든 뒤(앱의 메일함 목록 다시 읽기)
     onClose: () => void; // 닫기
     onSaved: () => void; // 저장/삭제 후(목록 재조회)
 }
@@ -98,14 +100,20 @@ function toRequest(values: MailRuleForm): MailRuleRequest {
 }
 
 const INPUT_SX = { "& .MuiInputBase-input": { fontSize: 15 } };
+/** 이동 고르기의 [새 메일함 만들기] 항목 값 — 고르면 값은 그대로 두고 메일함 추가 창을 연다. */
+const NEW_FOLDER_VALUE = "__new_folder__";
 
 /** 규칙 폼 다이얼로그 */
-export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSaved }: MailRuleFormDialogProps) {
+export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, onFoldersChanged, onClose, onSaved }: MailRuleFormDialogProps) {
     const isMobile = useIsMobile();
     // 기기 뒤로가기로 닫힌다 — 취소/← 도 같은 경로로 닫아 히스토리 칸을 소비한다.
     const { requestClose } = useDialogBackClose({ open, onClose, modalId: "mail-rule-form-dialog" });
     const FormDialog = useMuaFormDialog();
     const [values, setValues] = useState<MailRuleForm>(defaultMailRuleForm);
+    // 이동 고르기의 [새 메일함 만들기](2026-11-26 사용자 지시) — 만든 메일함은 앱 목록이 다시 읽혀 올 때까지 여기서 붙여 보인다.
+    const [folderFormOpen, setFolderFormOpen] = useState(false);
+    const [createdFolders, setCreatedFolders] = useState<MailUserFolder[]>([]);
+    const folders = [...folderProp, ...createdFolders.filter((c) => !folderProp.some((f) => f.seq === c.seq))];
     const [busy, setBusy] = useState(false);
     const [applyNow, setApplyNow] = useState(false); // 저장 후 받은편지함의 기존 메일에도 바로 적용
     const [fromMenu, setFromMenu] = useState<{ index: number; anchor: HTMLElement } | null>(null); // 보낸 사람 후보 메뉴
@@ -411,6 +419,10 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                     }
                                     onChange={(e) => {
                                         const v = String(e.target.value);
+                                        if (v === NEW_FOLDER_VALUE) {
+                                            setFolderFormOpen(true);
+                                            return;
+                                        }
                                         if (v.startsWith("custom:"))
                                             patch({ move_to: "custom", mail_folder_seq: Number(v.slice(7)) || 0 });
                                         else patch({ move_to: v as MailRuleForm["move_to"], mail_folder_seq: 0 });
@@ -437,6 +449,10 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                                             {t("moveToDeletedFolder")}
                                         </MenuItem>
                                     ) : null}
+                                    <MenuItem value={NEW_FOLDER_VALUE} sx={{ fontSize: 15, color: "primary.main", gap: 1 }}>
+                                        <AddIcon sx={{ fontSize: 20 }} />
+                                        {t("createFolderButton")}
+                                    </MenuItem>
                                     <MenuItem value="spam" sx={{ fontSize: 15 }}>
                                         {t("moveToSpam")}
                                     </MenuItem>
@@ -552,6 +568,17 @@ export function MailRuleFormDialog({ open, rule, prefill, folders, onClose, onSa
                     </MenuItem>
                 ))}
             </Menu>
+            <MailFolderFormDialog
+                open={folderFormOpen}
+                onClose={() => setFolderFormOpen(false)}
+                onChanged={(created) => {
+                    if (created && created.seq > 0) {
+                        setCreatedFolders((prev) => [...prev, created]);
+                        patch({ move_to: "custom", mail_folder_seq: created.seq });
+                    }
+                    onFoldersChanged?.();
+                }}
+            />
         </>
     );
 }
