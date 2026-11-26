@@ -34,6 +34,7 @@ export interface MailAccount {
     share_visibility?: MailShareVisibility; // 공용 공개 범위(0.4.101 — 서버가 주면) — 조직 전체 / 지정한 구성원 / 지정한 부서
     share_members?: number[]; // 공개 범위가 members 일 때의 구성원 seq
     share_units?: number[]; // 공개 범위가 units 일 때의 부서 seq
+    can_manage_share?: boolean; // 공개 범위를 바꿀 수 있는가(그 조직 소유자 · 관리자 — 서버가 준다, 0.4.103)
     name: string; // 표시 이름
     email: string; // 메일 주소
     incoming_protocol: IncomingProtocol; // 수신 프로토콜
@@ -348,6 +349,9 @@ export interface MailHostedProfileRequest {
     name: string; // 보내는 사람 이름
     signature: string; // 서명(HTML)
     is_default: boolean; // 기본 발신 계정
+    share_visibility?: MailShareVisibility; // 공용 사서함 공개 범위(0.4.103 — can_manage_share 이고 앱이 칸을 줄 때만)
+    share_members?: number[];
+    share_units?: number[];
 }
 
 export type MailAccountRequest = Omit<

@@ -92,10 +92,10 @@ function AccountRow({
                     {teamName}
                 </Box>
             ) : null}
-            {/* 기업메일 사서함(kind=hosted)은 외부 계정이 아니라 팀 도메인 주소다 — 여기서는 못 고치므로
-                "개인" 대신 정체를 적는다(관리는 팀 관리 › 기업메일). */}
+            {/* 기업메일 사서함도 개인/공용을 적는다(0.4.103 — 사용자 지적 "기업메일도 개인/공용이 분리돼야지").
+                기업메일인 것은 둘째 줄 "기업메일 사서함 · 도메인" 이 말한다. */}
             <Box component="span" sx={chipSx(!teamName && isShared)}>
-                {account.kind === "hosted" ? t("hostedMail") : isShared ? t("shared") : t("personal")}
+                {isShared ? t("shared") : t("personal")}
             </Box>
         </Stack>
     );

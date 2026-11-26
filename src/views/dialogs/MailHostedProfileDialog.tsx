@@ -20,6 +20,7 @@ import { useIsMobile } from "../../internal/useIsMobile";
 import { useMuaComposeEditor, useMuaConfig, useMuaFormDialog } from "../../MuaProvider";
 import { mailApi, unwrap } from "../../apis/mailApi";
 import type { MailAccount } from "../../models/types";
+import type { MuaShareScopeValue } from "../../types/config";
 import { pastedHtmlCode } from "../../utils/pastedHtmlCode";
 
 interface MailHostedProfileDialogProps {
@@ -40,6 +41,8 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
     const [isDefault, setIsDefault] = useState(false);
     const [signature, setSignature] = useState("");
     const [saving, setSaving] = useState(false);
+    // 공용 사서함 공개 범위(0.4.103) — 그 조직 소유자 · 관리자이고 앱이 칸(renderShareScope)을 줄 때만 보이고 저장한다.
+    const [share, setShare] = useState<MuaShareScopeValue>({ visibility: "all", members: [], units: [] });
     const signatureEditorRef = useRef<EhfuseEditorRef>(null);
     // 서명 편집기 — 앱이 넘긴 쓰기 에디터(pro)가 있으면 그것을 쓴다(2026-11-01). 기본 에디터는 툴바의 HTML 단추를 받는 쪽이 없어 눌러도 아무 일이 없었다.
     const SignatureEditor = (useMuaComposeEditor().Editor ?? EhfuseEditor) as typeof EhfuseEditor;
@@ -61,12 +64,14 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
         setName(account.name ?? "");
         setIsDefault(Boolean(account.is_default));
         setSignature(account.signature ?? "");
+        setShare({ visibility: account.share_visibility ?? "all", members: account.share_members ?? [], units: account.share_units ?? [] });
         // 에디터는 defaultValue 로 초기화되지 않는 경우가 있어(재사용 마운트) 직접 밀어 넣는다.
         signatureEditorRef.current?.setHtml(account.signature ?? "");
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, seq]);
 
-    const { editorFontOptions } = useMuaConfig();
+    const { editorFontOptions, renderShareScope } = useMuaConfig();
+    const showShare = Boolean(renderShareScope && account?.scope === "shared" && account?.can_manage_share);
     const editorConfig = useMemo<EditorConfig>(
         () => ({
             placeholder: t("signaturePlaceholder"),
@@ -95,6 +100,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                     name: name.trim(),
                     signature,
                     is_default: isDefault,
+                    ...(showShare ? { share_visibility: share.visibility, share_members: share.members, share_units: share.units } : {}),
                 }),
                 t("saveFailed")
             );
@@ -133,6 +139,9 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                             fullWidth
                             autoComplete="off"
                         />
+                        {showShare && renderShareScope
+                            ? renderShareScope({ teamSeq: Number(account?.team_seq ?? 0) || 0, value: share, onChange: setShare })
+                            : null}
                         <Box
                             sx={{
                                 border: "1px solid",
@@ -161,7 +170,7 @@ export function MailHostedProfileDialog({ open, account, onClose, onSaved }: Mai
                 ),
             },
         ],
-        [account?.email, name, signature, editorConfig]
+        [account?.email, account?.team_seq, name, signature, editorConfig, showShare, renderShareScope, share]
     );
 
     return (

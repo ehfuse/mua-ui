@@ -30,6 +30,7 @@ export interface MailAccount {
     share_visibility?: MailShareVisibility;
     share_members?: number[];
     share_units?: number[];
+    can_manage_share?: boolean;
     name: string;
     email: string;
     incoming_protocol: IncomingProtocol;
@@ -338,6 +339,9 @@ export interface MailHostedProfileRequest {
     name: string;
     signature: string;
     is_default: boolean;
+    share_visibility?: MailShareVisibility;
+    share_members?: number[];
+    share_units?: number[];
 }
 export type MailAccountRequest = Omit<MailAccountForm, "seq" | "has_incoming_password" | "has_smtp_password" | "incoming_port" | "smtp_port" | "is_shared" | "team_seq" | "share_visibility" | "share_members" | "share_units"> & {
     share_visibility?: MailShareVisibility;
