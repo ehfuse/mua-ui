@@ -6,9 +6,10 @@ interface MailRuleFormDialogProps {
     folders: MailUserFolder[];
     labels?: MailLabel[];
     onFoldersChanged?: () => void;
+    onLabelsChanged?: () => void;
     onClose: () => void;
     onSaved: () => void;
 }
 /** 규칙 폼 다이얼로그 */
-export declare function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, labels, onFoldersChanged, onClose, onSaved }: MailRuleFormDialogProps): import("react").JSX.Element;
+export declare function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, labels: labelProp, onFoldersChanged, onLabelsChanged, onClose, onSaved }: MailRuleFormDialogProps): import("react").JSX.Element;
 export {};

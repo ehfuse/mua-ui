@@ -28,6 +28,7 @@ import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
 import { MOBILE_FULL_WIDTH_ACTIONS_SX } from "../../internal/mobileActionsSx";
 import { MailFolderFormDialog } from "./MailFoldersList";
+import { MailLabelFormDialog } from "./MailLabelsList";
 import { LabelCheckIcon, MailLabelChip, MailLabelDot, labelColor } from "../components/MailLabels";
 import { useMuaFormDialog } from "../../MuaProvider";
 import { defaultMailRuleForm } from "../../models/defaults";
@@ -46,8 +47,9 @@ interface MailRuleFormDialogProps {
     rule: MailRule | null; // 수정 대상(null = 신규)
     prefill?: MailRuleFormPrefill | null; // 신규 미리 채움(우클릭 "규칙 만들기", hints=보낸 사람 후보)
     folders: MailUserFolder[]; // 사용자 메일함(이동 대상)
-    labels?: MailLabel[]; // 붙일 수 있는 라벨(개인 · 내가 쓰는 공용 메일함 것) — 비면 라벨 칸을 두지 않는다(라벨을 끈 앱)
+    labels?: MailLabel[]; // 붙일 수 있는 라벨(조직 · 개인) — 주지 않으면 라벨 칸을 두지 않는다(라벨을 끈 앱). 빈 목록이면 칸은 두고 [라벨 만들기]만
     onFoldersChanged?: () => void; // 이동 고르기에서 새 메일함을 만든 뒤(앱의 메일함 목록 다시 읽기)
+    onLabelsChanged?: () => void; // 라벨 고르기에서 새 라벨을 만든 뒤(앱의 라벨 목록 다시 읽기)
     onClose: () => void; // 닫기
     onSaved: () => void; // 저장/삭제 후(목록 재조회)
 }
@@ -107,9 +109,11 @@ function toRequest(values: MailRuleForm): MailRuleRequest {
 const INPUT_SX = { "& .MuiInputBase-input": { fontSize: 15 } };
 /** 이동 고르기의 [새 메일함 만들기] 항목 값 — 고르면 값은 그대로 두고 메일함 추가 창을 연다. */
 const NEW_FOLDER_VALUE = "__new_folder__";
+/** 라벨 고르기의 [라벨 만들기] 항목 값 — 고르면 값은 그대로 두고 라벨 만들기 창을 연다. */
+const NEW_LABEL_VALUE = "__new_label__";
 
 /** 규칙 폼 다이얼로그 */
-export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, labels = [], onFoldersChanged, onClose, onSaved }: MailRuleFormDialogProps) {
+export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, labels: labelProp, onFoldersChanged, onLabelsChanged, onClose, onSaved }: MailRuleFormDialogProps) {
     const isMobile = useIsMobile();
     // 기기 뒤로가기로 닫힌다 — 취소/← 도 같은 경로로 닫아 히스토리 칸을 소비한다.
     const { requestClose } = useDialogBackClose({ open, onClose, modalId: "mail-rule-form-dialog" });
@@ -119,6 +123,14 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
     const [folderFormOpen, setFolderFormOpen] = useState(false);
     const [createdFolders, setCreatedFolders] = useState<MailUserFolder[]>([]);
     const folders = [...folderProp, ...createdFolders.filter((c) => !folderProp.some((f) => f.seq === c.seq))];
+    // 라벨 고르기의 [라벨 만들기](0.4.110 — 2026-11-27 사용자 지시 "여기서 라벨 만들 수도 있게") — 메일함 만들기와 같은 방식.
+    // 만든 라벨은 앱 목록이 다시 읽혀 올 때까지 여기서 붙여 보이고, 바로 고른 상태로 둔다.
+    const [labelFormOpen, setLabelFormOpen] = useState(false);
+    const [createdLabels, setCreatedLabels] = useState<MailLabel[]>([]);
+    const labels = useMemo(() => {
+        const base = labelProp ?? [];
+        return [...base, ...createdLabels.filter((c) => !base.some((l) => l.seq === c.seq))];
+    }, [labelProp, createdLabels]);
     const [busy, setBusy] = useState(false);
     const [applyNow, setApplyNow] = useState(false); // 저장 후 받은편지함의 기존 메일에도 바로 적용
     const [fromMenu, setFromMenu] = useState<{ index: number; anchor: HTMLElement } | null>(null); // 보낸 사람 후보 메뉴
@@ -483,7 +495,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                     </MenuItem>
                                 </TextField>
                                 {/* 라벨 붙이기(0.4.105 — 2026-11-27 사용자 지적 "라벨붙이기 동작이 안 되네") — 이동 칸과 같은 크기, 여러 개를 고른다. */}
-                                {labelGroups.length > 0 ? (
+                                {labelProp !== undefined ? (
                                     <TextField
                                         select
                                         label={t("ruleAddLabels")}
@@ -491,6 +503,10 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                         onChange={(e) => {
                                             const raw = e.target.value as unknown;
                                             const names = new Set((Array.isArray(raw) ? raw : [raw]).map(String));
+                                            if (names.has(NEW_LABEL_VALUE)) {
+                                                setLabelFormOpen(true);
+                                                return;
+                                            }
                                             // 이름 하나를 고르면 그 이름의 라벨(개인 · 공용 메일함마다)을 모두 담는다 — 서버가 메일이 든 메일함에 맞는 것 하나만 단다.
                                             patch({ label_seqs: labelGroups.filter((g) => names.has(g.key)).flatMap((g) => g.seqs) });
                                         }}
@@ -525,6 +541,10 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                                 <MailLabelDot color={labelColor(label)} />
                                             </MenuItem>
                                         ))}
+                                        <MenuItem value={NEW_LABEL_VALUE} sx={{ fontSize: 15, color: "primary.main", gap: 1 }}>
+                                            <AddIcon sx={{ fontSize: 20 }} />
+                                            {t("createLabelButton")}
+                                        </MenuItem>
                                     </TextField>
                                 ) : null}
                                 </Box>
@@ -599,7 +619,8 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                   />
                               ),
                               right: (
-                                  <Stack direction="row" spacing={1}>
+                                  // 단추 간격은 같은 창 폰 액션바와 같은 1.5(2026-11-27 사용자 지시 "액션바 버튼 간격 더 줘").
+                                  <Stack direction="row" spacing={1.5}>
                                       <Button variant="outlined" onClick={requestClose} disabled={busy}>
                                           {t("cancel")}
                                       </Button>
@@ -645,6 +666,17 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                         patch({ move_to: "custom", mail_folder_seq: created.seq });
                     }
                     onFoldersChanged?.();
+                }}
+            />
+            <MailLabelFormDialog
+                open={labelFormOpen}
+                onClose={() => setLabelFormOpen(false)}
+                onSaved={(created) => {
+                    if (created && created.seq > 0) {
+                        setCreatedLabels((prev) => [...prev, created]);
+                        setValues((prev) => ({ ...prev, label_seqs: [...prev.label_seqs.filter((seq) => seq !== created.seq), created.seq] }));
+                    }
+                    onLabelsChanged?.();
                 }}
             />
         </>

@@ -52,7 +52,9 @@ export function MailManageHost() {
     const labels = useMemo(() => storedLabels ?? [], [storedLabels]);
     // 규칙의 라벨 붙이기 후보 — 개인 라벨과 내가 쓰는 공용 메일함들의 공용 라벨 전부(규칙은 메일함을 가리지 않는다).
     // 공용 라벨은 그 공용 메일함에 온 메일에만 붙는다(서버 applyLabels). 같은 이름이 둘이면 메뉴에 둘 다 선다.
-    const ruleLabels = storedLabels ?? [];
+    // 라벨을 끈 앱이면 넘기지 않는다 — 규칙 창에 라벨 칸이 서지 않는다.
+    const labelsOn = Boolean(useMuaConfig().labels);
+    const ruleLabels = labelsOn ? (storedLabels ?? []) : undefined;
     const syncingSeqs = state.useValue("syncingSeqs") as number[];
     // 규칙 폼의 이동 대상은 보기 범위 메일함만(메일 화면과 같다).
     const folders = useMemo(() => allFolders.filter((f) => f.in_sidebar !== false), [allFolders]);
@@ -356,6 +358,7 @@ export function MailManageHost() {
                 folders={folders}
                 labels={ruleLabels}
                 onFoldersChanged={refreshFolders}
+                onLabelsChanged={() => void state.actions.loadLabels()}
                 onClose={() => setRuleEditing(null)}
                 onSaved={refreshRules}
             />
