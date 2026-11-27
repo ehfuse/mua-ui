@@ -4,7 +4,7 @@ import { formDialogLocale, t } from "../../i18n";
  * 폼은 로컬 상태로 다룬다(조건 배열 편집이 잦아 forma 바인딩보다 단순하다).
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Box,
     Button,
@@ -161,6 +161,21 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
         );
     }, [open, rule, prefill]); // eslint-disable-line react-hooks/exhaustive-deps
     const patch = useCallback((next: Partial<MailRuleForm>) => setValues((prev) => ({ ...prev, ...next })), []);
+    /**
+     * 라벨 고르기는 이름별로 하나(2026-11-27 사용자 지적 "KCP 라벨이 왜 3개야?") — 라벨은 개인 한 벌 + 공용 메일함마다 한 벌이라 같은 이름이 여럿이다.
+     * 메일 화면의 라벨 탭과 같이 이름(대소문자 · 앞뒤 공백 무시)으로 묶고, 앞의 것(개인 먼저)의 색으로 그린다.
+     */
+    const labelGroups = useMemo(() => {
+        const groups: { key: string; label: MailLabel; seqs: number[] }[] = [];
+        for (const label of labels) {
+            const key = label.name.trim().toLowerCase();
+            const group = groups.find((g) => g.key === key);
+            if (group) group.seqs.push(label.seq);
+            else groups.push({ key, label, seqs: [label.seq] });
+        }
+        return groups;
+    }, [labels]);
+    const pickedLabelNames = labelGroups.filter((g) => g.seqs.some((seq) => values.label_seqs.includes(seq))).map((g) => g.key);
     const patchCondition = useCallback(
         (index: number, next: Partial<MailRuleCondition>) =>
             setValues((prev) => ({
@@ -468,28 +483,29 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                     </MenuItem>
                                 </TextField>
                                 {/* 라벨 붙이기(0.4.105 — 2026-11-27 사용자 지적 "라벨붙이기 동작이 안 되네") — 이동 칸과 같은 크기, 여러 개를 고른다. */}
-                                {labels.length > 0 || values.label_seqs.length > 0 ? (
+                                {labelGroups.length > 0 ? (
                                     <TextField
                                         select
                                         label={t("ruleAddLabels")}
-                                        value={values.label_seqs}
+                                        value={pickedLabelNames}
                                         onChange={(e) => {
                                             const raw = e.target.value as unknown;
-                                            const next = (Array.isArray(raw) ? raw : String(raw).split(",")).map(Number).filter((seq) => seq > 0);
-                                            patch({ label_seqs: next });
+                                            const names = new Set((Array.isArray(raw) ? raw : [raw]).map(String));
+                                            // 이름 하나를 고르면 그 이름의 라벨(개인 · 공용 메일함마다)을 모두 담는다 — 서버가 메일이 든 메일함에 맞는 것 하나만 단다.
+                                            patch({ label_seqs: labelGroups.filter((g) => names.has(g.key)).flatMap((g) => g.seqs) });
                                         }}
                                         slotProps={{
                                             select: {
                                                 multiple: true,
                                                 displayEmpty: true,
                                                 renderValue: (selected) => {
-                                                    const seqs = selected as number[];
-                                                    if (seqs.length === 0) return <Box component="span" sx={{ color: "text.secondary" }}>{t("ruleNoLabels")}</Box>;
+                                                    const keys = selected as string[];
+                                                    if (keys.length === 0) return <Box component="span" sx={{ color: "text.secondary" }}>{t("ruleNoLabels")}</Box>;
                                                     return (
                                                         <Box sx={{ display: "flex", gap: 0.5, overflow: "hidden" }}>
-                                                            {seqs.map((seq) => {
-                                                                const label = labels.find((l) => l.seq === seq);
-                                                                return label ? <MailLabelChip key={seq} label={label} maxWidth={100} /> : null;
+                                                            {keys.map((key) => {
+                                                                const group = labelGroups.find((g) => g.key === key);
+                                                                return group ? <MailLabelChip key={key} label={group.label} maxWidth={100} /> : null;
                                                             })}
                                                         </Box>
                                                     );
@@ -499,10 +515,10 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                         }}
                                         sx={{ ...INPUT_SX, minWidth: 0 }}
                                     >
-                                        {labels.map((label) => (
+                                        {labelGroups.map(({ key, label }) => (
                                             // 메일 행의 라벨 메뉴(MailLabelMenu)와 같은 꼴 — 라벨 색 체크 · 이름 · 꼬리표.
-                                            <MenuItem key={label.seq} value={label.seq} sx={{ fontSize: 15, gap: 1 }}>
-                                                <LabelCheckIcon state={values.label_seqs.includes(label.seq) ? "all" : "none"} color={labelColor(label)} />
+                                            <MenuItem key={key} value={key} sx={{ fontSize: 15, gap: 1 }}>
+                                                <LabelCheckIcon state={pickedLabelNames.includes(key) ? "all" : "none"} color={labelColor(label)} />
                                                 <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                     {label.name}
                                                 </Box>
