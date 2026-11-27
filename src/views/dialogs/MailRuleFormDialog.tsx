@@ -414,7 +414,8 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                         children: (
                             <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
                                 {/* 1행 [이동 select][라벨 붙이기 select] / 2행 [읽음 스위치][중요 스위치] */}
-                                <Stack direction={isMobile ? "column" : "row"} spacing={1.5}>
+                                {/* 이동 · 라벨 두 칸은 좌우 끝까지 5:5(2026-11-27 사용자 지시 "select 간격 더 주고 좌우 끝까지 5:5") — 간격은 기본 절과 같은 2. 폰은 한 줄씩. */}
+                                <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr" }}>
                                 <TextField
                                     select
                                     label={t("move")}
@@ -433,7 +434,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                             patch({ move_to: "custom", mail_folder_seq: Number(v.slice(7)) || 0 });
                                         else patch({ move_to: v as MailRuleForm["move_to"], mail_folder_seq: 0 });
                                     }}
-                                    sx={{ ...INPUT_SX, width: { xs: "100%", sm: 260 } }}
+                                    sx={{ ...INPUT_SX, minWidth: 0 }}
                                 >
                                     <MenuItem value="" sx={{ fontSize: 15 }}>
                                         {t("dontMove")}
@@ -496,7 +497,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                             },
                                             inputLabel: { shrink: true },
                                         }}
-                                        sx={{ ...INPUT_SX, width: { xs: "100%", sm: 260 } }}
+                                        sx={{ ...INPUT_SX, minWidth: 0 }}
                                     >
                                         {labels.map((label) => (
                                             // 메일 행의 라벨 메뉴(MailLabelMenu)와 같은 꼴 — 라벨 색 체크 · 이름 · 꼬리표.
@@ -510,7 +511,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, l
                                         ))}
                                     </TextField>
                                 ) : null}
-                                </Stack>
+                                </Box>
                                 <Stack
                                     direction={isMobile ? "column" : "row"}
                                     spacing={isMobile ? 0.5 : 3}
