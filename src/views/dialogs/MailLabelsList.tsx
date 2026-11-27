@@ -324,6 +324,8 @@ export function MailLabelFormDialog({
                             <ColorSwatches value={color} onChange={setColor} />
                             {choosesScope ? (
                                 <Box sx={{ display: "grid", gap: 1 }}>
+                                    {/* 규칙 창의 "모두 만족 · 하나라도" 토글처럼 내용 폭 — 격자에 그냥 두면 칸 끝까지 늘어나 오른쪽이 빈 틀이 된다. */}
+                                    <Stack direction="row">
                                     <OptionToggleGroup
                                         value={scope}
                                         onChange={(v) => setScope((v ?? "org") as "org" | "personal")}
@@ -332,6 +334,7 @@ export function MailLabelFormDialog({
                                             { value: "personal", label: t("labelScopePersonal") },
                                         ]}
                                     />
+                                    </Stack>
                                     <Typography sx={{ fontSize: 14, color: "#64748b", wordBreak: "keep-all" }}>{t("labelScopeHint")}</Typography>
                                 </Box>
                             ) : null}
