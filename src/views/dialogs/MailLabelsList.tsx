@@ -287,23 +287,17 @@ export function MailLabelFormDialog({
     }, [name, color, busy, isEdit, label, onClose, onSaved, api, mailAccountSeq, scope]);
 
     const canDelete = isEdit && Boolean(onDeleted);
-    const remove = useCallback(() => {
+    // 확인은 창의 지우기 아이콘이 띄우는 확인 팝오버(mfd)가 한 번 묻는다 — 여기서 또 묻지 않는다.
+    const remove = useCallback(async () => {
         if (!label || !(label.seq > 0) || !onDeleted) return;
-        ConfirmDialog({
-            title: t("deleteLabel"),
-            message: t("deleteLabelConfirm", { name: label.name }),
-            onConfirm: () =>
-                void (async () => {
-                    try {
-                        unwrap(await api.remove(label.seq), t("labelDeleteFailed"));
-                        SuccessAlert(t("labelDeleted"));
-                        onClose();
-                        onDeleted();
-                    } catch (error) {
-                        ErrorAlert({ message: messageOf(error, t("labelDeleteFailed")) });
-                    }
-                })(),
-        });
+        try {
+            unwrap(await api.remove(label.seq), t("labelDeleteFailed"));
+            SuccessAlert(t("labelDeleted"));
+            onClose();
+            onDeleted();
+        } catch (error) {
+            ErrorAlert({ message: messageOf(error, t("labelDeleteFailed")) });
+        }
     }, [label, onDeleted, onClose, api]);
 
     const preview: MailLabel = { seq: 0, name: name.trim() || t("label"), color, sort_no: 0 };
