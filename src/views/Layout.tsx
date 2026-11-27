@@ -769,6 +769,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const [rowLabelMenu, setRowLabelMenu] = useState<{ position: { top: number; left: number }; row: MailMessageListItem } | null>(null);
     // scope — 새 라벨을 만들 묶음(공용 메일함 seq, 0 = 개인).
     const [labelForm, setLabelForm] = useState<{ applyTo: number[]; scope: number } | null>(null);
+    // 라벨 탭 우클릭 = 그 라벨 수정 창(0.4.111 — 2026-11-27 사용자 지시 "라벨 탭 우클릭하면 라벨 편집되게").
+    const [editingLabel, setEditingLabel] = useState<MailLabel | null>(null);
     const toggleLabel = useCallback(
         (seqs: number[], label: MailLabel, add: boolean) =>
             void state.actions.applyLabels(seqs, add ? [label.seq] : [], add ? [] : [label.seq]),
@@ -1308,6 +1310,12 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         onManage={() => requestMailManage("labels")}
                     />
                     <MailLabelFormDialog
+                        open={Boolean(editingLabel)}
+                        label={editingLabel}
+                        onClose={() => setEditingLabel(null)}
+                        onSaved={() => void state.actions.loadLabels()}
+                    />
+                    <MailLabelFormDialog
                         open={Boolean(labelForm)}
                         mailAccountSeq={labelForm?.scope ?? 0}
                         onClose={() => setLabelForm(null)}
@@ -1712,6 +1720,10 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                     <Tab
                         key={label.seq}
                         value={`label:${label.seq}`}
+                        onContextMenu={(event) => {
+                            event.preventDefault();
+                            setEditingLabel(label);
+                        }}
                         label={
                             <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, maxWidth: 160 }}>
                                 <MailLabelDot color={labelColor(label)} />
