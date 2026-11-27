@@ -228,6 +228,8 @@
     "memo": "メモ",
     "messageCount": "{{count}}通",
     "more": "その他",
+    "ruleAddLabels": "ラベルを付ける",
+    "ruleNoLabels": "付けない",
     "move": "移動",
     "moveDown": "下へ",
     "moveToDeletedFolder": "(削除済みフォルダー)へ移動",

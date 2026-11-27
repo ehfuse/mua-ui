@@ -228,6 +228,8 @@
     "memo": "Ghi chú",
     "messageCount": "{{count}} thư",
     "more": "Thêm",
+    "ruleAddLabels": "Gắn nhãn",
+    "ruleNoLabels": "Không gắn",
     "move": "Di chuyển",
     "moveDown": "Xuống dưới",
     "moveToDeletedFolder": "Di chuyển vào (hộp thư đã xóa)",

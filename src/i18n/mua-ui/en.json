@@ -228,6 +228,8 @@
     "memo": "Memo",
     "messageCount": "{{count}} messages",
     "more": "More",
+    "ruleAddLabels": "Add labels",
+    "ruleNoLabels": "No labels",
     "move": "Move",
     "moveDown": "Move down",
     "moveToDeletedFolder": "Move to (deleted folder)",

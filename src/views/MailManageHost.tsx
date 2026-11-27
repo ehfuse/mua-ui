@@ -49,6 +49,9 @@ export function MailManageHost() {
     const filters = state.useValue("filters") as MailFilters;
     const labelScope = labelScopeOf(allAccounts, filters.mailAccountSeq);
     const labels = useMemo(() => labelsInScope(storedLabels, labelScope), [storedLabels, labelScope]);
+    // 규칙의 라벨 붙이기 후보 — 개인 라벨과 내가 쓰는 공용 메일함들의 공용 라벨 전부(규칙은 메일함을 가리지 않는다).
+    // 공용 라벨은 그 공용 메일함에 온 메일에만 붙는다(서버 applyLabels). 같은 이름이 둘이면 메뉴에 둘 다 선다.
+    const ruleLabels = storedLabels ?? [];
     const syncingSeqs = state.useValue("syncingSeqs") as number[];
     // 규칙 폼의 이동 대상은 보기 범위 메일함만(메일 화면과 같다).
     const folders = useMemo(() => allFolders.filter((f) => f.in_sidebar !== false), [allFolders]);
@@ -350,6 +353,7 @@ export function MailManageHost() {
                 rule={ruleEditing?.rule ?? null}
                 prefill={ruleEditing?.prefill ?? null}
                 folders={folders}
+                labels={ruleLabels}
                 onFoldersChanged={refreshFolders}
                 onClose={() => setRuleEditing(null)}
                 onSaved={refreshRules}

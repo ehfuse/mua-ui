@@ -9,5 +9,5 @@ export declare function MailFolderFormDialog({ open, folder, onClose, onChanged,
     open: boolean;
     folder?: MailUserFolder | null;
     onClose: () => void;
-    onChanged: () => void;
+    onChanged: (created?: MailUserFolder) => void;
 }): import("react").JSX.Element;

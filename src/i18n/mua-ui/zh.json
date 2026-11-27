@@ -228,6 +228,8 @@
     "memo": "备注",
     "messageCount": "{{count}} 封",
     "more": "更多",
+    "ruleAddLabels": "添加标签",
+    "ruleNoLabels": "不添加",
     "move": "移动",
     "moveDown": "下移",
     "moveToDeletedFolder": "移动至（已删除的邮件夹）",

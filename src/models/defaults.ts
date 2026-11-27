@@ -165,4 +165,5 @@ export const defaultMailRuleForm: MailRuleForm = {
     mail_folder_seq: 0,
     mark_read: false,
     star: false,
+    label_seqs: [],
 };

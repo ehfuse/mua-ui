@@ -228,6 +228,8 @@
     "memo": "Notiz",
     "messageCount": "{{count}} Nachrichten",
     "more": "Mehr",
+    "ruleAddLabels": "Labels hinzufügen",
+    "ruleNoLabels": "Keine Labels",
     "move": "Verschieben",
     "moveDown": "Nach unten",
     "moveToDeletedFolder": "In (gelöschten Ordner) verschieben",

@@ -228,6 +228,8 @@
     "memo": "Mémo",
     "messageCount": "{{count}} e-mails",
     "more": "Plus",
+    "ruleAddLabels": "Ajouter des libellés",
+    "ruleNoLabels": "Aucun libellé",
     "move": "Déplacer",
     "moveDown": "Descendre",
     "moveToDeletedFolder": "Déplacer vers (dossier supprimé)",

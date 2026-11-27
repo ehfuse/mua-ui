@@ -392,6 +392,12 @@ export const applyMessageAction =
             }
             else for (const seq of targets) keptReadRows.delete(seq);
             for (const seq of targets) patchLocalMessage(context, seq, { is_read: action === "read" });
+            // 안 읽음 목록에서 읽음으로 바꿨으면 목록을 조용히 다시 받는다(0.4.105 — 2026-11-27 사용자 지적 "안 읽음 탭에서 전체 선택 → 읽음 뒤
+            // 다시 안 읽은 메일이 올라왔는데 전체 선택해도 읽음 표시가 꺼져 있다"). 목록은 첫 쪽만 받아 두므로 서버에 남은 안 읽은 메일은
+            // 다시 받아야 줄로 들어온다 — 건수만 다시 읽어 탭엔 74 가 뜨는데 목록엔 방금 읽은 줄만 남아, 전체 선택이 읽은 줄만 골랐다.
+            // 방금 읽은 줄은 keptReadRows 가 그대로 끼워 둔다.
+            const filters = context.getValue("filters") as MailFilters;
+            if (action === "read" && filters.unreadOnly) void loadMessages()(context, { silent: true, refill: rows.length });
         } else if (action === "star" || action === "unstar") {
             for (const seq of targets) patchLocalMessage(context, seq, { is_starred: action === "star" });
         } else {

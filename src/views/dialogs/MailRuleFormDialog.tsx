@@ -28,6 +28,7 @@ import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
 import { MOBILE_FULL_WIDTH_ACTIONS_SX } from "../../internal/mobileActionsSx";
 import { MailFolderFormDialog } from "./MailFoldersList";
+import { LabelCheckIcon, MailLabelChip, MailLabelDot, labelColor } from "../components/MailLabels";
 import { useMuaFormDialog } from "../../MuaProvider";
 import { defaultMailRuleForm } from "../../models/defaults";
 import type {
@@ -35,6 +36,7 @@ import type {
     MailRuleCondition,
     MailRuleForm,
     MailRuleFormPrefill,
+    MailLabel,
     MailRuleRequest,
     MailUserFolder,
 } from "../../models/types";
@@ -44,6 +46,7 @@ interface MailRuleFormDialogProps {
     rule: MailRule | null; // 수정 대상(null = 신규)
     prefill?: MailRuleFormPrefill | null; // 신규 미리 채움(우클릭 "규칙 만들기", hints=보낸 사람 후보)
     folders: MailUserFolder[]; // 사용자 메일함(이동 대상)
+    labels?: MailLabel[]; // 붙일 수 있는 라벨(개인 · 내가 쓰는 공용 메일함 것) — 비면 라벨 칸을 두지 않는다(라벨을 끈 앱)
     onFoldersChanged?: () => void; // 이동 고르기에서 새 메일함을 만든 뒤(앱의 메일함 목록 다시 읽기)
     onClose: () => void; // 닫기
     onSaved: () => void; // 저장/삭제 후(목록 재조회)
@@ -79,6 +82,7 @@ function toForm(rule: MailRule): MailRuleForm {
         mail_folder_seq: rule.actions.mail_folder_seq ?? 0,
         mark_read: Boolean(rule.actions.mark_read),
         star: Boolean(rule.actions.star),
+        label_seqs: Array.isArray(rule.actions.label_seqs) ? rule.actions.label_seqs.filter((seq) => seq > 0) : [],
     };
 }
 
@@ -95,6 +99,7 @@ function toRequest(values: MailRuleForm): MailRuleRequest {
             ...(values.move_to === "custom" ? { mail_folder_seq: values.mail_folder_seq } : {}),
             ...(values.mark_read ? { mark_read: true } : {}),
             ...(values.star ? { star: true } : {}),
+            ...(values.label_seqs.length > 0 ? { label_seqs: values.label_seqs } : {}),
         },
     };
 }
@@ -104,7 +109,7 @@ const INPUT_SX = { "& .MuiInputBase-input": { fontSize: 15 } };
 const NEW_FOLDER_VALUE = "__new_folder__";
 
 /** 규칙 폼 다이얼로그 */
-export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, onFoldersChanged, onClose, onSaved }: MailRuleFormDialogProps) {
+export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, labels = [], onFoldersChanged, onClose, onSaved }: MailRuleFormDialogProps) {
     const isMobile = useIsMobile();
     // 기기 뒤로가기로 닫힌다 — 취소/← 도 같은 경로로 닫아 히스토리 칸을 소비한다.
     const { requestClose } = useDialogBackClose({ open, onClose, modalId: "mail-rule-form-dialog" });
@@ -171,7 +176,7 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, o
             WarningAlert({ message: t("enterConditionValue") });
             return;
         }
-        if (!values.move_to && !values.mark_read && !values.star) {
+        if (!values.move_to && !values.mark_read && !values.star && values.label_seqs.length === 0) {
             WarningAlert({ message: t("pickAction") });
             return;
         }
@@ -408,7 +413,8 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, o
                         showTitle: true,
                         children: (
                             <Box sx={{ display: "grid", gap: 1.5, width: "100%" }}>
-                                {/* 1행 [이동 select] / 2행 [읽음 스위치][중요 스위치] */}
+                                {/* 1행 [이동 select][라벨 붙이기 select] / 2행 [읽음 스위치][중요 스위치] */}
+                                <Stack direction={isMobile ? "column" : "row"} spacing={1.5}>
                                 <TextField
                                     select
                                     label={t("move")}
@@ -460,6 +466,51 @@ export function MailRuleFormDialog({ open, rule, prefill, folders: folderProp, o
                                         {t("moveToTrash")}
                                     </MenuItem>
                                 </TextField>
+                                {/* 라벨 붙이기(0.4.105 — 2026-11-27 사용자 지적 "라벨붙이기 동작이 안 되네") — 이동 칸과 같은 크기, 여러 개를 고른다. */}
+                                {labels.length > 0 || values.label_seqs.length > 0 ? (
+                                    <TextField
+                                        select
+                                        label={t("ruleAddLabels")}
+                                        value={values.label_seqs}
+                                        onChange={(e) => {
+                                            const raw = e.target.value as unknown;
+                                            const next = (Array.isArray(raw) ? raw : String(raw).split(",")).map(Number).filter((seq) => seq > 0);
+                                            patch({ label_seqs: next });
+                                        }}
+                                        slotProps={{
+                                            select: {
+                                                multiple: true,
+                                                displayEmpty: true,
+                                                renderValue: (selected) => {
+                                                    const seqs = selected as number[];
+                                                    if (seqs.length === 0) return <Box component="span" sx={{ color: "text.secondary" }}>{t("ruleNoLabels")}</Box>;
+                                                    return (
+                                                        <Box sx={{ display: "flex", gap: 0.5, overflow: "hidden" }}>
+                                                            {seqs.map((seq) => {
+                                                                const label = labels.find((l) => l.seq === seq);
+                                                                return label ? <MailLabelChip key={seq} label={label} maxWidth={100} /> : null;
+                                                            })}
+                                                        </Box>
+                                                    );
+                                                },
+                                            },
+                                            inputLabel: { shrink: true },
+                                        }}
+                                        sx={{ ...INPUT_SX, width: { xs: "100%", sm: 260 } }}
+                                    >
+                                        {labels.map((label) => (
+                                            // 메일 행의 라벨 메뉴(MailLabelMenu)와 같은 꼴 — 라벨 색 체크 · 이름 · 꼬리표.
+                                            <MenuItem key={label.seq} value={label.seq} sx={{ fontSize: 15, gap: 1 }}>
+                                                <LabelCheckIcon state={values.label_seqs.includes(label.seq) ? "all" : "none"} color={labelColor(label)} />
+                                                <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                    {label.name}
+                                                </Box>
+                                                <MailLabelDot color={labelColor(label)} />
+                                            </MenuItem>
+                                        ))}
+                                    </TextField>
+                                ) : null}
+                                </Stack>
                                 <Stack
                                     direction={isMobile ? "column" : "row"}
                                     spacing={isMobile ? 0.5 : 3}

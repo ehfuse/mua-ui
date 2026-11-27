@@ -228,6 +228,8 @@
     "memo": "Promemoria",
     "messageCount": "{{count}} messaggi",
     "more": "Altro",
+    "ruleAddLabels": "Aggiungi etichette",
+    "ruleNoLabels": "Nessuna etichetta",
     "move": "Sposta",
     "moveDown": "Sposta giù",
     "moveToDeletedFolder": "Sposta in (cartella eliminata)",

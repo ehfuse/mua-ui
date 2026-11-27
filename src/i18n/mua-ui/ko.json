@@ -228,6 +228,8 @@
     "memo": "메모",
     "messageCount": "{{count}}통",
     "more": "더보기",
+    "ruleAddLabels": "라벨 붙이기",
+    "ruleNoLabels": "붙이지 않음",
     "move": "이동",
     "moveDown": "아래로",
     "moveToDeletedFolder": "(삭제된 메일함)으로 이동",

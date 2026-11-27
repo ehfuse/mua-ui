@@ -437,6 +437,7 @@ export interface MailRuleActions {
     mail_folder_seq?: number; // 이동할 메일함
     mark_read?: boolean; // 읽음으로 표시
     star?: boolean; // 중요 표시
+    label_seqs?: number[]; // 붙일 색상 라벨(개인 라벨 · 그 공용 메일함의 공용 라벨, 0.4.105)
 }
 
 /** 규칙 */
@@ -469,6 +470,7 @@ export interface MailRuleForm {
     mail_folder_seq: number; // 이동할 메일함
     mark_read: boolean; // 읽음으로 표시
     star: boolean; // 중요 표시
+    label_seqs: number[]; // 붙일 라벨
 }
 
 /** 규칙 폼 미리 채움(우클릭 "규칙 만들기") — hints 는 저장되지 않고 보낸 사람 값 후보(주소/이름)로만 쓴다 */
