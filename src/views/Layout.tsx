@@ -250,7 +250,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
     const tabLabels = useMemo(() => tabLabelsOf(allLabels, allAccounts, filters.mailAccountSeq), [allLabels, allAccounts, filters.mailAccountSeq]);
     // 고른 메일들에 다는 메뉴(0.4.75) — 공용 메일함을 보면 그 라벨 + 내 개인 라벨 이름, 전체 · 개인 보기면 탭과 같은 이름 목록.
     const menuLabels = useMemo(
-        () => (labelScope > 0 ? mergeLabelsByName(labels, labelsInScope(allLabels, 0)) : tabLabels),
+        // 공용 메일함을 보면 조직 라벨만(개인 라벨은 공용 메일에 달지 않는다 — 0.4.108), 아니면 탭과 같은 목록.
+        () => (labelScope > 0 ? labels : tabLabels),
         [labelScope, labels, allLabels, tabLabels]
     );
     /** 라벨 탭을 골랐다 — 같은 이름 라벨 묶음까지 함께 거른다. */
@@ -273,7 +274,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
         // 탭 라벨도 넣는다(0.4.100, 2026-11-25 사용자 지적 "수원대학교 라벨이 왜 안 나오지") — 전체 보기 탭에는 공용 메일함 라벨이 서는데,
         // 개인 메일의 메뉴에는 그 자리 · 개인 라벨만 떠 탭에 보이는 라벨을 달 수 없었다.
         (row: { mail_account_seq: number }) =>
-            mergeLabelsByName(labelsInScope(allLabels, labelScopeOf(allAccounts, row.mail_account_seq)), labelsInScope(allLabels, 0), tabLabels),
+            mergeLabelsByName(labelsInScope(allLabels, labelScopeOf(allAccounts, row.mail_account_seq))),
         [allLabels, allAccounts, tabLabels]
     );
     useEffect(() => {

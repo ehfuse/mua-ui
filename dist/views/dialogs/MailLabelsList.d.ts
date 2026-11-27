@@ -26,6 +26,6 @@ export declare function MailLabelFormDialog({ open, label, onClose, onSaved, api
     onClose: () => void;
     onSaved: (label: MailLabel) => void;
     api?: LabelApi;
-    /** 새로 만들 때 — 공용 메일함 seq 면 그 메일함의 공용 라벨로 만든다(0 = 개인 라벨, 2026-11-11). */
+    /** 새로 만들 때 — 공용 메일함 seq 면 조직 라벨로만 만든다(공용 메일에는 개인 라벨을 달 수 없다 — 0.4.108). 0 이면 조직 · 개인을 고른다. */
     mailAccountSeq?: number;
 }): import("react").JSX.Element;

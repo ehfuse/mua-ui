@@ -18,6 +18,7 @@ import { Tooltip } from "../../internal/Tooltip";
 import { useIsMobile } from "../../internal/useIsMobile";
 import { useDialogBackClose } from "../../internal/useDialogBackClose";
 import { useMuaFormDialog } from "../../MuaProvider";
+import { OptionToggleGroup } from "../../internal/OptionToggleGroup";
 import type { MailLabel } from "../../models/types";
 import { LABEL_COLORS, MailLabelChip, labelColor, labelTextColor } from "../components/MailLabels";
 
@@ -79,8 +80,14 @@ function LabelRow({
                 bgcolor: "#fff",
             }}
         >
-            <Box sx={{ flex: 1, minWidth: 0, display: "flex" }}>
+            <Box sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 1 }}>
                 <MailLabelChip label={label} maxWidth={360} />
+                {/* 조직 · 개인(0.4.108) — 메일 라벨만 서버가 scope 를 준다(주소록 라벨은 없다). */}
+                {label.scope ? (
+                    <Typography component="span" sx={{ fontSize: 14, color: "#64748b", whiteSpace: "nowrap" }}>
+                        {label.scope === "org" ? t("labelScopeOrg") : t("labelScopePersonal")}
+                    </Typography>
+                ) : null}
             </Box>
             <Stack direction="row" spacing={0.25} alignItems="center">
                 <Tooltip title={t("moveUp")}>
@@ -166,8 +173,9 @@ export function MailLabelsList({
                 <LabelRow
                     key={label.seq}
                     label={label}
-                    first={index === 0}
-                    last={index === labels.length - 1}
+                    // 순서는 조직 · 개인 묶음 안에서만 바꾼다(서버도 묶음마다 센다) — 묶음 끝에서는 막는다.
+                    first={index === 0 || labels[index - 1].scope !== label.scope}
+                    last={index === labels.length - 1 || labels[index + 1].scope !== label.scope}
                     onEdit={() => setEditing(label)}
                     onMove={(dir) => void move(index, dir)}
                     onDelete={() => remove(label)}
@@ -232,7 +240,7 @@ export function MailLabelFormDialog({
     onClose: () => void;
     onSaved: (label: MailLabel) => void;
     api?: LabelApi;
-    /** 새로 만들 때 — 공용 메일함 seq 면 그 메일함의 공용 라벨로 만든다(0 = 개인 라벨, 2026-11-11). */
+    /** 새로 만들 때 — 공용 메일함 seq 면 조직 라벨로만 만든다(공용 메일에는 개인 라벨을 달 수 없다 — 0.4.108). 0 이면 조직 · 개인을 고른다. */
     mailAccountSeq?: number;
 }) {
     const isMobile = useIsMobile();
@@ -242,8 +250,12 @@ export function MailLabelFormDialog({
     const [name, setName] = useState("");
     const [color, setColor] = useState(LABEL_COLORS[5].color);
     const [busy, setBusy] = useState(false);
+    // 조직 · 개인 고르기(0.4.108 — 2026-11-27 사용자 지시 "조직 라벨로 합쳐서") — 메일 라벨을 새로 만들 때만. 기본은 조직(같이 쓰는 업무 분류).
+    const choosesScope = api === mailLabelApi && !isEdit && !(mailAccountSeq > 0);
+    const [scope, setScope] = useState<"org" | "personal">("org");
     useEffect(() => {
         if (!open) return;
+        setScope("org");
         setName(label?.name ?? "");
         setColor(label ? labelColor(label) : LABEL_COLORS[5].color);
     }, [open, label]);
@@ -257,7 +269,9 @@ export function MailLabelFormDialog({
                 isEdit && label
                     ? unwrap(await api.update(label.seq, { name: next, color }), t("labelSaveFailed"))
                     : unwrap(
-                          await api.create(mailAccountSeq > 0 ? { name: next, color, mail_account_seq: mailAccountSeq } : { name: next, color }),
+                          await api.create(
+                              api === mailLabelApi ? { name: next, color, scope: mailAccountSeq > 0 ? "org" : scope } : { name: next, color }
+                          ),
                           t("labelCreateFailed")
                       );
             onClose();
@@ -267,7 +281,7 @@ export function MailLabelFormDialog({
         } finally {
             setBusy(false);
         }
-    }, [name, color, busy, isEdit, label, onClose, onSaved, api, mailAccountSeq]);
+    }, [name, color, busy, isEdit, label, onClose, onSaved, api, mailAccountSeq, scope]);
 
     const preview: MailLabel = { seq: 0, name: name.trim() || t("label"), color, sort_no: 0 };
     const saveButton = (
@@ -308,6 +322,19 @@ export function MailLabelFormDialog({
                                 slotProps={{ htmlInput: { maxLength: 50, style: { fontSize: 15 } } }}
                             />
                             <ColorSwatches value={color} onChange={setColor} />
+                            {choosesScope ? (
+                                <Box sx={{ display: "grid", gap: 1 }}>
+                                    <OptionToggleGroup
+                                        value={scope}
+                                        onChange={(v) => setScope((v ?? "org") as "org" | "personal")}
+                                        options={[
+                                            { value: "org", label: t("labelScopeOrg") },
+                                            { value: "personal", label: t("labelScopePersonal") },
+                                        ]}
+                                    />
+                                    <Typography sx={{ fontSize: 14, color: "#64748b", wordBreak: "keep-all" }}>{t("labelScopeHint")}</Typography>
+                                </Box>
+                            ) : null}
                         </Box>
                     ),
                 },

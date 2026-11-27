@@ -107,6 +107,8 @@ export interface MailMessageListItem {
 export interface MailLabel {
     seq: number;
     mail_account_seq?: number;
+    team_seq?: number;
+    scope?: "org" | "personal";
     name: string;
     color: string;
     sort_no: number;

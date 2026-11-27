@@ -4,7 +4,7 @@ import { t } from "../i18n";
  */
 
 import type { ActionContext } from "@ehfuse/forma";
-import { ErrorAlert, SuccessAlert } from "@ehfuse/alerts";
+import { ErrorAlert, SuccessAlert, WarningAlert } from "@ehfuse/alerts";
 import { mailApi, unwrap, type BulkMessageAction, type ListMessagesParams } from "../apis/mailApi";
 import { listParamsKey, takeMailScreenEntry } from "../internal/screenEntry";
 import { emitMailCounts } from "../internal/mailCountsFeed";
@@ -528,13 +528,15 @@ export const applyLabels =
     async (context: ActionContext<MailState>, seqs: number[], add: number[], remove: number[]): Promise<boolean> => {
         const targets = Array.from(new Set(seqs.filter((s) => s > 0)));
         if (targets.length === 0 || (add.length === 0 && remove.length === 0)) return false;
-        let result: { messages?: { seq: number; label_seqs: number[] }[]; created?: MailLabel[] };
+        let result: { messages?: { seq: number; label_seqs: number[] }[]; created?: MailLabel[]; skipped?: number };
         try {
             result = unwrap(await mailApi.applyLabels(targets, add, remove), t("labelChangeFailed"));
         } catch (error) {
             ErrorAlert({ message: messageOf(error, t("labelChangeFailed")) });
             return false;
         }
+        // 공용 메일함 메일에는 개인 라벨을 달지 않는다(0.4.108) — 건너뛴 통수를 알린다.
+        if ((result?.skipped ?? 0) > 0) WarningAlert({ message: t("labelPersonalSkipped", { count: result.skipped }) });
         // 서버가 메일 자리에 맞는 같은 이름 라벨을 달았거나 새로 만들었으면(0.4.75) 그 값으로 맞춘다.
         if ((result?.created?.length ?? 0) > 0) context.setValue("labels", [...((context.getValue("labels") as MailLabel[]) ?? []), ...(result.created ?? [])]);
         const applied = new Map((result?.messages ?? []).map((m) => [m.seq, m.label_seqs]));

@@ -18,7 +18,7 @@ import { Box, Drawer } from "@mui/material";
 import { ConfirmDialog, ErrorAlert } from "@ehfuse/alerts";
 import { useModal } from "@ehfuse/forma";
 import { mailApi, unwrap } from "../apis/mailApi";
-import { labelScopeOf, labelsInScope } from "../models/labelScope";
+import { labelScopeOf } from "../models/labelScope";
 import { useMailController } from "../controllers/mailController";
 import { useMailAccountFormController } from "../controllers/mailAccountFormController";
 import { useSenderContacts } from "../controllers/senderContacts";
@@ -48,7 +48,8 @@ export function MailManageHost() {
     // 라벨 관리는 지금 메일 화면에서 보는 메일함의 묶음 — 공용 메일함이면 그 공용 라벨(같이 쓰는 사람 모두의 것, 2026-11-11).
     const filters = state.useValue("filters") as MailFilters;
     const labelScope = labelScopeOf(allAccounts, filters.mailAccountSeq);
-    const labels = useMemo(() => labelsInScope(storedLabels, labelScope), [storedLabels, labelScope]);
+    // 관리 목록은 내가 보는 라벨 전부(조직 먼저, 0.4.108). 새로 만들 때만 공용 메일함을 보는 중이면 조직 라벨로 정한다(labelScope).
+    const labels = useMemo(() => storedLabels ?? [], [storedLabels]);
     // 규칙의 라벨 붙이기 후보 — 개인 라벨과 내가 쓰는 공용 메일함들의 공용 라벨 전부(규칙은 메일함을 가리지 않는다).
     // 공용 라벨은 그 공용 메일함에 온 메일에만 붙는다(서버 applyLabels). 같은 이름이 둘이면 메뉴에 둘 다 선다.
     const ruleLabels = storedLabels ?? [];

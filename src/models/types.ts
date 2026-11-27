@@ -116,7 +116,9 @@ export interface MailMessageListItem {
 /** 색상 라벨(사람마다) — 서버 mail_label */
 export interface MailLabel {
     seq: number; // 라벨 seq
-    mail_account_seq?: number; // 0 · 없음 = 개인 라벨, 그 외 = 이 공용 메일함의 공용 라벨(같이 쓰는 사람 모두가 쓴다 — 2026-11-11)
+    mail_account_seq?: number; // 옛 공용 라벨 칸(공용 메일함마다 한 벌, 2026-11-11) — 0.4.108 부터 서버는 늘 0
+    team_seq?: number; // 0 = 개인 라벨, 그 외 = 이 조직의 조직 라벨(조직 사람 모두가 쓴다 — 0.4.108)
+    scope?: "org" | "personal"; // 서버가 team_seq 로 정해 준다
     name: string; // 이름
     color: string; // 칩 바탕색 #rrggbb
     sort_no: number; // 순서
