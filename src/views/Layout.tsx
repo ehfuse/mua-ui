@@ -1314,6 +1314,7 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                         label={editingLabel}
                         onClose={() => setEditingLabel(null)}
                         onSaved={() => void state.actions.loadLabels()}
+                        onDeleted={() => void state.actions.loadLabels()}
                     />
                     <MailLabelFormDialog
                         open={Boolean(labelForm)}

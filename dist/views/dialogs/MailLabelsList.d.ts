@@ -20,11 +20,13 @@ export declare function MailLabelsList({ labels, onChanged, api, }: {
     api?: LabelApi;
 }): import("react").JSX.Element;
 /** 라벨 만들기/고치기 창 — label 이 있으면 고치기. 저장하면 onSaved(저장한 라벨). */
-export declare function MailLabelFormDialog({ open, label, onClose, onSaved, api, mailAccountSeq, }: {
+export declare function MailLabelFormDialog({ open, label, onClose, onSaved, api, mailAccountSeq, onDeleted, }: {
     open: boolean;
     label?: MailLabel | null;
     onClose: () => void;
     onSaved: (label: MailLabel) => void;
+    /** 고칠 때 — 주면 제목 줄에 지우기 아이콘이 선다(0.4.112 — 라벨 탭 오른쪽 클릭 수정 창에서도 지우게). 지운 뒤 부른다. */
+    onDeleted?: () => void;
     api?: LabelApi;
     /** 새로 만들 때 — 공용 메일함 seq 면 조직 라벨로만 만든다(공용 메일에는 개인 라벨을 달 수 없다 — 0.4.108). 0 이면 조직 · 개인을 고른다. */
     mailAccountSeq?: number;

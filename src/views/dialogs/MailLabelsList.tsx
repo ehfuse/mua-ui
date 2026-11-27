@@ -181,7 +181,7 @@ export function MailLabelsList({
                     onDelete={() => remove(label)}
                 />
             ))}
-            <MailLabelFormDialog open={Boolean(editing)} label={editing} api={api} onClose={() => setEditing(null)} onSaved={() => onChanged()} />
+            <MailLabelFormDialog open={Boolean(editing)} label={editing} api={api} onClose={() => setEditing(null)} onSaved={() => onChanged()} onDeleted={() => onChanged()} />
         </Box>
     );
 }
@@ -234,11 +234,14 @@ export function MailLabelFormDialog({
     onSaved,
     api = mailLabelApi,
     mailAccountSeq = 0,
+    onDeleted,
 }: {
     open: boolean;
     label?: MailLabel | null;
     onClose: () => void;
     onSaved: (label: MailLabel) => void;
+    /** 고칠 때 — 주면 제목 줄에 지우기 아이콘이 선다(0.4.112 — 라벨 탭 오른쪽 클릭 수정 창에서도 지우게). 지운 뒤 부른다. */
+    onDeleted?: () => void;
     api?: LabelApi;
     /** 새로 만들 때 — 공용 메일함 seq 면 조직 라벨로만 만든다(공용 메일에는 개인 라벨을 달 수 없다 — 0.4.108). 0 이면 조직 · 개인을 고른다. */
     mailAccountSeq?: number;
@@ -283,6 +286,26 @@ export function MailLabelFormDialog({
         }
     }, [name, color, busy, isEdit, label, onClose, onSaved, api, mailAccountSeq, scope]);
 
+    const canDelete = isEdit && Boolean(onDeleted);
+    const remove = useCallback(() => {
+        if (!label || !(label.seq > 0) || !onDeleted) return;
+        ConfirmDialog({
+            title: t("deleteLabel"),
+            message: t("deleteLabelConfirm", { name: label.name }),
+            onConfirm: () =>
+                void (async () => {
+                    try {
+                        unwrap(await api.remove(label.seq), t("labelDeleteFailed"));
+                        SuccessAlert(t("labelDeleted"));
+                        onClose();
+                        onDeleted();
+                    } catch (error) {
+                        ErrorAlert({ message: messageOf(error, t("labelDeleteFailed")) });
+                    }
+                })(),
+        });
+    }, [label, onDeleted, onClose, api]);
+
     const preview: MailLabel = { seq: 0, name: name.trim() || t("label"), color, sort_no: 0 };
     const saveButton = (
         <Button variant="contained" onClick={() => void save()} disabled={busy || !name.trim()}>
@@ -297,7 +320,8 @@ export function MailLabelFormDialog({
             open={open}
             onClose={requestClose}
             title={{ text: isEdit ? t("editLabel") : t("newLabel") }}
-            titleIcons={{ delete: { visible: false } }}
+            titleIcons={{ delete: { visible: canDelete } }}
+            onDelete={canDelete ? remove : undefined}
             tabs={{ visible: false }}
             locale={formDialogLocale()}
             maxWidth="xs"
