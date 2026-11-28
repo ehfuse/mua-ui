@@ -1136,6 +1136,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
      * 높이를 정해 주면 목록은 표 스크롤러가, 상세는 상세 패널의 본문 영역이 각자 스크롤한다.
      */
     const [splitHeight, setSplitHeight] = useState<number | null>(null);
+    const desktopFlatRef = useRef(false);
+    desktopFlatRef.current = Boolean(muaConfig.desktop?.flat) && !isMobile;
     useEffect(() => {
         const wrap = tableWrapRef.current;
         if (!isSplit || !wrap) {
@@ -1149,7 +1151,8 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
             const top = wrap.getBoundingClientRect().top;
             const viewBottom = parent ? parent.getBoundingClientRect().top + parent.clientHeight : window.innerHeight;
             // 아래 여백은 본문 위아래 여백과 같게(24px) 둔다 — 붙이면 상세 패널 그림자가 잘린다.
-            setSplitHeight(Math.max(360, Math.floor(viewBottom - top - 24)));
+            // 평평하게(flat)는 본문 여백 · 그림자가 없어 아래 끝까지 붙인다(2026-11-28 사용자 지적 "하단에 여백").
+            setSplitHeight(Math.max(360, Math.floor(viewBottom - top - (desktopFlatRef.current ? 0 : 24))));
         };
         measure();
         const observer = new ResizeObserver(measure);
