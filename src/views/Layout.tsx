@@ -1768,6 +1768,9 @@ export default function MailLayout({ embedded }: MailLayoutProps = {}) {
                 {...(desktopScopeTabs ? { leftPanel: scopeTabsPanel } : {})}
                 tableProps={listTableProps}
                 onEscape={() => state.actions.clearSelection()}
+                // 목록 칸 최소 폭(2026-11-28) — 저장된 경계 비율이 목록을 10% 로 좁혀 두면 목록 내용에 밀려 분할 틀이 창보다 넓어지고
+                // 상세 X · 머리 줄 오른쪽 단추가 화면 밖으로 나갔다(PC 앱).
+                leftConfig={isSplit ? { minWidth: 360 } : undefined}
                 rightConfig={
                     isSplit ? { visible: Boolean(detail) || loadingDetail, ratio: 0.5, minWidth: 420 } : undefined
                 }
